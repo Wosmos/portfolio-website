@@ -1,3 +1,4 @@
+'use client';
 import React from 'react';
 import { CgWorkAlt } from 'react-icons/cg';
 import moviesAppImage from '@/public/corpcomment.png';

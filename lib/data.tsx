@@ -1,4 +1,4 @@
-'use client';
+
 import React from 'react';
 import { CgWorkAlt } from 'react-icons/cg';
 import moviesAppImage from '@/public/corpcomment.png';
@@ -20,7 +20,7 @@ import { IoLogoJavascript } from 'react-icons/io5';
 import { BiLogoTypescript, BiLogoMongodb } from 'react-icons/bi';
 import { TbBrandFramerMotion, TbBrandNextjs } from 'react-icons/tb';
 import { SiTailwindcss, SiRedux, SiAppwrite } from 'react-icons/si';
-import { Html } from 'next/document';
+
 
 export const links = [
   {

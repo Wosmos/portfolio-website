@@ -8,8 +8,9 @@ import clsx from 'clsx';
 import { useActiveSectionContext } from '@/context/active-section-context';
 import Logo from '../components/logo';
 export default function Header() {
+ 
   const { activeSection, setActiveSection, setTimeOfLastClick } =
-    useActiveSectionContext();
+  useActiveSectionContext();
 
   return (
     <header className='z-[999] relative'>

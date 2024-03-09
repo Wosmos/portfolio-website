@@ -2,7 +2,7 @@
 
 import React from 'react';
 import SectionHeading from './section-heading';
-import { skillsData } from '@/lib/data';
+// import { skillsData } from '@/lib/data';
 import { useSectionInView } from '@/lib/hooks';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
@@ -28,6 +28,24 @@ const fadeInAnimationVariants = {
 
 export default function Skills() {
   const { ref } = useSectionInView('Skills');
+  const skillsData = [
+    'HTML',
+    'CSS',
+    'Tailwind',
+    'BootStrap',
+    'Framer Motion',
+    'JavaScript',
+    'TypeScript',
+    'React',
+    'Redux',
+    'Next.js',
+    'Node.js',
+    'Git',
+    'AppWrite',
+    'MongoDB',
+    'Express',
+    'Python',
+  ];
   const data = [
     {
       id: 1,

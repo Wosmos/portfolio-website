@@ -75,7 +75,7 @@ export default function Intro() {
               1000,
             ]}
             wrapper='span'
-            speed={200}
+            speed={50}
             repeat={Infinity}
           />
         </div>

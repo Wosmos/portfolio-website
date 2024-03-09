@@ -20,7 +20,6 @@ import { BiLogoTypescript, BiLogoMongodb } from 'react-icons/bi';
 import { TbBrandFramerMotion, TbBrandNextjs } from 'react-icons/tb';
 import { SiTailwindcss, SiRedux, SiAppwrite } from 'react-icons/si';
 
-
 export const links = [
   {
     name: 'Home',
@@ -77,27 +76,38 @@ export const experiencesData = [
 
 export const projectsData = [
   {
-    link: 'https://example.com/project1',
     title: 'Tech Startup Landing Page',
     description:
       "A landing page designed for a tech startup. The page showcases the company's product or service, highlights its features.",
-    tags: [<FaReact />, <IoLogoJavascript />, <SiTailwindcss />],
+    tags: [
+      React.createElement(FaReact),
+      React.createElement(IoLogoJavascript),
+      React.createElement(SiTailwindcss),
+    ],
     imageUrl: landingPageImage,
   },
   {
-    link: 'https://example.com/project2',
     title: 'Movies App',
     description:
       'A web application for browsing and discovering movies. Users can search for movies, view details such as ratings and reviews, and save their favorite movies to watch later.',
-    tags: [<FaReact />, <BiLogoTypescript />, <SiTailwindcss />, <SiRedux />],
+    tags: [
+      React.createElement(FaReact),
+      React.createElement(BiLogoTypescript),
+      React.createElement(SiTailwindcss),
+      React.createElement(SiRedux),
+    ],
     imageUrl: moviesAppImage,
   },
   {
-    link: 'https://example.com/project3',
     title: 'Banking Web App',
     description:
       'Web app for online banking services. Users can manage their accounts, transfer funds, pay bills, and view transaction history.',
-    tags: [<FaReact />, <SiTailwindcss />, <FaHtml5 />, <FaCss3Alt />],
+    tags: [
+      React.createElement(FaReact),
+      React.createElement(SiTailwindcss),
+      React.createElement(FaHtml5),
+      React.createElement(FaCss3Alt),
+    ],
     imageUrl: bankingAppImage,
   },
 ] as const;

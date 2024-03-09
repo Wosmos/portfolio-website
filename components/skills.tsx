@@ -102,7 +102,7 @@ export default function Skills() {
                 : ''
             }`}
           >
-            <img
+            <Image
               width='80'
               height='80'
               src={item.src.src}

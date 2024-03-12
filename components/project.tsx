@@ -1,5 +1,4 @@
 'use client';
-
 import { useRef, useState } from 'react';
 import { projectsData } from '@/lib/data';
 import Image from 'next/image';

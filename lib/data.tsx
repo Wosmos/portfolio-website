@@ -30,13 +30,14 @@ export const links = [
     hash: '#about',
   },
   {
-    name: 'Projects',
-    hash: '#projects',
-  },
-  {
     name: 'Skills',
     hash: '#skills',
   },
+  {
+    name: 'Projects',
+    hash: '#projects',
+  },
+
   {
     name: 'Experience',
     hash: '#experience',
@@ -55,14 +56,6 @@ export const experiencesData = [
       'I graduated after 6 months of studying. I immediately found a job as a front-end developer.',
     icon: React.createElement(LuGraduationCap),
     date: '2019',
-  },
-  {
-    title: 'Front-End Developer',
-    location: 'Orlando, FL',
-    description:
-      'I worked as a front-end developer for 2 years in 1 job and 1 year in another job. I also upskilled to the full stack.',
-    icon: React.createElement(CgWorkAlt),
-    date: '2019 - 2021',
   },
   {
     title: 'Full-Stack Developer',
@@ -117,12 +110,14 @@ export const skillsData = [
   'CSS',
   'Tailwind',
   'BootStrap',
-  'Framer Motion',
+  'Material UI',
   'JavaScript',
-  'TypeScript',
+  'Jquery',
+  'Framer Motion',
   'React',
   'Redux',
   'Next.js',
+  'TypeScript',
   'Node.js',
   'Git',
   'AppWrite',

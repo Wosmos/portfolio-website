@@ -29,11 +29,11 @@ export default function Skills() {
     <section
       id='skills'
       ref={ref}
-      className=' max-w-[53rem] scroll-mt-28 text-center sm:mb-40'
+      className=' max-w-[53rem] scroll-mt-28 text-center sm:mb-40 mb-28'
     >
       <SectionHeading>My Skills</SectionHeading>
 
-      <div className='grid w-full grid-cols-1 gap-4 mx-auto mt-32 sm:mt-0 sm:grid-cols-2 lg:gap-3 my-4  '>
+      <div className='grid w-full grid-cols-1 gap-4 mx-auto  sm:mt-0 sm:grid-cols-2 lg:gap-3 my-4  '>
         {Skilldata.map((item, index) => (
           <motion.div
             key={item.id}
@@ -43,7 +43,7 @@ export default function Skills() {
             viewport={{
               once: true,
             }}
-            className={`relative flex flex-col items-start gap-4 duration-300 group md:gap-8 px-8 pt-16 pb-4 bg-white/20 borderBlack rounded-xl py-3 dark:bg-white/10 dark:text-white/80 group cursor-pointer shadow-black/10 shadow-sm transition-all hover:shadow-2xl ${
+            className={`w-full relative flex flex-col items-start gap-4 duration-300 group md:gap-8 px-8 pt-16 pb-4 bg-white/20 borderBlack rounded-xl py-3 dark:bg-white/10 dark:text-white/80 group cursor-pointer shadow-black/10 shadow-sm transition-all hover:shadow-2xl ${
               index === Skilldata.length - 1 && Skilldata.length % 2 !== 0
                 ? 'sm:col-span-2'
                 : ''

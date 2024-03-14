@@ -26,7 +26,7 @@ const Blogs = () => {
     <div
       ref={ref}
       id='blogs'
-      className='max-w-[60rem] scroll-mt-28 text-center sm:mb-40'
+      className='max-w-[60rem] scroll-mt-28 text-center sm:mb-40 mb-28'
     >
       <SectionHeading>My Blogs</SectionHeading>
 

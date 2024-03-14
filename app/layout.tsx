@@ -10,9 +10,41 @@ import { Toaster } from 'react-hot-toast';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'Wosmo | Portfolio',
-  description:
-    'Wasif aka Wosmo is a Front-end developer with 2+ years of experience.',
+  title: 'Wosmo | Front-end Developer Portfolio',
+  description: 'Wosmo (Muhammad Wasif Malik) is a skilled Front-end Developer with 2+ years of experience in building modern web applications using cutting-edge technologies.',
+  keywords: 'Front-end Developer, Web Developer, React, JavaScript, HTML, CSS, Portfolio, Wosmo, Muhammad Wasif Malik',
+  author: 'Muhammad Wasif Malik',
+  robots: 'index, follow',
+  canonical: 'https://wosmo.com', // Replace with your actual domain once purchased
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
+  openGraph: {
+    title: 'Wosmo | Front-end Developer Portfolio',
+    description: 'Wosmo (Muhammad Wasif Malik) is a skilled Front-end Developer with 2+ years of experience in building modern web applications using cutting-edge technologies.',
+    url: 'https://wosmo.com', // Replace with your actual domain once purchased
+    siteName: 'Wosfolio',
+    images: [
+      {
+        url: 'https://your-website.com/og-image.jpg', // Replace with your open graph image URL
+        width: 1200,
+        height: 630,
+        alt: 'Wosmo Front-end Developer Portfolio',
+      },
+    ],
+    locale: 'en-US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Wosmo | Front-end Developer Portfolio',
+    description: 'Wosmo (Muhammad Wasif Malik) is a skilled Front-end Developer with 2+ years of experience in building modern web applications using cutting-edge technologies.',
+    site: '@your-twitter-handle', // Replace with your Twitter handle
+    creator: '@your-twitter-handle', // Replace with your Twitter handle
+    images: ['https://your-website.com/twitter-card.jpg'], // Replace with your Twitter card image URL
+  },
 };
 
 export default function RootLayout({

@@ -4,18 +4,11 @@ import React from 'react';
 import SectionHeading from './section-heading';
 import { motion } from 'framer-motion';
 import { useSectionInView } from '@/lib/hooks';
-import { FaInstagram, FaLinkedin, FaGithub, FaTwitter } from 'react-icons/fa';
-import { SiHashnode } from 'react-icons/si';
-
+import Socials from './socials';
+import { socialIcons } from '@/lib/data';
 export default function About() {
   const { ref } = useSectionInView('About');
-  const socialIcons = [
-    { icon: <FaInstagram />, link: '#' },
-    { icon: <FaLinkedin />, link: '#' },
-    { icon: <FaGithub />, link: '#' },
-    { icon: <FaTwitter />, link: '#' },
-    { icon: <SiHashnode />, link: '#' },
-  ];
+
   return (
     <motion.section
       ref={ref}
@@ -49,19 +42,7 @@ export default function About() {
         out, and let's embark on this journey together.
       </p>
 
-      <div className='flex w-full justify-center items-center gap-2'>
-        <div className='hidden md:block w-1/3 h-[2px] bg-gray-200 dark:bg-opacity-20 rounded-lg'></div>
-        {socialIcons.map((item, index) => (
-          <a
-            key={index}
-            href={item.link}
-            className='group w-10 h-10 bg-gray-900 text-white flex justify-center items-center rounded-full outline-none focus:scale-110 hover:scale-110 hover:bg-gray-950 active:scale-105 text-xl mr-2 shadow-black/10 shadow-md transition-all hover:shadow-2xl '
-          >
-            {item.icon}
-          </a>
-        ))}
-        <div className='hidden md:block w-1/3 h-[2px] bg-gray-200 dark:bg-opacity-20 rounded-lg'></div>
-      </div>
+      <Socials socialIcons={socialIcons} showLines={true} />
     </motion.section>
   );
 }

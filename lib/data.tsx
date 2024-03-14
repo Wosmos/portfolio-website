@@ -11,6 +11,10 @@ import wp from '../public/serv-img/4.png';
 
 import { LuGraduationCap } from 'react-icons/lu';
 import {
+  FaInstagram,
+  FaLinkedin,
+  FaGithub,
+  FaTwitter,
   FaHtml5,
   FaReact,
   FaNodeJs,
@@ -31,8 +35,7 @@ import {
 import { IoLogoJavascript } from 'react-icons/io5';
 import { BiLogoTypescript, BiLogoMongodb } from 'react-icons/bi';
 import { TbBrandFramerMotion, TbBrandNextjs } from 'react-icons/tb';
-import { SiTailwindcss, SiRedux, SiAppwrite } from 'react-icons/si';
-
+import { SiTailwindcss, SiRedux, SiAppwrite, SiHashnode } from 'react-icons/si';
 export const links = [
   {
     name: 'Home',
@@ -76,6 +79,16 @@ export const links = [
   },
 ] as const;
 
+export const socialIcons = [
+  { icon: <FaInstagram />, link: 'https://www.instagram.com/wosmo_tech/' },
+  {
+    icon: <FaLinkedin />,
+    link: 'https://www.linkedin.com/in/wasif-malik-79205a1bb/',
+  },
+  { icon: <FaGithub />, link: 'https://github.com/Wosmos' },
+  // { icon: <FaTwitter />, link: '#' },
+  { icon: <SiHashnode />, link: 'https://hashnode.com/@Wosmo' },
+] as const;
 
 export const experiencesData = [
   {
@@ -179,14 +192,14 @@ export const Blogdata = [
     link: 'http://hashnode.com',
     Date: '20 Jun 2023',
   },
-  {
-    id: 3,
-    src: uiux,
-    title: 'Sample Title 3',
-    description: 'Lorem ipsum dolor sit amet  minima ',
-    link: 'http://hashnode.com',
-    Date: '10 May 2023',
-  },
+  // {
+  //   id: 3,
+  //   src: uiux,
+  //   title: 'Sample Title 3',
+  //   description: 'Lorem ipsum dolor sit amet  minima ',
+  //   link: 'http://hashnode.com',
+  //   Date: '10 May 2023',
+  // },
 
   // {
   //   id: 4,
@@ -202,18 +215,18 @@ export const techStack = [
   'CSS',
   'Tailwind',
   'BootStrap',
-  'Material UI',
-  'JavaScript',
+  'MUI',
+  'JS',
   'Jquery',
   'Framer Motion',
   'React',
   'Redux',
   'Next.js',
-  'TypeScript',
+  'TS',
   'Node.js',
   'Git',
   'AppWrite',
   'MongoDB',
   'Express',
-  'Python',
+  'Flutter',
 ] as const;

@@ -12,11 +12,9 @@ import {
   FaWhatsapp,
   FaLinkedin,
   FaDiscord,
-  FaReddit
+  FaReddit,
 } from 'react-icons/fa';
-import { MdOutlineMailOutline } from "react-icons/md";
-
-
+import { MdOutlineMailOutline } from 'react-icons/md';
 
 export default function Contact() {
   const { ref } = useSectionInView('Contact');
@@ -52,19 +50,24 @@ export default function Contact() {
             <span className='nd:text-3xl text-xl mb-4 cursor-pointer '>
               {'  '}
               Phone: <span> </span>
-              <span className='hover:underline font-bold transition-all focus:scale-110 hover:scale-110'>
+              <a
+                href='https://wa.me/923062248224?text=Hello%20there!'
+                className='hover:underline font-bold transition-all focus:scale-110 hover:scale-110'
+              >
                 {' '}
                 +92 306 224 8224
                 <span className='w-full h-[2px] bg-black dark:bg-white hidden hover:block transition-all' />
-              </span>{' '}
+              </a>{' '}
             </span>
             <ul className='text-md flex gap-4 bottom-0 mt-6 md:justify-start  justify-center'>
               {[
-                
                 { text: <FaWhatsapp />, link: 'https://Whatsapp.com' },
-                { text: <FaDiscord/>, link: 'https://GoogleChats.com' },
-                { text: <FaReddit/>, link: 'https://GoogleChats.com' },
-                { text: <MdOutlineMailOutline/>, link: 'https://GoogleChats.com' },
+                { text: <FaDiscord />, link: 'https://GoogleChats.com' },
+                { text: <FaReddit />, link: 'https://GoogleChats.com' },
+                {
+                  text: <MdOutlineMailOutline />,
+                  link: 'https://GoogleChats.com',
+                },
               ].map((icon, index) => (
                 <a
                   key={index}

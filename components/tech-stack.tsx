@@ -7,7 +7,7 @@ import { techStack } from '@/lib/data';
 import { useSectionInView } from '@/lib/hooks';
 
 const TechStack = () => {
-    const { ref } = useSectionInView('TechStack');
+  const { ref } = useSectionInView('TechStack');
   const fadeInAnimationVariants = {
     initial: {
       opacity: 0,
@@ -23,12 +23,16 @@ const TechStack = () => {
   };
 
   return (
-    <section id='techStack' ref={ref} className='max-w-[53rem] scroll-mt-28 text-center sm:mb-40'>
+    <section
+      id='techStack'
+      ref={ref}
+      className='max-w-[53rem] scroll-mt-28 text-center sm:mb-40 mb-28'
+    >
       <SectionHeading>Tech Stack</SectionHeading>
-      <ul className='flex flex-wrap justify-center gap-2 text-lg text-gray-800 '>
+      <ul className='flex flex-wrap justify-center gap-2 text-sm md:text-lg text-gray-800 '>
         {techStack.map((skill, index) => (
           <motion.li
-            className='shadow-black/10 shadow-sm transition-all hover:shadow-2xl relative bg-white borderBlack rounded-xl px-5 py-3 dark:bg-white/10 dark:text-white/80 group cursor-pointer'
+            className='shadow-black/10 shadow-sm transition-all hover:shadow-2xl relative bg-white borderBlack rounded-md md:rounded-xl px-3 py-2 md:px-5 md:py-3 dark:bg-white/10 dark:text-white/80 group cursor-pointer'
             key={index}
             variants={fadeInAnimationVariants}
             initial='initial'

@@ -10,7 +10,10 @@ import Logo from '../components/logo';
 export default function Header() {
   const { activeSection, setActiveSection, setTimeOfLastClick } =
     useActiveSectionContext();
-
+  const logoVariants = {
+    hidden: { opacity: 0, scale: 0.5 },
+    visible: { opacity: 1, scale: 1 },
+  };
   return (
     <header className='z-[999] relative'>
       <motion.div
@@ -20,7 +23,7 @@ export default function Header() {
       ></motion.div>
 
       <nav className='flex fixed top-[0.15rem] left-1/2 h-12 -translate-x-1/2 py-2 sm:top-[1.7rem] sm:h-[initial] sm:py-0'>
-        <ul className='flex w-[28rem] flex-wrap items-center justify-center gap-y-1 text-[0.9rem] font-medium text-gray-500 sm:w-[initial] sm:flex-nowrap sm:gap-5 '>
+        <ul className='flex w-[20rem]  md:w-[28rem]   flex-wrap items-center justify-center gap-y-1 text-[0.9rem] font-medium text-gray-500 sm:w-[initial] sm:flex-nowrap sm:gap-5 '>
           <motion.span
             className='hidden md:block  absolute object-cover st top-[-28px]  mr-[1000px] z-50 text-white '
             initial={{ opacity: 0, scale: 0 }}
@@ -30,25 +33,33 @@ export default function Header() {
               duration: 0.2,
             }}
           >
-            <Link href='/'>
-              <Logo
-                width='200'
-                height='100'
-                classname='fill-black dark:fill-white stroke-1 w-[200px] h-[100px] lg:w-[250px] lg:h-[120px]'
-              />
-            </Link>
+            <motion.div
+              variants={logoVariants}
+              initial='hidden'
+              animate='visible'
+              whileHover={{ scale: 1.1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Link href='/'>
+                <Logo
+                  width='200'
+                  height='100'
+                  classname='fill-black dark:fill-white stroke-1 w-[200px] h-[100px] lg:w-[250px] lg:h-[120px] sm:block hidden'
+                />
+              </Link>
+            </motion.div>
           </motion.span>
 
           {links.map((link) => (
             <motion.li
-              className='h-3/4 flex items-center justify-center relative mx-[-5.0px]'
+              className='h-3/4 flex items-center justify-center relative  '
               key={link.hash}
               initial={{ y: -100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
             >
               <Link
                 className={clsx(
-                  'flex w-full items-center justify-center px-3 md:px-2 py-3 hover:text-gray-950 transition font-normal  dark:hover:text-white ',
+                  'flex w-full items-center justify-center  px-3 md:px-2 py-3 hover:text-gray-950 transition font-normal  dark:hover:text-white ',
                   {
                     'text-gray-950 dark:text-gray-200':
                       activeSection === link.name,

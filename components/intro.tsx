@@ -4,13 +4,16 @@ import Image from 'next/image';
 import React from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { BsArrowRight, BsLinkedin } from 'react-icons/bs';
-import { HiDownload } from 'react-icons/hi';
-import { FaGithubSquare } from 'react-icons/fa';
 import { useSectionInView } from '@/lib/hooks';
 import { TypeAnimation } from 'react-type-animation';
 import { useActiveSectionContext } from '@/context/active-section-context';
 import pfpimg from '../public/profile.jpg';
+
+// importing react icons
+import { BsArrowRight, BsLinkedin } from 'react-icons/bs';
+import { HiDownload } from 'react-icons/hi';
+import { FaGithubSquare } from 'react-icons/fa';
+
 export default function Intro() {
   const { ref } = useSectionInView('Home', 0.5);
   const { setActiveSection, setTimeOfLastClick } = useActiveSectionContext();
@@ -93,7 +96,7 @@ export default function Intro() {
           delay: 0.1,
         }}
       >
-        <Link
+        {/* <Link
           href='#contact'
           className='group bg-gray-900 text-white px-7 py-3 flex items-center gap-3 rounded-full outline-none focus:scale-110 hover:scale-110 hover:bg-gray-950 active:scale-105 transition '
           onClick={() => {
@@ -103,10 +106,10 @@ export default function Intro() {
         >
           Contact me here{' '}
           <BsArrowRight className='opacity-70 group-hover:translate-x-1 transition' />
-        </Link>
+        </Link> */}
         <span className='w-4 hidden md:block' />
         <a
-          className='group bg-white px-7 py-3 flex items-center gap-2 rounded-full outline-none focus:scale-110 hover:scale-110 active:scale-105 transition cursor-pointer borderBlack dark:bg-white/10'
+          className='group bg-white px-7 py-3 flex items-center -mt-6 gap-2 rounded-full outline-none focus:scale-110 hover:scale-110 active:scale-105  cursor-pointer borderBlack dark:bg-black/90 shadow-black/10 shadow-md transition-all hover:shadow-2xl'
           href='/CV.pdf'
           download
         >

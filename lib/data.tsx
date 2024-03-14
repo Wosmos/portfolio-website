@@ -4,6 +4,11 @@ import moviesAppImage from '@/public/corpcomment.png';
 import bankingAppImage from '@/public/rmtdev.png';
 import landingPageImage from '@/public/wordanalytics.png';
 
+import uiux from '../public/serv-img/1.png';
+import web from '../public/serv-img/2.png';
+import app from '../public/serv-img/3.png';
+import wp from '../public/serv-img/4.png';
+
 import { LuGraduationCap } from 'react-icons/lu';
 import {
   FaHtml5,
@@ -13,6 +18,14 @@ import {
   FaGitAlt,
   FaBootstrap,
   FaCss3Alt,
+  FaHome,
+  FaUserAlt,
+  FaLaptopCode,
+  FaLayerGroup,
+  FaProjectDiagram,
+  FaBriefcase,
+  FaBloggerB,
+  FaEnvelope,
 } from 'react-icons/fa';
 
 import { IoLogoJavascript } from 'react-icons/io5';
@@ -24,29 +37,45 @@ export const links = [
   {
     name: 'Home',
     hash: '#home',
+    icon: <FaHome />,
   },
   {
     name: 'About',
     hash: '#about',
+    icon: <FaUserAlt />,
   },
   {
     name: 'Skills',
     hash: '#skills',
+    icon: <FaLaptopCode />,
+  },
+  {
+    name: 'TechStack',
+    hash: '#techStack',
+    icon: <FaLayerGroup />,
   },
   {
     name: 'Projects',
     hash: '#projects',
+    icon: <FaProjectDiagram />,
   },
-
   {
     name: 'Experience',
     hash: '#experience',
+    icon: <FaBriefcase />,
+  },
+  {
+    name: 'Blogs',
+    hash: '#blogs',
+    icon: <FaBloggerB />,
   },
   {
     name: 'Contact',
     hash: '#contact',
+    icon: <FaEnvelope />,
   },
 ] as const;
+
 
 export const experiencesData = [
   {
@@ -91,21 +120,84 @@ export const projectsData = [
     ],
     imageUrl: moviesAppImage,
   },
+  // {
+  //   title: 'Banking Web App',
+  //   description:
+  //     'Web app for online banking services. Users can manage their accounts, transfer funds, pay bills, and view transaction history.',
+  //   tags: [
+  //     React.createElement(FaReact),
+  //     React.createElement(SiTailwindcss),
+  //     React.createElement(FaHtml5),
+  //     React.createElement(FaCss3Alt),
+  //   ],
+  //   imageUrl: bankingAppImage,
+  // },
+] as const;
+
+export const Skilldata = [
   {
-    title: 'Banking Web App',
-    description:
-      'Web app for online banking services. Users can manage their accounts, transfer funds, pay bills, and view transaction history.',
-    tags: [
-      React.createElement(FaReact),
-      React.createElement(SiTailwindcss),
-      React.createElement(FaHtml5),
-      React.createElement(FaCss3Alt),
-    ],
-    imageUrl: bankingAppImage,
+    id: 1,
+    src: web,
+    title: 'Sample Title 3',
+    description: 'Lorem ipsum dolor sit amet  minima ',
+  },
+  {
+    id: 2,
+    src: app,
+    title: 'Sample Title 3',
+    description: 'Lorem ipsum dolor sit amet  minima ',
+  },
+  {
+    id: 3,
+    src: uiux,
+    title: 'Sample Title 3',
+    description: 'Lorem ipsum dolor sit amet  minima ',
+  },
+
+  {
+    id: 4,
+    src: wp,
+    title: 'Sample Title 4',
+    description: 'Lorem ipsum dolor sit amet  adipisicing elit.',
   },
 ] as const;
 
-export const skillsData = [
+export const Blogdata = [
+  {
+    id: 1,
+    src: web,
+    title: 'Sample Title 3',
+    description: 'Lorem ipsum dolor sit amet  minima ',
+    link: 'http://hashnode.com',
+    Date: '30 June 2023',
+  },
+  {
+    id: 2,
+    src: app,
+    title: 'Sample Title 3',
+    description: 'Lorem ipsum dolor sit amet  minima ',
+    link: 'http://hashnode.com',
+    Date: '20 Jun 2023',
+  },
+  {
+    id: 3,
+    src: uiux,
+    title: 'Sample Title 3',
+    description: 'Lorem ipsum dolor sit amet  minima ',
+    link: 'http://hashnode.com',
+    Date: '10 May 2023',
+  },
+
+  // {
+  //   id: 4,
+  //   src: wp,
+  //   title: 'Sample Title 4',
+  //   description: 'Lorem ipsum dolor sit amet  adipisicing elit.',
+  // link: 'http://hashnode.com'
+  // },
+] as const;
+
+export const techStack = [
   'HTML',
   'CSS',
   'Tailwind',

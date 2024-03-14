@@ -55,7 +55,7 @@ export default function About() {
           <a
             key={index}
             href={item.link}
-            className='group w-10 h-10 bg-gray-900 text-white flex justify-center items-center rounded-full outline-none focus:scale-110 hover:scale-110 hover:bg-gray-950 active:scale-105 transition  text-xl mr-2'
+            className='group w-10 h-10 bg-gray-900 text-white flex justify-center items-center rounded-full outline-none focus:scale-110 hover:scale-110 hover:bg-gray-950 active:scale-105 text-xl mr-2 shadow-black/10 shadow-md transition-all hover:shadow-2xl '
           >
             {item.icon}
           </a>

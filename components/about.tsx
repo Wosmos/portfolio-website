@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { useSectionInView } from '@/lib/hooks';
 import Socials from './socials';
 import { socialIcons } from '@/lib/data';
+import AboutData from '../lib/data/about.json';
 export default function About() {
   const { ref } = useSectionInView('About');
 
@@ -19,7 +20,20 @@ export default function About() {
       id='about'
     >
       <SectionHeading>About me</SectionHeading>
-      <p className='mb-3'>
+      {AboutData.map((paragraph, index) => (
+        <p key={index} className='mb-3'>
+          {paragraph.segments.map((segment, idx) => (
+            <React.Fragment key={idx}>
+              {segment.html ? (
+                <span className='font-medium'>{segment.text}</span>
+              ) : (
+                segment.text
+              )}
+            </React.Fragment>
+          ))}
+        </p>
+      ))}
+      {/* <p className='mb-3'>
         Crafting captivating digital experiences as a{' '}
         <span className='font-medium'>
           3rd-year Software Engineering student
@@ -40,7 +54,7 @@ export default function About() {
         conversations over a cup of chai. Let's collaborate to weave code,
         creativity, and curiosity into unforgettable digital experiences. Reach
         out, and let's embark on this journey together.
-      </p>
+      </p> */}
 
       <Socials socialIcons={socialIcons} showLines={true} />
     </motion.section>

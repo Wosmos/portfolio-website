@@ -15,6 +15,8 @@ import {
   FaReddit,
 } from 'react-icons/fa';
 import { MdOutlineMailOutline } from 'react-icons/md';
+import Socials from './socials';
+import { socialIcons } from '@/lib/data';
 
 export default function Contact() {
   const { ref } = useSectionInView('Contact');
@@ -46,7 +48,7 @@ export default function Contact() {
             Whether you have a project in mind, want to discuss potential
             collaboration, or just want to say hello, feel free to reach out!
           </p>
-          <ul className='  mt-4'>
+          <ul className='  mt-4  '>
             <span className='nd:text-3xl text-xl mb-4 cursor-pointer '>
               {'  '}
               Phone: <span> </span>
@@ -59,30 +61,16 @@ export default function Contact() {
                 <span className='w-full h-[2px] bg-black dark:bg-white hidden hover:block transition-all' />
               </a>{' '}
             </span>
-            <ul className='text-md flex gap-4 bottom-0 mt-6 md:justify-start  justify-center'>
-              {[
-                { text: <FaWhatsapp />, link: 'https://Whatsapp.com' },
-                { text: <FaDiscord />, link: 'https://GoogleChats.com' },
-                { text: <FaReddit />, link: 'https://GoogleChats.com' },
-                {
-                  text: <MdOutlineMailOutline />,
-                  link: 'https://GoogleChats.com',
-                },
-              ].map((icon, index) => (
-                <a
-                  key={index}
-                  href={icon.link}
-                  className='cursor-pointer hover:text-3xl hover:scale-125 transition-all text-2xl'
-                >
-                  {icon.text}
-                </a>
-              ))}
+            <ul className='text-md flex gap-4 bottom-0 mt-6 md:justify-start  justify-center '>
+              <div className=''>
+                <Socials socialIcons={socialIcons} showLines={false} />
+              </div>
             </ul>
           </ul>
         </div>
         {/* right section */}
         <form
-          className='mt-10 flex flex-col dark:text-black flex-1 '
+          className='mt-10 flex flex-col dark:text-black flex-1  md:mt-0'
           action={async (formData) => {
             const { data, error } = await sendEmail(formData);
 

@@ -2,10 +2,10 @@
 
 import React from 'react';
 import SectionHeading from './section-heading';
-import { techStack } from '@/lib/data';
 import { useSectionInView } from '@/lib/hooks';
 import { motion } from 'framer-motion';
-import { Skilldata } from '@/lib/data';
+// import { Skilldata } from '@/lib/data';
+import Skilldata  from '@/lib/data/skills.json';
 import Image from 'next/image';
 
 const fadeInAnimationVariants = {
@@ -29,7 +29,7 @@ export default function Skills() {
     <section
       id='skills'
       ref={ref}
-      className=' max-w-[53rem] scroll-mt-28 text-center sm:mb-40 mb-28'
+      className=' max-w-[60rem] scroll-mt-28 text-center sm:mb-40 mb-28'
     >
       <SectionHeading>My Skills</SectionHeading>
 
@@ -52,7 +52,7 @@ export default function Skills() {
             <Image
               width='80'
               height='80'
-              src={item.src.src}
+              src={item.src}
               alt='web'
               className='dark:filter-none filter invert brightness-100 -mt-10 md:-mb-5'
             />

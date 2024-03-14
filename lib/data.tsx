@@ -4,11 +4,6 @@ import moviesAppImage from '@/public/corpcomment.png';
 import bankingAppImage from '@/public/rmtdev.png';
 import landingPageImage from '@/public/wordanalytics.png';
 
-import uiux from '../public/serv-img/1.png';
-import web from '../public/serv-img/2.png';
-import app from '../public/serv-img/3.png';
-import wp from '../public/serv-img/4.png';
-
 import { LuGraduationCap } from 'react-icons/lu';
 import {
   FaInstagram,
@@ -30,12 +25,14 @@ import {
   FaBriefcase,
   FaBloggerB,
   FaEnvelope,
+  FaSass,
 } from 'react-icons/fa';
 
 import { IoLogoJavascript } from 'react-icons/io5';
 import { BiLogoTypescript, BiLogoMongodb } from 'react-icons/bi';
 import { TbBrandFramerMotion, TbBrandNextjs } from 'react-icons/tb';
 import { SiTailwindcss, SiRedux, SiAppwrite, SiHashnode } from 'react-icons/si';
+import { link } from 'fs';
 export const links = [
   {
     name: 'Home',
@@ -86,7 +83,6 @@ export const socialIcons = [
     link: 'https://www.linkedin.com/in/wasif-malik-79205a1bb/',
   },
   { icon: <FaGithub />, link: 'https://github.com/Wosmos' },
-  // { icon: <FaTwitter />, link: '#' },
   { icon: <SiHashnode />, link: 'https://hashnode.com/@Wosmo' },
 ] as const;
 
@@ -113,13 +109,15 @@ export const projectsData = [
   {
     title: 'Tech Startup Landing Page',
     description:
-      "A landing page designed for a tech startup. The page showcases the company's product or service, highlights its features.",
+      'A simple landing page Ui designed for a Travel Agency. The page showcases the About, service and highlights its features.',
     tags: [
       React.createElement(FaReact),
       React.createElement(IoLogoJavascript),
       React.createElement(SiTailwindcss),
     ],
     imageUrl: landingPageImage,
+    sourceCode: 'https://github.com/Wosmos/Travel-app',
+    site: 'https://sparkly-fenglisu-c6f2fa.netlify.app/ ',
   },
   {
     title: 'Movies App',
@@ -127,11 +125,13 @@ export const projectsData = [
       'A web application for browsing and discovering movies. Users can search for movies, view details such as ratings and reviews, and save their favorite movies to watch later.',
     tags: [
       React.createElement(FaReact),
-      React.createElement(BiLogoTypescript),
-      React.createElement(SiTailwindcss),
+      React.createElement(IoLogoJavascript),
+      React.createElement(FaSass),
       React.createElement(SiRedux),
     ],
     imageUrl: moviesAppImage,
+    sourceCode: '',
+    site: 'https://darling-queijadas-e8f108.netlify.app/',
   },
   // {
   //   title: 'Banking Web App',
@@ -147,86 +147,75 @@ export const projectsData = [
   // },
 ] as const;
 
-export const Skilldata = [
-  {
-    id: 1,
-    src: web,
-    title: 'Sample Title 3',
-    description: 'Lorem ipsum dolor sit amet  minima ',
-  },
-  {
-    id: 2,
-    src: app,
-    title: 'Sample Title 3',
-    description: 'Lorem ipsum dolor sit amet  minima ',
-  },
-  {
-    id: 3,
-    src: uiux,
-    title: 'Sample Title 3',
-    description: 'Lorem ipsum dolor sit amet  minima ',
-  },
+// export const Skilldata = [
+//   {
+//     id: 1,
+//     src: web,
+//     title: 'Web Development',
+//     description:
+//       'Crafting captivating websites that attract and retain visitors, driving engagement and conversions.',
+//   },
+//   {
+//     id: 2,
+//     src: app,
+//     title: 'Mobile App Development',
+//     description:
+//       'Creating user-friendly mobile apps that enhance customer experiences and streamline processes.',
+//   },
+//   {
+//     id: 3,
+//     src: uiux,
+//     title: 'UI/UX Design',
+//     description:
+//       'Designing intuitive interfaces that make interactions seamless and enjoyable for users.',
+//   },
+//   {
+//     id: 4,
+//     src: wp,
+//     title: 'Creative Writing',
+//     description:
+//       'Producing compelling content that tells stories, captures attention, and builds brand loyalty.',
+//   },
+// ] as const;
 
-  {
-    id: 4,
-    src: wp,
-    title: 'Sample Title 4',
-    description: 'Lorem ipsum dolor sit amet  adipisicing elit.',
-  },
-] as const;
+// export const Blogdata = [
+//   {
+//     id: 1,
+//     src: web,
+//     title: 'Sample Title 3',
+//     description: 'Lorem ipsum dolor sit amet  minima ',
+//     link: 'http://hashnode.com',
+//     Date: '30 June 2023',
+//   },
+//   {
+//     id: 2,
+//     src: app,
+//     title: 'Sample Title 3',
+//     description: 'Lorem ipsum dolor sit amet  minima ',
+//     link: 'http://hashnode.com',
+//     Date: '20 Jun 2023',
+//   },
+//   // {
 
-export const Blogdata = [
-  {
-    id: 1,
-    src: web,
-    title: 'Sample Title 3',
-    description: 'Lorem ipsum dolor sit amet  minima ',
-    link: 'http://hashnode.com',
-    Date: '30 June 2023',
-  },
-  {
-    id: 2,
-    src: app,
-    title: 'Sample Title 3',
-    description: 'Lorem ipsum dolor sit amet  minima ',
-    link: 'http://hashnode.com',
-    Date: '20 Jun 2023',
-  },
-  // {
-  //   id: 3,
-  //   src: uiux,
-  //   title: 'Sample Title 3',
-  //   description: 'Lorem ipsum dolor sit amet  minima ',
-  //   link: 'http://hashnode.com',
-  //   Date: '10 May 2023',
-  // },
+// ] as const;
 
-  // {
-  //   id: 4,
-  //   src: wp,
-  //   title: 'Sample Title 4',
-  //   description: 'Lorem ipsum dolor sit amet  adipisicing elit.',
-  // link: 'http://hashnode.com'
-  // },
-] as const;
-
-export const techStack = [
-  'HTML',
-  'CSS',
-  'Tailwind',
-  'BootStrap',
-  'MUI',
-  'JS',
-  'Jquery',
-  'Framer Motion',
-  'React',
-  'Redux',
-  'Next.js',
-  'TS',
-  'Node.js',
-  'Git',
-  'AppWrite',
-  'MongoDB',
-  'Express',
-  'Flutter',
-] as const;
+// export const techStack = [
+//   'HTML',
+//   'CSS',
+//   'Tailwind',
+//   'BootStrap',
+//   'MUI',
+//   'JS',
+//   'Jquery',
+//   'Framer Motion',
+//   'React',
+//   'Redux',
+//   'Next.js',
+//   'TS',
+//   'Node.js',
+//   'Git',
+//   'AppWrite',
+//   'MongoDB',
+//   'Express',
+//   'Flutter',
+// ] as const;

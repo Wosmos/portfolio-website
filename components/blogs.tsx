@@ -1,11 +1,14 @@
 'use client';
 import React from 'react';
-import { Blogdata } from '@/lib/data';
+// import { Blogdata } from '@/lib/data';
+import Blogdata from '@/lib/data/blogs.json';
+
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import SectionHeading from './section-heading';
 import { useSectionInView } from '@/lib/hooks';
-import cc from '../public/clean-code.jpeg';
+
+
 const fadeInAnimationVariants = {
   initial: {
     opacity: 0,
@@ -46,7 +49,7 @@ const Blogs = () => {
               <Image
                 width='100'
                 height='80'
-                src={cc.src}
+                src={blog.src}
                 alt='blog1'
                 className='w-full h-full object-cover transition-transform duration-300 transform hover:scale-110'
               />
@@ -58,7 +61,9 @@ const Blogs = () => {
                   ? blog.description
                   : blog.description + ' ...'}
               </p>
-              <p className='text-gray-400 text-sm mb-2'>Published on {blog.Date}</p>
+              <p className='text-gray-400 text-sm mb-2'>
+                Published on {blog.Date}
+              </p>
               <a
                 href={blog.link}
                 target='_blank'
@@ -70,7 +75,6 @@ const Blogs = () => {
             </div>
           </motion.div>
         ))}
-        
       </div>
     </div>
   );

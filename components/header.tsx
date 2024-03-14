@@ -37,7 +37,6 @@ export default function Header() {
               variants={logoVariants}
               initial='hidden'
               animate='visible'
-              whileHover={{ scale: 1.1 }}
               transition={{ duration: 0.3 }}
             >
               <Link href='/'>

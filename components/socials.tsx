@@ -1,6 +1,12 @@
 import React from 'react';
 
-const Socials = ({ socialIcons, showLines }: { socialIcons: any; showLines: boolean }) => {
+const Socials = ({
+  socialIcons,
+  showLines,
+}: {
+  socialIcons: any;
+  showLines: boolean;
+}) => {
   return (
     <>
       <div className='flex w-full justify-center items-center gap-2'>

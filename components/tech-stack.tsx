@@ -3,9 +3,9 @@
 import React from 'react';
 import SectionHeading from './section-heading';
 import { motion } from 'framer-motion';
-import { techStack } from '@/lib/data';
+// import { techStack } from '@/lib/data';
 import { useSectionInView } from '@/lib/hooks';
-
+import techStack  from '../lib/data/stack.json';
 const TechStack = () => {
   const { ref } = useSectionInView('TechStack');
   const fadeInAnimationVariants = {

@@ -13,6 +13,8 @@ export default function Project({
   description,
   tags,
   imageUrl,
+  site,
+  sourceCode,
 }: ProjectProps) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
@@ -34,10 +36,10 @@ export default function Project({
       >
         <section className='bg-gray-100/30 max-w-[42rem] border border-black/5 rounded-lg overflow-hidden sm:pr-8 relative sm:h-[20rem] hover:bg-gray-200  sm:group-even:pl-8 dark:text-white dark:bg-white/10 dark:hover:bg-white/20 shadow-black/10 shadow-md transition-all hover:shadow-2xl'>
           <div className='absolute z-50 hidden  w-full h-full group-hover:flex justify-center items-center text-gray-50/90 gap-x-4 hover:text-white'>
-            <a href='/'>
+            <a href={sourceCode}>
               <FaCode className='cursor-pointer hover:text-7xl focus:scale-110 hover:scale-110  active:scale-105 transition text-6xl drop-shadow-2xl   shadow-slate-900' />
             </a>
-            <a href='/'>
+            <a href={site}>
               <IoIosEye className='cursor-pointer hover:text-7xl focus:scale-110 hover:scale-110  active:scale-105 transition text-6xl drop-shadow-2xl shadow-black' />
             </a>
           </div>
@@ -46,7 +48,7 @@ export default function Project({
             <p className='mt-2 leading-relaxed text-gray-700 dark:text-white/70'>
               {description}
             </p>
-            <ul className='flex flex-wrap mt-4 gap-2 sm:mt-auto flex-1'>
+            <ul className='flex flex-wrap mt-6 gap-2 sm:mt-auto flex-1'>
               {tags.map((tag, index) => (
                 <li
                   className='text-xl  px-2 py-1 text-[0.7rem] uppercase tracking-wider  rounded-full text-black/60 dark:text-white/70'

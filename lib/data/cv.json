@@ -1,0 +1,53 @@
+{
+  "firstName": "Wasif",
+  "lastName": "Malik",
+  "jobtitle": "Web Developer",
+  "email": "m.wasifmalik17@gmail.com",
+  "phone": "+92-306-224-8224",
+  "position": "Front-End Developer",
+  "description": "I am a passionate third-year student studying software engineering who is driven to create engaging user interfaces using code. I have a strong skill set from my web development adventure, which includes HTML, CSS, JavaScript, React, Next.js, and a little bit of Redux for state management. While I'm getting my degree, I really enjoy learning new things and getting to know how to code. I regularly look for ways to put my talents to use outside of the classroom, whether it is through side projects or working with poop. Even though front-end programming is my primary area of interest, I'm eager to use React Native to create mobile apps.",
+  "sections": [
+    {
+      "title": "Education",
+      "items": [
+        {
+          "name": "Eagle House",
+          "address": "Tando Allahyar",
+          "duration": "2019 - 2020",
+          "position": "Matriculation",
+          "description": "I completed my matriculation at Eagle House in Tando Allahyar."
+        },
+        {
+          "name": "Eagle House",
+          "address": "Tando Allahyar",
+          "duration": "2021 - 2022",
+          "position": "Intermediate ",
+          "description": "I completed my intermediate from Eagle House, where I further fostered my academic and personal growth."
+        }
+      ]
+    },
+    {
+      "title": "Skills",
+      "items": [
+        { "name": "HTML5", "level": 90 },
+        { "name": "CSS3", "level": 85 },
+        { "name": "Bootstrap", "level": 65 },
+        { "name": "JavaScript", "level": 70 },
+        { "name": "JQuery", "level": 70 },
+        { "name": "React", "level": 65 },
+        { "name": "Next.js", "level": 50 }
+      ]
+    },
+    {
+      "title": "Interests",
+      "items": [
+        "Movies",
+        "Fitness",
+        "Art",
+        "Novels",
+        "Documentaries",
+        "Programming"
+      ]
+    }
+  ]
+}

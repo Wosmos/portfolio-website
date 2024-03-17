@@ -1,0 +1,11 @@
+/* Custom CSS for star bullet point */
+.custom-list-item {
+  list-style-type: none;
+  position: relative;
+}
+
+.custom-list-item:before {
+  content: '\2605'; 
+  position: absolute;
+  left: -1.5em;
+}

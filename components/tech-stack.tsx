@@ -3,9 +3,10 @@
 import React from 'react';
 import SectionHeading from './section-heading';
 import { motion } from 'framer-motion';
-// import { techStack } from '@/lib/data';
+import { techStackIcons } from '@/lib/data';
 import { useSectionInView } from '@/lib/hooks';
-import techStack  from '../lib/data/stack.json';
+import techStack from '../lib/data/stack.json';
+
 const TechStack = () => {
   const { ref } = useSectionInView('TechStack');
   const fadeInAnimationVariants = {
@@ -47,6 +48,8 @@ const TechStack = () => {
           </motion.li>
         ))}
       </ul>
+      <div className=' h-2 md:h-4' />
+
     </section>
   );
 };

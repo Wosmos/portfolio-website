@@ -14,5 +14,13 @@
     "description": "Demystifying The Heap and Stack Memory in Javascript",
     "link": "https://wosmo.hashnode.dev/ever-wondered-how-javascript-handles-memory",
     "Date": "28 Dec 2023"
+  },
+  {
+    "id": 2,
+    "src": "https://cdn.hashnode.com/res/hashnode/image/upload/v1710649904068/092f19a6-0cd5-4d4a-a544-46637da97f7d.png?w=1600&h=840&fit=crop&crop=entropy&auto=compress,format&format=webp",
+    "title": "Typescript! My second love",
+    "description": "Embracing Type Safety in JavaScript Development with typescript",
+    "link": "https://techatives.hashnode.dev/typescript-my-second-love#heading-conclusion",
+    "Date": "17 Mar 2024"
   }
 ]

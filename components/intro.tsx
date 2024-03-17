@@ -23,7 +23,7 @@ export default function Intro() {
       id='home'
       className='mb-28 max-w-[50rem] text-center sm:mb-0 scroll-mt-[100rem]'
     >
-      <div className='flex items-center justify-center'>
+      <div className='flex items-center justify-center mt-20  md:mt-2 '>
         <div className='relative'>
           <motion.div
             initial={{ opacity: 0, scale: 0 }}
@@ -68,13 +68,15 @@ export default function Intro() {
           <TypeAnimation
             className=''
             sequence={[
-              'Wasif',
+              'Wasif Malik',
               1000,
-              'React Dev',
+              'Reactjs Dev',
+              1000,
+              'Nextjs Dev',
               1000,
               'Flutter Dev',
               1000,
-              'Graphic designer',
+              'Web Designer',
               1000,
             ]}
             wrapper='span'

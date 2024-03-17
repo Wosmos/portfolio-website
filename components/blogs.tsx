@@ -1,13 +1,11 @@
 'use client';
 import React from 'react';
-// import { Blogdata } from '@/lib/data';
+// import ReactTooltip from 'react-tooltip';
+import { Tooltip } from 'react-tooltip';
 import Blogdata from '@/lib/data/blogs.json';
-
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import SectionHeading from './section-heading';
 import { useSectionInView } from '@/lib/hooks';
-
 
 const fadeInAnimationVariants = {
   initial: {
@@ -46,7 +44,7 @@ const Blogs = () => {
             className='overflow-hidden transform flex flex-col  md:items-start gap-4 duration-300 group px-8 md:pt-16 pb-4 bg-white/20 borderBlack rounded-xl md:py-3 dark:bg-white/10 dark:text-white/80 group cursor-pointer shadow-black/10 shadow-md transition-all hover:shadow-2xl w-full md:w-[300px] py-6 text-center'
           >
             <div className='relative h-56 overflow-hidden md:h-48 md:rounded-t-md md:rounded-b-none rounded-md bg-black/20 md:-mt-16 md:-mx-8'>
-              <Image
+              <img
                 width='100'
                 height='80'
                 src={blog.src}
@@ -56,11 +54,22 @@ const Blogs = () => {
             </div>
             <div className='md:p-6 flex-grow'>
               <h3 className='text-xl font-bold mb-2'>{blog.title}</h3>
-              <p className='text-gray-600 mb-4'>
-                {blog.description.length < 35
-                  ? blog.description
-                  : blog.description + ' ...'}
+              <p
+                className='text-gray-600 mb-4 relative overflow-hidden'
+                data-tooltip-target='tooltip-default'
+              >
+                {blog.description.length <= 25 ? (
+                  blog.description
+                ) : (
+                  <>
+                    <span>{blog.description.substring(0, 35)} ... </span>
+                    <span className='absolute top-0 left-0 z-10 w-full h-full bg-white text-gray-600 dark:bg-white/0 dark:text-white  pb-2 pt-1 text-[11px] rounded-sm backdrop-blur-sm shadow-xl shadow-black opacity-0 transition-opacity duration-500 hover:opacity-100 '>
+                      {blog.description}
+                    </span>
+                  </>
+                )}
               </p>
+
               <p className='text-gray-400 text-sm mb-2'>
                 Published on {blog.Date}
               </p>

@@ -42,27 +42,29 @@ export default function Contact() {
       <SectionHeading>Contact me</SectionHeading>
       <div className=' flex flex-col md:flex-row gap-2 '>
         {/* left section */}
-        <div className='mt-10 flex flex-col flex-1 text-black dark:text-white text-center md:text-left  px-8  item-end h-72  '>
-          <h1 className='text-4xl font-normal mb-4 mt-2'>Let's Connect!</h1>
-          <p className='md:text-lg mb-4  mt-4 text-sm'>
+        <div className=' flex flex-col flex-1 text-black dark:text-white text-center md:text-left  px-8  item-end h-72  '>
+          <h1 className='text-5xl font-normal mb-4 mt-2 bg-black/0'>
+            Let's Connect!
+          </h1>
+          <p className='md:text-lg mb-4   leading-relaxed tracking-wider text-sm'>
             Whether you have a project in mind, want to discuss potential
             collaboration, or just want to say hello, feel free to reach out!
           </p>
           <ul className='  mt-4  '>
-            <span className='nd:text-3xl text-xl mb-4 cursor-pointer '>
+            <span className='md:text-2xl text-xl mb-4 cursor-pointer '>
               {'  '}
               Phone: <span> </span>
               <a
                 href='https://wa.me/923062248224?text=Hello%20there!'
-                className='hover:underline font-bold transition-all focus:scale-110 hover:scale-110'
+                className='hover:underline md:text-[29px]  font-bold transition-all focus:scale-110 hover:scale-110'
               >
                 {' '}
                 +92 306 224 8224
                 <span className='w-full h-[2px] bg-black dark:bg-white hidden hover:block transition-all' />
               </a>{' '}
             </span>
-            <ul className='text-md flex gap-4 bottom-0 mt-6 md:justify-start  justify-center '>
-              <div className=''>
+            <ul className='text-md flex gap-4 bottom-0 mt-6 md:justify-start  justify-start '>
+              <div className='mt-4     '>
                 <Socials socialIcons={socialIcons} showLines={false} />
               </div>
             </ul>

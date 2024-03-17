@@ -21,7 +21,7 @@ export default function About() {
     >
       <SectionHeading>About me</SectionHeading>
       {AboutData.map((paragraph, index) => (
-        <p key={index} className='mb-3'>
+        <p key={index} className='mb-3 text-sm md:text-lg space-x-1'>
           {paragraph.segments.map((segment, idx) => (
             <React.Fragment key={idx}>
               {segment.html ? (
@@ -29,7 +29,7 @@ export default function About() {
               ) : (
                 segment.text
               )}
-            </React.Fragment>
+            </React.Fragment> 
           ))}
         </p>
       ))}

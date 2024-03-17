@@ -26,13 +26,16 @@ import {
   FaBloggerB,
   FaEnvelope,
   FaSass,
+  FaJs,
+  FaNode,
 } from 'react-icons/fa';
 
 import { IoLogoJavascript } from 'react-icons/io5';
 import { BiLogoTypescript, BiLogoMongodb } from 'react-icons/bi';
 import { TbBrandFramerMotion, TbBrandNextjs } from 'react-icons/tb';
-import { SiTailwindcss, SiRedux, SiAppwrite, SiHashnode } from 'react-icons/si';
+import { SiTailwindcss, SiRedux, SiAppwrite, SiHashnode, SiTypescript, SiMongodb, SiMaterialdesign, SiFlutter, SiJquery, SiExpress } from 'react-icons/si';
 import { link } from 'fs';
+import { IconBrandFramerMotion } from '@tabler/icons-react';
 export const links = [
   {
     name: 'Home',
@@ -88,18 +91,18 @@ export const socialIcons = [
 
 export const experiencesData = [
   {
-    title: 'Graduated bootcamp',
-    location: 'Miami, FL',
+    title: 'Freelance Dev',
+    location: 'Remote ',
     description:
-      'I graduated after 6 months of studying. I immediately found a job as a front-end developer.',
+      'I started my journey as a web developer by freelancing remotely. I gained valuable experience and skills during this time.',
     icon: React.createElement(LuGraduationCap),
-    date: '2019',
+    date: '2022 ',
   },
   {
-    title: 'Full-Stack Developer',
-    location: 'Houston, TX',
+    title: 'React Developer',
+    location: 'Remote',
     description:
-      "I'm now a full-stack developer working as a freelancer. My stack includes React, Next.js, TypeScript, Tailwind, Prisma and MongoDB. I'm open to full-time opportunities.",
+      'I interned at a startup, where I contributed as a Front-end developer. I worked on their website and helped build components using React and Tailwind CSS.',
     icon: React.createElement(FaReact),
     date: '2021 - present',
   },
@@ -133,18 +136,7 @@ export const projectsData = [
     sourceCode: '',
     site: 'https://darling-queijadas-e8f108.netlify.app/',
   },
-  // {
-  //   title: 'Banking Web App',
-  //   description:
-  //     'Web app for online banking services. Users can manage their accounts, transfer funds, pay bills, and view transaction history.',
-  //   tags: [
-  //     React.createElement(FaReact),
-  //     React.createElement(SiTailwindcss),
-  //     React.createElement(FaHtml5),
-  //     React.createElement(FaCss3Alt),
-  //   ],
-  //   imageUrl: bankingAppImage,
-  // },
+
 ] as const;
 
 // export const Skilldata = [
@@ -199,23 +191,41 @@ export const projectsData = [
 
 // ] as const;
 
-// export const techStack = [
-//   'HTML',
-//   'CSS',
-//   'Tailwind',
-//   'BootStrap',
-//   'MUI',
-//   'JS',
-//   'Jquery',
-//   'Framer Motion',
-//   'React',
-//   'Redux',
-//   'Next.js',
-//   'TS',
-//   'Node.js',
-//   'Git',
-//   'AppWrite',
-//   'MongoDB',
-//   'Express',
-//   'Flutter',
-// ] as const;
+export const techStackIcons = [
+  React.createElement(FaHtml5),
+  React.createElement(FaCss3Alt),
+  React.createElement(FaJs),
+  React.createElement(FaReact),
+  React.createElement(FaBootstrap),
+  React.createElement(SiRedux),
+  React.createElement(SiTypescript),
+  React.createElement(SiTailwindcss),
+  React.createElement(FaNode),
+  React.createElement(FaGitAlt),
+  React.createElement(SiAppwrite),
+  React.createElement(SiMongodb),
+  React.createElement(SiMaterialdesign),
+  React.createElement(SiFlutter),
+  React.createElement(TbBrandFramerMotion),
+  React.createElement(SiJquery),
+  React.createElement(SiExpress),
+  // React.createElement(FaReact),
+  //  'HTML',
+  // 'CSS',
+  // 'Tailwind',
+  // 'BootStrap',
+  // 'MUI',
+  // 'JS',
+  // 'Jquery',
+  // 'Framer Motion',
+  // 'React',
+  // 'Redux',
+  // 'Next.js',
+  // 'TS',
+  // 'Node.js',
+  // 'Git',
+  // 'AppWrite',
+  // 'MongoDB',
+  // 'Express',
+  // 'Flutter',
+] as const;

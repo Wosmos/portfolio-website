@@ -116,7 +116,7 @@ export default function Intro() {
           download
         >
           Download CV{' '}
-          <HiDownload className=' opacity-60 group-hover:translate-y-1 transition' />
+          <HiDownload className='  opacity-60 group-hover:translate-y-1 transition' />
         </a>
       </motion.div>
     </section>

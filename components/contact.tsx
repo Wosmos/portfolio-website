@@ -13,10 +13,12 @@ import {
   FaLinkedin,
   FaDiscord,
   FaReddit,
+  FaGithub,
 } from 'react-icons/fa';
 import { MdOutlineMailOutline } from 'react-icons/md';
 import Socials from './socials';
 import { socialIcons } from '@/lib/data';
+import { SiHashnode } from 'react-icons/si';
 
 export default function Contact() {
   const { ref } = useSectionInView('Contact');
@@ -40,18 +42,18 @@ export default function Contact() {
       }}
     >
       <SectionHeading>Contact me</SectionHeading>
-      <div className=' flex flex-col md:flex-row gap-2 '>
+      <div className=' flex flex-col-reverse md:flex-row gap-2 '>
         {/* left section */}
         <div className=' flex flex-col flex-1 text-black dark:text-white text-center md:text-left  px-8  item-end h-72  '>
-          <h1 className='text-5xl font-normal mb-4 mt-2 bg-black/0'>
+          <h1 className='text-lg md:text-5xl font-normal mb-4 mt-2 bg-black/0 hidden  md:block'>
             Let's Connect!
           </h1>
-          <p className='md:text-lg mb-4   leading-relaxed tracking-wider text-sm'>
+          <p className='md:text-lg mb-4 hidden  md:block  md:leading-relaxed tracking-wider text-sm'>
             Whether you have a project in mind, want to discuss potential
             collaboration, or just want to say hello, feel free to reach out!
           </p>
-          <ul className='  mt-4  '>
-            <span className='md:text-2xl text-xl mb-4 cursor-pointer '>
+          <ul className='  md:mt-4  '>
+            <span className='md:text-2xl text-lg mb-4 cursor-pointer '>
               {'  '}
               Phone: <span> </span>
               <a
@@ -63,16 +65,45 @@ export default function Contact() {
                 <span className='w-full h-[2px] bg-black dark:bg-white hidden hover:block transition-all' />
               </a>{' '}
             </span>
-            <ul className='text-md flex gap-4 bottom-0 mt-6 md:justify-start  justify-start '>
-              <div className='mt-4     '>
-                <Socials socialIcons={socialIcons} showLines={false} />
-              </div>
-            </ul>
+            <div className='flex md:justify-start justify-center items-center '>
+              <ul className='mt-2 flex gap-2 md:gap-4 bottom-0  md:mt-6 md:justify-start  justify-start text-left'>
+                {/* <Socials socialIcons={socialIcons} showLines={false} /> */}
+                {[
+                  {
+                    icon: <FaInstagram />,
+                    link: 'https://www.instagram.com/wosmo_tech/',
+                  },
+                  {
+                    icon: <FaLinkedin />,
+                    link: 'https://www.linkedin.com/in/wasif-malik-79205a1bb/',
+                  },
+                  { icon: <FaGithub />, link: 'https://github.com/Wosmos' },
+                  // { icon: <SiHashnode />, link: 'https://hashnode.com/@Wosmo' },
+                  {
+                    icon: <FaWhatsapp />,
+                    link: 'https://wa.me/923062248224?text=Hello%20there!',
+                  },
+                ].map((social, index) => (
+                  <li
+                    key={index}
+                    className='text-md md:text-xl scale-110 hover:text-3xl transition-all duration-200 ease-in-out focus:text-2xl'
+                  >
+                    <a
+                      href={social.link}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                    >
+                      {social.icon}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </ul>
         </div>
         {/* right section */}
         <form
-          className='mt-10 flex flex-col dark:text-black flex-1  md:mt-0'
+          className='mt-2 flex flex-col dark:text-black flex-1  md:mt-0'
           action={async (formData) => {
             const { data, error } = await sendEmail(formData);
 

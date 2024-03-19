@@ -3,6 +3,7 @@ import { CgWorkAlt } from 'react-icons/cg';
 import moviesAppImage from '@/public/corpcomment.png';
 import bankingAppImage from '@/public/rmtdev.png';
 import landingPageImage from '@/public/wordanalytics.png';
+import { PiNewspaperFill } from 'react-icons/pi';
 
 import { LuGraduationCap } from 'react-icons/lu';
 import {
@@ -29,55 +30,161 @@ import {
   FaJs,
   FaNode,
 } from 'react-icons/fa';
+import { PiNewspaperClippingLight } from 'react-icons/pi';
+
+import { IoPerson } from 'react-icons/io5';
 
 import { IoLogoJavascript } from 'react-icons/io5';
-import { BiLogoTypescript, BiLogoMongodb } from 'react-icons/bi';
+import { BiLogoTypescript, BiLogoMongodb, BiNews } from 'react-icons/bi';
 import { TbBrandFramerMotion, TbBrandNextjs } from 'react-icons/tb';
-import { SiTailwindcss, SiRedux, SiAppwrite, SiHashnode, SiTypescript, SiMongodb, SiMaterialdesign, SiFlutter, SiJquery, SiExpress } from 'react-icons/si';
+import {
+  SiTailwindcss,
+  SiRedux,
+  SiAppwrite,
+  SiHashnode,
+  SiTypescript,
+  SiMongodb,
+  SiMaterialdesign,
+  SiFlutter,
+  SiJquery,
+  SiExpress,
+  SiStackoverflow,
+} from 'react-icons/si';
 import { link } from 'fs';
-import { IconBrandFramerMotion } from '@tabler/icons-react';
+import { IconBrandFramerMotion, IconMail } from '@tabler/icons-react';
+import { MdArticle, MdCode, MdEmail, MdFolderOpen, MdHome, MdLayers, MdPerson, MdWork } from 'react-icons/md';
+import { BsBook, BsBriefcase, BsCode, BsCodeSlash, BsEnvelope, BsFolder2Open, BsHouseDoor, BsLaptop, BsNewspaper, BsPerson, BsStackOverflow } from 'react-icons/bs';
+// export const links = [
+//   {
+//     name: 'Home',
+//     hash: '#home',
+//     icon: <FaHome />,
+//   },
+//   {
+//     name: 'About',
+//     hash: '#about',
+//     icon: <IoPerson />,
+//   },
+//   {
+//     name: 'Skills',
+//     hash: '#skills',
+//     icon: <FaLaptopCode />,
+//   },
+//   {
+//     name: 'TechStack',
+//     hash: '#techStack',
+//     icon: <SiStackoverflow />,
+//   },
+//   {
+//     name: 'Projects',
+//     hash: '#projects',
+//     icon: <FaProjectDiagram />,
+//   },
+//   {
+//     name: 'Experience',
+//     hash: '#experience',
+//     icon: <FaBriefcase />,
+//   },
+//   {
+//     name: 'Blogs',
+//     hash: '#blogs',
+//     icon: <PiNewspaperFill />,
+//   },
+//   {
+//     name: 'Contact',
+//     hash: '#contact',
+//     icon: <IconMail />,
+//   },
+// ] as const;
+
+
+
 export const links = [
   {
     name: 'Home',
     hash: '#home',
-    icon: <FaHome />,
+    icon: <BsHouseDoor />,
   },
   {
     name: 'About',
     hash: '#about',
-    icon: <FaUserAlt />,
+    icon: <BsPerson />,
   },
   {
     name: 'Skills',
     hash: '#skills',
-    icon: <FaLaptopCode />,
+    icon: <BsLaptop />,
   },
   {
     name: 'TechStack',
     hash: '#techStack',
-    icon: <FaLayerGroup />,
+    icon: <BsCodeSlash />,
   },
   {
     name: 'Projects',
     hash: '#projects',
-    icon: <FaProjectDiagram />,
+    icon: <BsFolder2Open />,
   },
   {
     name: 'Experience',
     hash: '#experience',
-    icon: <FaBriefcase />,
+    icon: <BsBriefcase />,
   },
   {
     name: 'Blogs',
     hash: '#blogs',
-    icon: <FaBloggerB />,
+    icon: <BiNews />,
   },
   {
     name: 'Contact',
     hash: '#contact',
-    icon: <FaEnvelope />,
+    icon: <BsEnvelope />,
   },
 ] as const;
+
+// export const links = [
+//   {
+//     name: 'Home',
+//     hash: '#home',
+//     icon: <MdHome />,
+//   },
+//   {
+//     name: 'About',
+//     hash: '#about',
+//     icon: <MdPerson />,
+//   },
+//   {
+//     name: 'Skills',
+//     hash: '#skills',
+//     icon: <MdCode />,
+//   },
+//   {
+//     name: 'TechStack',
+//     hash: '#techStack',
+//     icon: <MdLayers />,
+//   },
+//   {
+//     name: 'Projects',
+//     hash: '#projects',
+//     icon: <MdFolderOpen />,
+//   },
+//   {
+//     name: 'Experience',
+//     hash: '#experience',
+//     icon: <MdWork />,
+//   },
+//   {
+//     name: 'Blogs',
+//     hash: '#blogs',
+//     icon: <MdArticle />,
+//   },
+//   {
+//     name: 'Contact',
+//     hash: '#contact',
+//     icon: <MdEmail />,
+//   },
+// ] as const;
+
 
 export const socialIcons = [
   { icon: <FaInstagram />, link: 'https://www.instagram.com/wosmo_tech/' },
@@ -136,7 +243,6 @@ export const projectsData = [
     sourceCode: '',
     site: 'https://darling-queijadas-e8f108.netlify.app/',
   },
-
 ] as const;
 
 // export const Skilldata = [

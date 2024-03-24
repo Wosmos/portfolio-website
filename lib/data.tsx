@@ -119,48 +119,6 @@ export const links = [
   },
 ] as const;
 
-// export const links = [
-//   {
-//     name: 'Home',
-//     hash: '#home',
-//     icon: <MdHome />,
-//   },
-//   {
-//     name: 'About',
-//     hash: '#about',
-//     icon: <MdPerson />,
-//   },
-//   {
-//     name: 'Skills',
-//     hash: '#skills',
-//     icon: <MdCode />,
-//   },
-//   {
-//     name: 'TechStack',
-//     hash: '#techStack',
-//     icon: <MdLayers />,
-//   },
-//   {
-//     name: 'Projects',
-//     hash: '#projects',
-//     icon: <MdFolderOpen />,
-//   },
-//   {
-//     name: 'Experience',
-//     hash: '#experience',
-//     icon: <MdWork />,
-//   },
-//   {
-//     name: 'Blogs',
-//     hash: '#blogs',
-//     icon: <MdArticle />,
-//   },
-//   {
-//     name: 'Contact',
-//     hash: '#contact',
-//     icon: <MdEmail />,
-//   },
-// ] as const;
 
 export const socialIcons = [
   { icon: <FaInstagram />, link: 'https://www.instagram.com/wosmo_tech/' },
@@ -221,57 +179,6 @@ export const projectsData = [
   },
 ] as const;
 
-// export const Skilldata = [
-//   {
-//     id: 1,
-//     src: web,
-//     title: 'Web Development',
-//     description:
-//       'Crafting captivating websites that attract and retain visitors, driving engagement and conversions.',
-//   },
-//   {
-//     id: 2,
-//     src: app,
-//     title: 'Mobile App Development',
-//     description:
-//       'Creating user-friendly mobile apps that enhance customer experiences and streamline processes.',
-//   },
-//   {
-//     id: 3,
-//     src: uiux,
-//     title: 'UI/UX Design',
-//     description:
-//       'Designing intuitive interfaces that make interactions seamless and enjoyable for users.',
-//   },
-//   {
-//     id: 4,
-//     src: wp,
-//     title: 'Creative Writing',
-//     description:
-//       'Producing compelling content that tells stories, captures attention, and builds brand loyalty.',
-//   },
-// ] as const;
-
-// export const Blogdata = [
-//   {
-//     id: 1,
-//     src: web,
-//     title: 'Sample Title 3',
-//     description: 'Lorem ipsum dolor sit amet  minima ',
-//     link: 'http://hashnode.com',
-//     Date: '30 June 2023',
-//   },
-//   {
-//     id: 2,
-//     src: app,
-//     title: 'Sample Title 3',
-//     description: 'Lorem ipsum dolor sit amet  minima ',
-//     link: 'http://hashnode.com',
-//     Date: '20 Jun 2023',
-//   },
-//   // {
-
-// ] as const;
 
 export const techStackIcons = [
   React.createElement(FaHtml5),

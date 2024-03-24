@@ -52,52 +52,29 @@ import {
 } from 'react-icons/si';
 import { link } from 'fs';
 import { IconBrandFramerMotion, IconMail } from '@tabler/icons-react';
-import { MdArticle, MdCode, MdEmail, MdFolderOpen, MdHome, MdLayers, MdPerson, MdWork } from 'react-icons/md';
-import { BsBook, BsBriefcase, BsCode, BsCodeSlash, BsEnvelope, BsFolder2Open, BsHouseDoor, BsLaptop, BsNewspaper, BsPerson, BsStackOverflow } from 'react-icons/bs';
-// export const links = [
-//   {
-//     name: 'Home',
-//     hash: '#home',
-//     icon: <FaHome />,
-//   },
-//   {
-//     name: 'About',
-//     hash: '#about',
-//     icon: <IoPerson />,
-//   },
-//   {
-//     name: 'Skills',
-//     hash: '#skills',
-//     icon: <FaLaptopCode />,
-//   },
-//   {
-//     name: 'TechStack',
-//     hash: '#techStack',
-//     icon: <SiStackoverflow />,
-//   },
-//   {
-//     name: 'Projects',
-//     hash: '#projects',
-//     icon: <FaProjectDiagram />,
-//   },
-//   {
-//     name: 'Experience',
-//     hash: '#experience',
-//     icon: <FaBriefcase />,
-//   },
-//   {
-//     name: 'Blogs',
-//     hash: '#blogs',
-//     icon: <PiNewspaperFill />,
-//   },
-//   {
-//     name: 'Contact',
-//     hash: '#contact',
-//     icon: <IconMail />,
-//   },
-// ] as const;
-
-
+import {
+  MdArticle,
+  MdCode,
+  MdEmail,
+  MdFolderOpen,
+  MdHome,
+  MdLayers,
+  MdPerson,
+  MdWork,
+} from 'react-icons/md';
+import {
+  BsBook,
+  BsBriefcase,
+  BsCode,
+  BsCodeSlash,
+  BsEnvelope,
+  BsFolder2Open,
+  BsHouseDoor,
+  BsLaptop,
+  BsNewspaper,
+  BsPerson,
+  BsStackOverflow,
+} from 'react-icons/bs';
 
 export const links = [
   {
@@ -184,7 +161,6 @@ export const links = [
 //     icon: <MdEmail />,
 //   },
 // ] as const;
-
 
 export const socialIcons = [
   { icon: <FaInstagram />, link: 'https://www.instagram.com/wosmo_tech/' },

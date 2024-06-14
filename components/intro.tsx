@@ -40,7 +40,7 @@ export default function Intro() {
               height='200'
               quality='95'
               priority={true}
-              className='  w-28 h-28 rounded-[500px] object-cover border-[0.35rem] border-white shadow-xl'
+              className='  w-28 h-28 rounded-[500px] object-cover border-[0.35rem] border-white shadow-xl '
             />
           </motion.div>
 

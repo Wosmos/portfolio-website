@@ -8,6 +8,7 @@ import Projects from '@/components/projects';
 import SectionDivider from '@/components/section-divider';
 import Skills from '@/components/skills';
 import Blogs from '@/components/blogs';
+import BackgroundColumns from '@/components/bg';
 import TechStack from '@/components/tech-stack';
 export default function Home() {
   return (
@@ -18,7 +19,6 @@ export default function Home() {
         <About />
         <Skills />
         <TechStack />
-        
         <Projects />
         <Experience />
         <Blogs />

@@ -1,26 +1,55 @@
+
 [
   {
     "segments": [
-      { "text": "Crafting captivating digital experiences as a " },
+      { "text": "Hey there! I'm " },
+      { "text": "Wasif (aka Wosmo)", "html": true },
+      { "text": ", a " },
       { "text": "3rd-year Software Engineering student", "html": true },
-      { "text": ". Specializing in " },
-      { "text": "React", "html": true },
+      { "text": " on a mission to create captivating digital experiences. As a " },
+      { "text": "self-taught MERN stack developer", "html": true },
+      { "text": ", I've mastered the " },
+      { "text": "MERN Stack", "html": true },
       { "text": ", " },
       { "text": "Next.js", "html": true },
-      { "text": ", and venturing into " },
+      { "text": ", " },
       { "text": "React Native", "html": true },
-      { "text": " for mobile app development. Passionate about blending functionality with aesthetics to simplify lives through intuitive interfaces." }
+      { "text": ", and " },
+      { "text": "Flutter", "html": true },
+      { "text": ", building web and mobile applications that are as functional as they are user-friendly." }
     ]
   },
   {
     "segments": [
-      { "text": "Beyond coding, I indulge in " },
-      { "text": "video editing", "html": true },
-      { "text": ", " },
-      { "text": "Photoshop artistry", "html": true },
-      { "text": ", and " },
-      { "text": "sci-fi novels", "html": true },
-      { "text": ". A stargazer at heart, forever in awe of the cosmic wonders. An introverted soul finding solace in quiet contemplation, yet always up for stimulating conversations over a cup of chai. Let's collaborate to weave code, creativity, and curiosity into unforgettable digital experiences. Reach out, and let's embark on this journey together." }
+      { "text": "Currently, I'm diving into the world of " },
+      { "text": "Go", "html": true },
+      { "text": " and " },
+      { "text": "cloud computing with AWS", "html": true },
+      { "text": ", eager to expand my horizons and tackle new challenges. My dedication to " },
+      { "text": "clean code", "html": true },
+      { "text": " and " },
+      { "text": "innovative solutions", "html": true },
+      { "text": " keeps me continuously learning and exploring new technologies." }
+    ]
+  },
+  {
+    "segments": [
+      { "text": "Throughout my tech journey, I've had the pleasure of working on exciting projects, from designing responsive e-commerce platforms to developing mobile apps that users love. I thrive on solving complex problems with elegance and turning challenges into seamless digital solutions." }
+    ]
+  },
+  {
+    "segments": [
+      { "text": "Outside the realm of coding, you might catch me working out with calisthenics or gazing at the stars—" },
+      { "text": "astronomy is undoubtedly my first love", "html": true },
+      { "text": ". I'm a sci-fi and comic movie aficionado, but I steer clear of Bollywood's nonsensical romantic flicks—" },
+      { "text": "maybe that’s why I’m still single, lol", "html": true },
+      { "text": ". I also enjoy deep intellectual conversations about simple things, which I find fascinating for gauging someone's understanding of intricate ideas. Some find it intellectual; others call it weird and unnecessary. " },
+      { "text": "I call it fun!", "html": true }
+    ]
+  },
+  {
+    "segments": [
+      { "text": "Let’s connect and explore how we can bring your digital visions to life. Whether it’s over a cup of chai or through thought-provoking discussions, I’m excited to meet like-minded professionals and embark on new tech adventures together!" }
     ]
   }
 ]

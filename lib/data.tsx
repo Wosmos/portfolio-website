@@ -1,10 +1,20 @@
 import React from 'react';
-import { CgWorkAlt } from 'react-icons/cg';
+import {
+  CgBriefcase,
+  CgCode,
+  CgCodeSlash,
+  CgFileDocument,
+  CgFolder,
+  CgLaptop,
+  CgMail,
+  CgProfile,
+  CgWorkAlt,
+} from 'react-icons/cg';
 import moviesAppImage from '@/public/corpcomment.png';
 import bankingAppImage from '@/public/rmtdev.png';
 import landingPageImage from '@/public/wordanalytics.png';
 import { PiNewspaperFill } from 'react-icons/pi';
-
+import Whome from '@/public/logo.png';
 import { LuGraduationCap } from 'react-icons/lu';
 import {
   FaInstagram,
@@ -75,37 +85,25 @@ import {
   BsPerson,
   BsStackOverflow,
 } from 'react-icons/bs';
+import Wlogo from '@/components/w-logo';
 
-export const links = [
+export const pageLinks = [
   {
     name: 'Home',
-    hash: '#home',
+    hash: '/',
     icon: <BsHouseDoor />,
   },
   {
     name: 'About',
-    hash: '#about',
+    hash: '/about',
     icon: <BsPerson />,
   },
-  {
-    name: 'Skills',
-    hash: '#skills',
-    icon: <BsLaptop />,
-  },
-  {
-    name: 'TechStack',
-    hash: '#techStack',
-    icon: <BsCodeSlash />,
-  },
+  { name: 'Skills', hash: '#skills', icon: <CgLaptop /> },
+  { name: 'TechStack', hash: '#techStack', icon: <CgCodeSlash /> },
   {
     name: 'Projects',
     hash: '#projects',
     icon: <BsFolder2Open />,
-  },
-  {
-    name: 'Experience',
-    hash: '#experience',
-    icon: <BsBriefcase />,
   },
   {
     name: 'Blogs',
@@ -119,6 +117,56 @@ export const links = [
   },
 ] as const;
 
+export const links = [
+  {
+    name: 'Home',
+    hash: '#home',
+    icon: (
+      <span className='w-full bg-yellow-100 ml-1  text-right'>
+        <Wlogo
+          width='50'
+          height='25'
+          classname='fill-black dark:fill-white stroke-1'
+        />
+      </span>
+    ),
+  },
+  {
+    name: 'About',
+    hash: '#about',
+    icon: <CgProfile />,
+  },
+  {
+    name: 'Skills',
+    hash: '#skills',
+    icon: <CgLaptop />,
+  },
+  {
+    name: 'TechStack',
+    hash: '#techStack',
+    icon: <CgCodeSlash />,
+  },
+  {
+    name: 'Projects',
+    hash: '#projects',
+    icon: <CgFolder />,
+  },
+  {
+    name: 'Experience',
+    hash: '#experience',
+    icon: <CgBriefcase />,
+  },
+  {
+    name: 'Blogs',
+    hash: '#blogs',
+    icon: <CgFileDocument />,
+  },
+  {
+    name: 'Contact',
+    hash: '#contact',
+    icon: <CgMail />,
+  },
+] as const;
 
 export const socialIcons = [
   { icon: <FaInstagram />, link: 'https://www.instagram.com/wosmo_tech/' },
@@ -178,7 +226,6 @@ export const projectsData = [
     site: 'https://darling-queijadas-e8f108.netlify.app/',
   },
 ] as const;
-
 
 export const techStackIcons = [
   React.createElement(FaHtml5),

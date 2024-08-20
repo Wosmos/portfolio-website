@@ -6,6 +6,9 @@ import Blogdata from '@/lib/data/blogs.json';
 import { motion } from 'framer-motion';
 import SectionHeading from './section-heading';
 import { useSectionInView } from '@/lib/hooks';
+import { BiHeart } from 'react-icons/bi';
+import { BsEye } from 'react-icons/bs';
+import Link from 'next/link';
 
 const fadeInAnimationVariants = {
   initial: {
@@ -41,21 +44,23 @@ const Blogs = () => {
               once: true,
             }}
             key={index}
-            className='overflow-hidden transform flex flex-col  md:items-start gap-4 duration-300 group px-8 md:pt-16 pb-4 bg-white/20 borderBlack rounded-xl md:py-3 dark:bg-white/10 dark:text-white/80 group cursor-pointer shadow-black/10 shadow-md transition-all hover:shadow-2xl w-full md:w-[300px] py-6 text-center'
+            className='flex flex-row md:flex-col  duration-300 group   bg-white/20  rounded-xl  dark:bg-white/10 dark:text-white/80 group cursor-pointer shadow-black/10 shadow-md transition-all hover:shadow-2xl w-full md:w-[300px]  gap-x-6 gap-y-4'
           >
-            <div className='relative h-56 overflow-hidden md:h-48 md:rounded-t-md md:rounded-b-none rounded-md bg-black/20 md:-mt-16 md:-mx-8'>
-              <img
-                width='100'
-                height='80'
-                src={blog.src}
-                alt='blog1'
-                className='w-full h-full object-cover transition-transform duration-300 transform hover:scale-110'
-              />
+            <div className='relative h-56 overflow-hidden md:h-48  md:rounded-t-md md:rounded-b-none rounded-md bg-black/20 rounded-tl-md rounded-bl-md  rounded-tr-none rounded-br-none '>
+              <Link href={blog.link} >
+                <img
+                  width='100'
+                  height='80'
+                  src={blog.src}
+                  alt='blog1'
+                  className='w-full h-full object-cover transition-transform duration-300 transform hover:scale-110'
+                />
+              </Link>
             </div>
-            <div className='md:p-6 flex-grow'>
-              <h3 className='text-xl font-bold mb-2'>{blog.title}</h3>
+            <div className='p-6 flex flex-col text-left'>
+              <h3 className='text-[18px] font-[600] mb-2'>{blog.title}</h3>
               <p
-                className='text-gray-600 mb-4 relative overflow-hidden'
+                className='md:hidden text-gray-600 mb-4 relative overflow-hidden'
                 data-tooltip-target='tooltip-default'
               >
                 {blog.description.length <= 25 ? (
@@ -70,17 +75,11 @@ const Blogs = () => {
                 )}
               </p>
 
-              <p className='text-gray-400 text-sm mb-2'>
-                Published on {blog.Date}
-              </p>
-              <a
-                href={blog.link}
-                target='_blank'
-                rel='noopener noreferrer'
-                className='justify-center duration-300 md:w-full px-4 py-2 group bg-gray-900 text-white md:px-7 md:py-3 flex items-center gap-3 rounded-xl outline-none focus:scale-110 hover:scale-110 hover:bg-gray-950 active:scale-105 shadow-black/10 shadow-md transition-all hover:shadow-2xl  md:mt-0'
-              >
-                Read More
-              </a>
+              <div className=' flex flex-col justify-start  items-start w-full text-gray-400 text-[10px] md:text-xs '>
+                <p className='text-gray-400  text-[12px] md:text-sm font-normal'> {blog.Date}</p>
+                <p> {blog.readTime} min read</p>
+              </div>
+             
             </div>
           </motion.div>
         ))}

@@ -5,7 +5,8 @@
     "title": "Do's & Don'ts in React (Part I)",
     "description": "Best ways to avaid Antipatterns in React ⚛️ ",
     "link": "https://wosmo.hashnode.dev/dos-and-donts-in-react-part-i",
-    "Date": "24 Feb 2024"
+    "Date": "24 Feb 2024",
+    "readTime" : "6"
   },
   {
     "id": 2,
@@ -13,7 +14,8 @@
     "title": "Memory Handling in Js 🤔",
     "description": "Demystifying The Heap and Stack Memory in Javascript",
     "link": "https://wosmo.hashnode.dev/ever-wondered-how-javascript-handles-memory",
-    "Date": "28 Dec 2023"
+    "Date": "28 Dec 2023",
+    "readTime": "5"
   },
   {
     "id": 2,
@@ -21,6 +23,7 @@
     "title": "Typescript! My second love",
     "description": "Embracing Type Safety in JavaScript Development with typescript",
     "link": "https://techatives.hashnode.dev/typescript-my-second-love#heading-conclusion",
-    "Date": "17 Mar 2024"
+    "Date": "17 Mar 2024",
+    "readTime": "6.5"
   }
 ]

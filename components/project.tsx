@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { FaCode } from 'react-icons/fa';
 import { IoIosEye } from 'react-icons/io';
+import Link from 'next/link';
 
 type ProjectProps = (typeof projectsData)[number];
 
@@ -36,12 +37,12 @@ export default function Project({
       >
         <section className='bg-gray-100/30 max-w-[42rem] border border-black/5 rounded-lg overflow-hidden sm:pr-8 relative sm:h-[20rem] hover:bg-gray-200  sm:group-even:pl-8 dark:text-white dark:bg-white/10 dark:hover:bg-white/20 shadow-black/10 shadow-md transition-all hover:shadow-2xl'>
           <div className='absolute z-50 hidden  w-full h-full group-hover:flex justify-center items-center text-gray-50/90 gap-x-4 hover:text-white'>
-            <a href={sourceCode}>
+            <Link href={sourceCode}>
               <FaCode className='cursor-pointer hover:text-7xl focus:scale-110 hover:scale-110  active:scale-105 transition text-6xl drop-shadow-2xl   shadow-slate-900' />
-            </a>
-            <a href={site}>
+            </Link>
+            <Link href={site}>
               <IoIosEye className='cursor-pointer hover:text-7xl focus:scale-110 hover:scale-110  active:scale-105 transition text-6xl drop-shadow-2xl shadow-black' />
-            </a>
+            </Link>
           </div>
           <div className='pt-4 pb-7 px-5 sm:pl-10 sm:pr-2 sm:pt-10 sm:max-w-[50%] flex flex-col h-full sm:group-even:ml-[18rem]'>
             <h3 className='text-2xl font-semibold'>{title}</h3>

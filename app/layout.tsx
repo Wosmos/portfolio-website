@@ -12,7 +12,7 @@ import {
   LightDarkGradient,
   DarkLightGradient,
   LightPurpleGradient,
-  BluePinkDiagonalGradient,
+  // BluePinkDiagonalGradient,
 } from '@/components/gradient';
 const inter = Inter({ subsets: ['latin'] });
 
@@ -66,7 +66,7 @@ export default function RootLayout({
   return (
     <html lang='en' className='!scroll-smooth'>
       <body
-        className={`${inter.className} bg-blue-50/95 text-gray-950 relative pt-28 sm:pt-36 dark:bg-[#0d031a] dark:text-gray-50 dark:text-opacity-90`}
+        className={`${inter.className} bg-blue-50/95 text-gray-950 relative pt-28 sm:pt-36 dark:bg-zinc-950 dark:text-gray-50 dark:text-opacity-90`}
       >
         <BluePinkGradient />
         <BluePurpleGradient />
@@ -81,7 +81,7 @@ export default function RootLayout({
           </ActiveSectionContextProvider>
         </ThemeContextProvider>
         <LightPurpleGradient />
-        <BluePinkDiagonalGradient />
+        {/* <BluePinkDiagonalGradient /> */}
       </body>
     </html>
   );

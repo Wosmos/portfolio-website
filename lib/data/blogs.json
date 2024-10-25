@@ -1,29 +1,38 @@
 [
   {
-    "id": 1,
-    "src": "https://cdn.hashnode.com/res/hashnode/image/upload/v1708790005860/96b668db-ed09-4675-9c03-3b597ac9d2d7.png?w=1600&h=840&fit=crop&crop=entropy&auto=compress,format&format=webp",
+    "id": "1",
     "title": "Do's & Don'ts in React (Part I)",
-    "description": "Best ways to avaid Antipatterns in React ⚛️ ",
+    "description": "Best ways to avoid Antipatterns in React ⚛️",
+    "date": "Feb 24, 2024",
+    "readTime": 6,
+    "tags": ["React", "Best Practices", "Antipatterns"],
+    "imageUrl": "https://cdn.hashnode.com/res/hashnode/image/upload/v1708790005860/96b668db-ed09-4675-9c03-3b597ac9d2d7.png?w=1600&h=840&fit=crop&crop=entropy&auto=compress,format&format=webp",
     "link": "https://wosmo.hashnode.dev/dos-and-donts-in-react-part-i",
-    "Date": "24 Feb 2024",
-    "readTime" : "6"
+    "views": 0,
+    "likes": 0
   },
   {
-    "id": 2,
-    "src": "https://cdn.hashnode.com/res/hashnode/image/upload/v1703745109882/fe544524-13d1-4b44-97e6-1ee523fa6a3f.png?w=1600&h=840&fit=crop&crop=entropy&auto=compress,format&format=webp",
+    "id": "2",
     "title": "Memory Handling in Js 🤔",
     "description": "Demystifying The Heap and Stack Memory in Javascript",
+    "date": "Dec 28, 2023",
+    "readTime": 5,
+    "tags": ["JavaScript", "Memory Management", "Heap and Stack"],
+    "imageUrl": "https://cdn.hashnode.com/res/hashnode/image/upload/v1703745109882/fe544524-13d1-4b44-97e6-1ee523fa6a3f.png?w=1600&h=840&fit=crop&crop=entropy&auto=compress,format&format=webp",
     "link": "https://wosmo.hashnode.dev/ever-wondered-how-javascript-handles-memory",
-    "Date": "28 Dec 2023",
-    "readTime": "5"
+    "views": 0,
+    "likes": 0
   },
   {
-    "id": 2,
-    "src": "https://cdn.hashnode.com/res/hashnode/image/upload/v1710649904068/092f19a6-0cd5-4d4a-a544-46637da97f7d.png?w=1600&h=840&fit=crop&crop=entropy&auto=compress,format&format=webp",
+    "id": "3",
     "title": "Typescript! My second love",
-    "description": "Embracing Type Safety in JavaScript Development with typescript",
+    "description": "Embracing Type Safety in JavaScript Development with Typescript",
+    "date": "Mar 17, 2024",
+    "readTime": 6.5,
+    "tags": ["TypeScript", "JavaScript", "Type Safety"],
+    "imageUrl": "https://cdn.hashnode.com/res/hashnode/image/upload/v1710649904068/092f19a6-0cd5-4d4a-a544-46637da97f7d.png?w=1600&h=840&fit=crop&crop=entropy&auto=compress,format&format=webp",
     "link": "https://techatives.hashnode.dev/typescript-my-second-love#heading-conclusion",
-    "Date": "17 Mar 2024",
-    "readTime": "6.5"
+    "views": 0,
+    "likes": 0
   }
 ]

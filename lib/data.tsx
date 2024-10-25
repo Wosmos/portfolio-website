@@ -59,6 +59,7 @@ import {
   SiJquery,
   SiExpress,
   SiStackoverflow,
+  SiOpenai,
 } from 'react-icons/si';
 import { link } from 'fs';
 import { IconBrandFramerMotion, IconMail } from '@tabler/icons-react';
@@ -86,6 +87,7 @@ import {
   BsStackOverflow,
 } from 'react-icons/bs';
 import Wlogo from '@/components/w-logo';
+import { Tailwind } from '@react-email/tailwind';
 
 export const pageLinks = [
   {
@@ -95,7 +97,7 @@ export const pageLinks = [
   },
   {
     name: 'About',
-    hash: '/about',
+    hash: '#about',
     icon: <BsPerson />,
   },
   { name: 'Skills', hash: '#skills', icon: <CgLaptop /> },
@@ -104,6 +106,11 @@ export const pageLinks = [
     name: 'Projects',
     hash: '#projects',
     icon: <BsFolder2Open />,
+  },
+  {
+    name: 'Experience',
+    hash: '#experience',
+    icon: <CgBriefcase />,
   },
   {
     name: 'Blogs',
@@ -220,6 +227,34 @@ export const projectsData = [
       React.createElement(IoLogoJavascript),
       React.createElement(FaSass),
       React.createElement(SiRedux),
+    ],
+    imageUrl: moviesAppImage,
+    sourceCode: '',
+    site: 'https://darling-queijadas-e8f108.netlify.app/',
+  },
+  {
+    title: 'Wizmo',
+    description:
+      'A web based ai powered summarizer or summary generator, it summarizes any blog inserted in input field just by pasting that blogs url',
+    tags: [
+      React.createElement(IoLogoJavascript),
+      React.createElement(FaReact),
+      React.createElement(Tailwind),
+      React.createElement(SiOpenai),
+    ],
+    imageUrl: moviesAppImage,
+    sourceCode: '',
+    site: 'https://darling-queijadas-e8f108.netlify.app/',
+  },
+  {
+    title: 'Wizmo 2.0',
+    description:
+      'A web based ai powered summarizer or summary generator, it summarizes any blog inserted in input field just by pasting that blogs url',
+    tags: [
+      React.createElement(IoLogoJavascript),
+      React.createElement(FaReact),
+      React.createElement(Tailwind),
+      React.createElement(SiOpenai),
     ],
     imageUrl: moviesAppImage,
     sourceCode: '',

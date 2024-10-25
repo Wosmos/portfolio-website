@@ -85,7 +85,10 @@ export default function Intro() {
           />
         </div>
         <q className='text-sm font-semibold italic relative  p-4 '>
-          I&apos;m Wasif aka <b>Wosmo. </b>
+          I&apos;m Wasif aka{' '}
+          <Link href='https://github.com/wosmos'>
+            <b>Wosmo. </b>
+          </Link>
           An Astrophile who loves to code.
         </q>
       </motion.h1>
@@ -112,7 +115,7 @@ export default function Intro() {
         <span className='w-4 hidden md:block ' />
         <a
           className='group bg-white px-7 py-3 flex items-center -mt-6 gap-2 rounded-full outline-none focus:scale-110 hover:scale-110 active:scale-105  cursor-pointer borderBlack dark:bg-black/90 shadow-black/10 shadow-md transition-all hover:shadow-2xl'
-          href='/myCV.pdf'
+          href='/myCv.pdf'
           download
         >
           Download CV{' '}

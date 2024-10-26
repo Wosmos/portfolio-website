@@ -10,9 +10,10 @@ import {
   CgProfile,
   CgWorkAlt,
 } from 'react-icons/cg';
-import moviesAppImage from '@/public/corpcomment.png';
-import bankingAppImage from '@/public/rmtdev.png';
-import landingPageImage from '@/public/wordanalytics.png';
+import movieSiteImage from '@/public/projectsThumbnails/wovies.png';
+import wizmoImage from '@/public/projectsThumbnails/wizmoLandingPage.png';
+import wizmo2Image from '@/public/projectsThumbnails/wizmo2.0.png';
+import travelSiteLandingPageImage from '@/public/projectsThumbnails/travelSiteLandingPage.png';
 import { PiNewspaperFill } from 'react-icons/pi';
 import Whome from '@/public/logo.png';
 import { LuGraduationCap } from 'react-icons/lu';
@@ -206,7 +207,7 @@ export const experiencesData = [
 
 export const projectsData = [
   {
-    title: 'Tech Startup Landing Page',
+    title: 'Travel site landing page',
     description:
       'A simple landing page Ui designed for a Travel Agency. The page showcases the About, service and highlights its features.',
     tags: [
@@ -214,12 +215,12 @@ export const projectsData = [
       React.createElement(IoLogoJavascript),
       React.createElement(SiTailwindcss),
     ],
-    imageUrl: landingPageImage,
+    imageUrl: travelSiteLandingPageImage,
     sourceCode: 'https://github.com/Wosmos/Travel-app',
     site: 'https://sparkly-fenglisu-c6f2fa.netlify.app/ ',
   },
   {
-    title: 'Movies App',
+    title: 'Wovies',
     description:
       'A web application for browsing and discovering movies. Users can search for movies, view details such as ratings and reviews, and save their favorite movies to watch later.',
     tags: [
@@ -227,8 +228,9 @@ export const projectsData = [
       React.createElement(IoLogoJavascript),
       React.createElement(FaSass),
       React.createElement(SiRedux),
+      React.createElement(SiOpenai),
     ],
-    imageUrl: moviesAppImage,
+    imageUrl: movieSiteImage,
     sourceCode: '',
     site: 'https://darling-queijadas-e8f108.netlify.app/',
   },
@@ -242,9 +244,9 @@ export const projectsData = [
       React.createElement(Tailwind),
       React.createElement(SiOpenai),
     ],
-    imageUrl: moviesAppImage,
-    sourceCode: '',
-    site: 'https://darling-queijadas-e8f108.netlify.app/',
+    imageUrl: wizmoImage,
+    sourceCode: 'https://github.com/Wosmos/wizmo.git',
+    site: 'https://wizmo.netlify.app/',
   },
   {
     title: 'Wizmo 2.0',
@@ -256,8 +258,8 @@ export const projectsData = [
       React.createElement(Tailwind),
       React.createElement(SiOpenai),
     ],
-    imageUrl: moviesAppImage,
-    sourceCode: '',
+    imageUrl: wizmo2Image,
+    sourceCode: 'https://github.com/Wosmos/test-chatbot.git',
     site: 'https://darling-queijadas-e8f108.netlify.app/',
   },
 ] as const;

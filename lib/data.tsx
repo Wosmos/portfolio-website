@@ -61,10 +61,15 @@ import {
   SiExpress,
   SiStackoverflow,
   SiOpenai,
+  SiReact,
+  SiUpstash,
+  SiNextdotjs,
+  SiRedis,
 } from 'react-icons/si';
 import { link } from 'fs';
 import { IconBrandFramerMotion, IconMail } from '@tabler/icons-react';
 import {
+  MdApi,
   MdArticle,
   MdCode,
   MdEmail,
@@ -218,6 +223,7 @@ export const projectsData = [
     imageUrl: travelSiteLandingPageImage,
     sourceCode: 'https://github.com/Wosmos/Travel-app',
     site: 'https://sparkly-fenglisu-c6f2fa.netlify.app/ ',
+    isShareable: true,
   },
   {
     title: 'Wovies',
@@ -228,11 +234,12 @@ export const projectsData = [
       React.createElement(IoLogoJavascript),
       React.createElement(FaSass),
       React.createElement(SiRedux),
-      React.createElement(SiOpenai),
+      React.createElement(MdApi),
     ],
     imageUrl: movieSiteImage,
     sourceCode: '',
     site: 'https://darling-queijadas-e8f108.netlify.app/',
+    isShareable: true,
   },
   {
     title: 'Wizmo',
@@ -241,26 +248,31 @@ export const projectsData = [
     tags: [
       React.createElement(IoLogoJavascript),
       React.createElement(FaReact),
-      React.createElement(Tailwind),
+      React.createElement(SiTailwindcss),
       React.createElement(SiOpenai),
     ],
     imageUrl: wizmoImage,
     sourceCode: 'https://github.com/Wosmos/wizmo.git',
     site: 'https://wizmo.netlify.app/',
+    isShareable: true,
   },
   {
     title: 'Wizmo 2.0',
     description:
-      'A web based ai powered summarizer or summary generator, it summarizes any blog inserted in input field just by pasting that blogs url',
+      'Wizmo 2.0 is an WebChat AI Assistant, an intelligent chatbot that can analyze and discuss the content of any website. Simply enter a URL, and start a conversation about the webpage&apos;s content.',
     tags: [
-      React.createElement(IoLogoJavascript),
-      React.createElement(FaReact),
-      React.createElement(Tailwind),
+      React.createElement(SiTypescript),
+      React.createElement(SiReact),
+      React.createElement(SiNextdotjs),
       React.createElement(SiOpenai),
+      React.createElement(SiTailwindcss),
+      React.createElement(SiUpstash),
+      React.createElement(SiRedis),
     ],
     imageUrl: wizmo2Image,
     sourceCode: 'https://github.com/Wosmos/test-chatbot.git',
     site: 'https://darling-queijadas-e8f108.netlify.app/',
+    isShareable: false,
   },
 ] as const;
 

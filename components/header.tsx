@@ -105,7 +105,7 @@ export default function DualHeader() {
                   )}
                 </Link>
 
-                {/* Tooltip - Now positioned below */}
+                {/* Tooltip - positioned below */}
                 <div className='absolute left-1/2 -translate-x-1/2 translate-y-[calc(100%+10px)] bottom-0 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-300 z-10'>
                   <div className='bg-blue-50 dark:bg-gray-900 dark:text-white px-4 py-2 rounded-lg shadow-lg text-sm whitespace-nowrap'>
                     <div className='font-bold text-blue-400'>{link.name}</div>

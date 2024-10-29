@@ -9,8 +9,6 @@ import { TypeAnimation } from 'react-type-animation';
 import { useActiveSectionContext } from '@/context/active-section-context';
 import pfpimg from '../public/profile.jpg';
 
-// importing react icons
-import { BsArrowRight, BsLinkedin } from 'react-icons/bs';
 import { HiDownload } from 'react-icons/hi';
 import { FaGithubSquare } from 'react-icons/fa';
 
@@ -115,7 +113,7 @@ export default function Intro() {
         <span className='w-4 hidden md:block ' />
         <a
           className='group bg-white px-7 py-3 flex items-center -mt-6 gap-2 rounded-full outline-none focus:scale-110 hover:scale-110 active:scale-105  cursor-pointer borderBlack dark:bg-black/90 shadow-black/10 shadow-md transition-all hover:shadow-2xl'
-          href='/myCv.pdf'
+          href='/my-cv.pdf'
           download
         >
           Download CV{' '}

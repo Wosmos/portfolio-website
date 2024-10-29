@@ -8,6 +8,18 @@ import clsx from 'clsx';
 import { useActiveSectionContext } from '@/context/active-section-context';
 import Logo from '../components/logo';
 
+
+const navItems = [
+  { ...pageLinks[0], description: 'Return to the homepage' },
+  { ...pageLinks[1], description: 'Learn about my background and journey' },
+  { ...pageLinks[2], description: 'View my core competencies and abilities' },
+  { ...pageLinks[3], description: 'Explore my technical expertise and tools' },
+  { ...pageLinks[4], description: 'Browse my portfolio of work' },
+  { ...pageLinks[5], description: 'See my professional journey and roles' },
+  { ...pageLinks[6], description: 'Read my articles and insights' },
+  { ...pageLinks[7], description: 'Get in touch with me' },
+];
+
 export default function DualHeader() {
   const { activeSection, setActiveSection, setTimeOfLastClick } =
     useActiveSectionContext();
@@ -19,7 +31,6 @@ export default function DualHeader() {
 
   return (
     <>
-      {/* Top Header */}
       <header className='z-[999] relative'>
         <motion.div
           className='fixed top-0 left-1/2 h-[4.5rem] w-full rounded-none border border-white border-opacity-40 bg-white bg-opacity-70 shadow-2xl backdrop-blur-[0.5rem] sm:top-6 sm:h-[3.25rem] sm:w-[36rem] sm:rounded-full dark:bg-gray-950 dark:border-black/40 dark:bg-opacity-75 shadow-black/10 transition-all ring-white/15 ring-1'
@@ -54,9 +65,9 @@ export default function DualHeader() {
               </motion.div>
             </motion.span>
 
-            {pageLinks.map((link) => (
+            {navItems.map((link) => (
               <motion.li
-                className='h-3/4 flex items-center justify-center relative'
+                className='group h-3/4 flex items-center justify-center relative'
                 key={link.hash}
                 initial={{ y: -100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
@@ -93,6 +104,17 @@ export default function DualHeader() {
                     </motion.span>
                   )}
                 </Link>
+
+                {/* Tooltip - Now positioned below */}
+                <div className='absolute left-1/2 -translate-x-1/2 translate-y-[calc(100%+10px)] bottom-0 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-300 z-10'>
+                  <div className='bg-blue-50 dark:bg-gray-900 dark:text-white px-4 py-2 rounded-lg shadow-lg text-sm whitespace-nowrap'>
+                    <div className='font-bold text-blue-400'>{link.name}</div>
+                    <div className='text-xs font-thin opacity-90'>{link.description}</div>
+
+                    {/* Tooltip arrow - Now points upward */}
+                    <div className='absolute left-1/2 -translate-x-1/2 top-0 -translate-y-[calc(100%-2px)] border-8 border-transparent border-b-blue-50 dark:border-b-gray-900' />
+                  </div>
+                </div>
               </motion.li>
             ))}
           </ul>

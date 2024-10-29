@@ -117,7 +117,7 @@ const BlogCard: React.FC<{ blog: Blog; index: number }> = ({ blog, index }) => {
           {blog.tags.map((tag) => (
             <span
               key={tag}
-              className='px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-200 rounded-full'
+              className='px-2 py-1 text-[11px] font-medium bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-200 rounded-full'
             >
               {tag}
             </span>
@@ -130,37 +130,22 @@ const BlogCard: React.FC<{ blog: Blog; index: number }> = ({ blog, index }) => {
         </h3>
 
         {/* Description */}
-        <p className='text-gray-600 dark:text-gray-300 mb-4 line-clamp-2 text-xs text-left'>
+        <p className='text-gray-600/90 dark:text-gray-300/90 mb-4 line-clamp-2 text-xs text-left'>
           {blog.description}
         </p>
 
         {/* Meta Info */}
-        <div className='mt-auto'>
-          <div className='flex items-center justify-between text-xs text-gray-500 dark:text-gray-400'>
-            <span>{blog.date}</span>
-            <span>{blog.readTime} min read</span>
-          </div>
-
-          <div className='flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700'>
-            <div className='flex items-center gap-4'>
-              <button className='flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors'>
-                <BsEye className='w-4 h-4' />
-                <span className='text-sm'>{stats.views}</span>
-              </button>
-              <button className='flex items-center gap-1 text-gray-500 hover:text-red-600 transition-colors'>
-                <BiHeart className='w-4 h-4' />
-                <span className='text-sm'>{stats.likes}</span>
-              </button>
-              <button className='p-2 hover:bg-gray-500 dark:hover:bg-gray-700 rounded-full transition-colors'>
-                <BiShare className='w-4 h-4' />
-              </button>
+        <div className='mt-auto pt-4 border-t border-gray-200 dark:border-gray-700'>
+          <div className='flex items-center justify-between text-gray-500 dark:text-gray-400 -mt-2'>
+            <div className='flex flex-col gap-y-[2px] justify-start text-left text-xs '>
+              <span className='font-bold'>{blog.date}</span>
+              <span className='opacity-90'>{blog.readTime} min read</span>
             </div>
             <Link
               href={blog.link}
-              className='inline-flex items-center text-blue-600 dark:text-blue-400 hover:underline gap-1 text-xs font-medium'
+              className='inline-flex self-end mt-auto text-xs text-blue-600 dark:text-blue-400 hover:underline gap-1 font-medium'
             >
               Read More
-              <BsArrowRight className='w-4 h-4' />
             </Link>
           </div>
         </div>

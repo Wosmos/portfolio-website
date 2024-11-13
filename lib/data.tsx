@@ -271,7 +271,7 @@ export const projectsData = [
     ],
     imageUrl: wizmo2Image,
     sourceCode: 'https://github.com/Wosmos/test-chatbot.git',
-    site: 'https://darling-queijadas-e8f108.netlify.app/',
+    site: 'https://wizmo-20.vercel.app/',
     isShareable: false,
   },
 ] as const;

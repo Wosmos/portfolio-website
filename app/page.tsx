@@ -10,7 +10,7 @@ import Skills from '@/components/skills';
 import Blogs from '@/components/blogs';
 import BackgroundColumns from '@/components/bg';
 import TechStack from '@/components/tech-stack';
-import SideBar from '@/components/sideBar';
+
 export default function Home() {
   return (
     <>
@@ -18,12 +18,12 @@ export default function Home() {
         <Intro />
         {/* <SideBar/> */}
         <SectionDivider />
-        <About />
-        <Skills />
-        <TechStack />
+        <About /> {/* bentogrid part */}
+        <Skills /> {/* bentogrid part */}
+        <TechStack /> {/* bentogrid part */}
         <Projects />
         <Experience />
-        <Blogs />
+        <Blogs /> {/* maybe bentogrid part */}
         <Contact />
       </main>
     </>

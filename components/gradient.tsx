@@ -1,81 +1,160 @@
-// export const BluePinkGradient = () => (
-//   <div className='bg-gradient-to-tl from-blue-300 via-purple-200 to-pink-300 absolute top-[-1rem] -z-10 left-[-35rem] h-[31.25rem] w-[50rem] rounded-full blur-[15rem] sm:w-[68.75rem] md:left-[-33rem] lg:left-[-28rem] xl:left-[-15rem] 2xl:left-[-5rem] dark:bg-gradient-to-tl dark:from-blue-100 dark:via-purple-900  dark:to-blue-900'></div>
+// 'use client';
+
+// import React from 'react';
+// import { motion } from 'framer-motion';
+
+// export const DarkMeshGradient = () => (
+//   <div className='fixed inset-0 -z-50 overflow-hidden'>
+//     {/* Base Purple Layer */}
+//     <div
+//       className='absolute h-[150vh] w-[150vw] -top-[25%] -left-[25%] 
+//         bg-radial-gradient(at_30%_40%,hsl(260,60%,10%)_0%,transparent_50%)
+//         blur-[100px] opacity-50'
+//     />
+
+//     {/* Blue-Purple Diagonal Flow */}
+//     <motion.div
+//       initial={{ opacity: 0 }}
+//       animate={{ opacity: 1 }}
+//       transition={{ duration: 1.5 }}
+//       className='absolute h-[120vh] w-[120vw] -top-[10%] -right-[30%] 
+//         bg-gradient-to-br from-blue-900/40 via-purple-900/30 to-indigo-900/50 
+//         blur-[150px] rounded-full'
+//     />
+
+//     {/* Vertical Depth Gradient */}
+//     <div
+//       className='fixed inset-0 bg-gradient-to-b from-purple-900/20 to-blue-900/30 
+//         backdrop-blur-[2px]'
+//     />
+
+//     {/* Animated Purple Core */}
+//     <motion.div
+//       animate={{
+//         scale: [1, 1.2, 1],
+//         opacity: [0.8, 1, 0.8],
+//       }}
+//       transition={{
+//         duration: 8,
+//         repeat: Infinity,
+//         ease: 'easeInOut',
+//       }}
+//       className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 
+//         h-[80vh] w-[80vw] bg-radial-gradient(at_50%_50%,hsl(270,70%,15%)_0%,transparent_60%)
+//         blur-[120px] opacity-70'
+//     />
+//   </div>
 // );
 
-// export const BluePurpleGradient = () => (
-//   <div className='bg-gradient-to-tl from-blue-300 via-purple-200 to-pink-300 absolute top-[-1rem] -z-10 left-[-35rem] h-[31.25rem] w-[50rem] rounded-full blur-[15rem] sm:w-[68.75rem] md:left-[-33rem] lg:left-[-28rem] xl:left-[-15rem] 2xl:left-[-5rem] dark:bg-gradient-to-tl dark:from-blue-100 dark:via-purple-900  dark:to-blue-900'></div>
-// );
-
-// export const LightDarkGradient = () => (
-//   <div className='bg-[#e2e2fb] absolute top-[-6rem] -z-10 right-[11rem] h-[31.25rem] w-[31.25rem] rounded-full blur-[10rem] sm:w-[68.75rem] dark:bg-[#280364]'></div>
-// );
-
-// export const DarkLightGradient = () => (
-//   <div className='bg-[#e2e2fb] absolute top-[-6rem] -z-10 right-[11rem] h-[31.25rem] w-[31.25rem] rounded-full blur-[10rem] sm:w-[68.75rem] dark:bg-[#a7037e]'></div>
-// );
-// export const LightPurpleGradient = () => (
-//   <div className='bg-[#8989f9d4] absolute bottom-0 -z-10 right-[11rem] h-[31.25rem] w-[31.25rem] rounded-full blur-[10rem] sm:w-[68.75rem] dark:bg-[#460556]'></div>
-// );
-
-// export const BluePinkDiagonalGradient = () => (
-//   <div className='absolute bg-gradient-to-br from-blue-300 via-purple-200 to-pink-300  bottom-0 right-0 -z-10 left-[-35rem] h-[31.25rem] w-[50rem] rounded-full blur-[15rem] sm:w-[68.75rem] md:left-[-33rem] lg:left-[-28rem] xl:left-[-15rem] 2xl:left-[-5rem] dark:bg-gradient-to-bl dark:from-blue-100 dark:via-purple-900  dark:to-blue-900'></div>
-// );
 
 
 
-import React from 'react';
 
-// Type for gradient component props
-type GradientProps = {
-  className?: string;
-};
+'use client';
+import { motion } from 'framer-motion';
 
-export const BluePinkGradient: React.FC<GradientProps> = ({ className }) => (
-  <div
-    className={`bg-gradient-to-tl from-cyan-200 via-blue-300 to-pink-400 absolute top-[-1rem] -z-10 left-[-35rem] h-[31.25rem] w-[50rem] rounded-full blur-[15rem] sm:w-[68.75rem] md:left-[-33rem] lg:left-[-28rem] xl:left-[-15rem] 2xl:left-[-5rem] dark:bg-gradient-to-tl dark:from-cyan-300 dark:via-indigo-700 dark:to-purple-900 ${
-      className || ''
-    }`}
+// Core Mesh Component ==================================
+export const VortexGradient = ({ darkMode = true }) => (
+  <div className='fixed inset-0 -z-50 overflow-hidden'>
+    {/* Dark Mode */}
+    {darkMode ? (
+      <>
+        <motion.div
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1.2 }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            repeatType: 'reverse',
+          }}
+          className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 
+            h-[150vh] w-[150vw] bg-radial-gradient(at_50%_50%,
+            hsl(265,60%,15%)_0%,
+            hsl(260,70%,10%)_30%,
+            hsl(255,80%,5%)_60%) 
+            blur-[150px] opacity-50'
+        />
+
+        <div
+          className='absolute inset-0 bg-[radial-gradient(at_bottom_right,hsl(220,80%,10%),transparent_70%)] 
+          backdrop-blur-[2px]'
+        />
+      </>
+    ) : (
+      // Light Mode
+      <>
+        <div
+          className='absolute inset-0 bg-radial-gradient(at_50%_50%,
+          hsl(260,60%,95%)_0%,
+          hsl(255,70%,90%)_30%,
+          hsl(250,80%,85%)_60%) 
+          blur-[150px] opacity-70'
+        />
+
+        <div
+          className='absolute inset-0 bg-gradient-to-br from-purple-50/40 via-blue-100/30 to-amber-50/50 
+          backdrop-blur-[3px]'
+        />
+      </>
+    )}
+  </div>
+);
+
+// Supplemental Gradients ==============================
+export const HorizonFlow = ({ darkMode = true }) => (
+  <motion.div
+    initial={{ x: -100 }}
+    animate={{ x: 100 }}
+    transition={{
+      duration: 25,
+      repeat: Infinity,
+      repeatType: 'mirror',
+    }}
+    className={`fixed -top-[50%] -left-[25%] h-[200vh] w-[150vw] 
+      ${
+        darkMode
+          ? 'bg-gradient-to-r from-blue-900/20 via-purple-900/30 to-indigo-900/40'
+          : 'bg-gradient-to-r from-blue-100/30 via-purple-100/40 to-amber-100/20'
+      }
+      blur-[120px] opacity-50 -rotate-12 -z-40`}
   />
 );
 
-export const BluePurpleGradient: React.FC<GradientProps> = ({ className }) => (
+export const DepthVeil = ({ darkMode = true }) => (
   <div
-    className={`bg-gradient-to-br from-blue-400 via-purple-300 to-indigo-500 absolute top-[-1rem] -z-10 left-[-35rem] h-[31.25rem] w-[50rem] rounded-full blur-[15rem] sm:w-[68.75rem] md:left-[-33rem] lg:left-[-28rem] xl:left-[-15rem] 2xl:left-[-5rem] dark:bg-gradient-to-br dark:from-indigo-400 dark:via-purple-800 dark:to-blue-900 ${
-      className || ''
-    }`}
+    className={`fixed inset-0 -z-30 
+    ${
+      darkMode
+        ? 'bg-gradient-to-b from-purple-900/10 via-blue-900/15 to-indigo-900/20'
+        : 'bg-gradient-to-b from-purple-50/20 via-blue-100/25 to-amber-50/30'
+    }
+    backdrop-blur-[1px]`}
   />
 );
 
-export const LightDarkGradient: React.FC<GradientProps> = ({ className }) => (
-  <div
-    className={`bg-[#f5f5fa] absolute top-[-6rem] -z-10 right-[11rem] h-[31.25rem] w-[31.25rem] rounded-full blur-[10rem] sm:w-[68.75rem] dark:bg-[#1a1a2e] ${
-      className || ''
-    }`}
-  />
-);
-
-export const DarkLightGradient: React.FC<GradientProps> = ({ className }) => (
-  <div
-    className={`bg-[#ececf9] absolute top-[-6rem] -z-10 right-[11rem] h-[31.25rem] w-[31.25rem] rounded-full blur-[10rem] sm:w-[68.75rem] dark:bg-[#6b0f1a] ${
-      className || ''
-    }`}
-  />
-);
-
-export const LightPurpleGradient: React.FC<GradientProps> = ({ className }) => (
-  <div
-    className={`bg-[#b5a4fc] absolute bottom-0 -z-10 right-[11rem] h-[31.25rem] w-[31.25rem] rounded-full blur-[10rem] sm:w-[68.75rem] dark:bg-[#320c58] ${
-      className || ''
-    }`}
-  />
-);
-
-export const TealGoldDiagonalGradient: React.FC<GradientProps> = ({
-  className,
-}) => (
-  <div
-    className={`absolute bg-gradient-to-br from-teal-300 via-yellow-200 to-amber-500 bottom-0 right-0 -z-10 left-[-35rem] h-[31.25rem] w-[50rem] rounded-full blur-[15rem] sm:w-[68.75rem] md:left-[-33rem] lg:left-[-28rem] xl:left-[-15rem] 2xl:left-[-5rem] dark:bg-gradient-to-bl dark:from-teal-500 dark:via-yellow-600 dark:to-amber-700 ${
-      className || ''
-    }`}
-  />
+export const ParticleField = ({ darkMode = true }) => (
+  <div className='fixed inset-0 -z-20 overflow-hidden'>
+    {[...Array(30)].map((_, i) => (
+      <motion.div
+        key={i}
+        className={`absolute h-[1px] w-[1px] rounded-full 
+          ${darkMode ? 'bg-purple-300/20' : 'bg-purple-600/20'}`}
+        initial={{
+          x: Math.random() * 100 + 'vw',
+          y: Math.random() * 100 + 'vh',
+          scale: 0,
+        }}
+        animate={{
+          x: [0, Math.random() * 100 + 'vw', 0],
+          y: [0, Math.random() * 100 + 'vh', 0],
+          scale: [0, 1, 0],
+        }}
+        transition={{
+          duration: Math.random() * 10 + 10,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      />
+    ))}
+  </div>
 );

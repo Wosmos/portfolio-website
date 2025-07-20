@@ -6,14 +6,8 @@ import Footer from '@/components/footer';
 import ThemeSwitch from '@/components/theme-switch';
 import ThemeContextProvider from '@/context/theme-context';
 import { Toaster } from 'react-hot-toast';
-import {
-  BluePinkGradient,
-  BluePurpleGradient,
-  LightDarkGradient,
-  DarkLightGradient,
-  LightPurpleGradient,
-  // BluePinkDiagonalGradient,
-} from '@/components/gradient';
+import DynamicLayout from '@/components/DynamicLayout';
+
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
@@ -65,23 +59,52 @@ export default function RootLayout({
 }) {
   return (
     <html lang='en' className='!scroll-smooth'>
+      <head>
+        <script type='application/ld+json' suppressHydrationWarning>
+          {`
+            {
+              "@context": "https://schema.org",
+              "@type": "Person",
+              "name": "Muhammad Wasif Malik",
+              "alternateName": "Wosmo",
+              "url": "https://wosmo.com",
+              "jobTitle": "Front-end Developer",
+              "sameAs": [
+                "https://github.com/wosmos",
+                "https://linkedin.com/in/wosmo"
+              ]
+            }
+          `}
+        </script>
+        <script type='application/ld+json' suppressHydrationWarning>
+          {`
+            {
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "url": "https://wosmo.vercel.app",
+              "name": "Wosmo | Front-end Developer Portfolio",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://wosmo.vercel.app/?s={search_term_string}",
+                "query-input": "required name=search_term_string"
+              }
+            }
+          `}
+        </script>
+      </head>
       <body
         className={`${inter.className} bg-blue-50/95 text-gray-950 relative pt-28 sm:pt-36 dark:bg-zinc-950 dark:text-gray-50 dark:text-opacity-90`}
       >
-        <BluePinkGradient />
-        <BluePurpleGradient />
-        <LightDarkGradient />
         <ThemeContextProvider>
           <ActiveSectionContextProvider>
             <Header />
             {children}
             <Footer />
+
             <Toaster position='top-right' />
             <ThemeSwitch />
           </ActiveSectionContextProvider>
         </ThemeContextProvider>
-        <LightPurpleGradient />
-        {/* <BluePinkDiagonalGradient /> */}
       </body>
     </html>
   );

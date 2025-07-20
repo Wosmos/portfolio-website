@@ -67,3 +67,12 @@ html.dark {
 ::-webkit-scrollbar {
   width: 0px;
 }
+@layer utilities {
+  .backdrop-blur-lg {
+    backdrop-filter: blur(16px);
+  }
+  
+  .shadow-purple-glow {
+    box-shadow: 0 0 40px -10px rgba(139, 92, 246, 0.3);
+  }
+}

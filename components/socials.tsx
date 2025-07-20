@@ -6,7 +6,7 @@ const Socials = ({
 }: {
   socialIcons: any;
   showLines: boolean;
-}) => {
+}) => { 
   return (
     <>
       <div className='flex w-full justify-center items-center gap-2'>

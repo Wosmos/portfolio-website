@@ -75,7 +75,7 @@ export default function Contact() {
                   },
                   {
                     icon: <FaLinkedin />,
-                    link: 'https://www.linkedin.com/in/wasif-malik-79205a1bb/',
+                    link: 'https://www.linkedin.com/in/wasif-m-79205a1bb/',
                   },
                   { icon: <FaGithub />, link: 'https://github.com/Wosmos' },
                   // { icon: <SiHashnode />, link: 'https://hashnode.com/@Wosmo' },

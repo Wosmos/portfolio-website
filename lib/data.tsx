@@ -40,6 +40,8 @@ import {
   FaSass,
   FaJs,
   FaNode,
+  FaRocket,
+  FaCode,
 } from 'react-icons/fa';
 import { PiNewspaperClippingLight } from 'react-icons/pi';
 
@@ -185,7 +187,7 @@ export const socialIcons = [
   { icon: <FaInstagram />, link: 'https://www.instagram.com/wosmo_tech/' },
   {
     icon: <FaLinkedin />,
-    link: 'https://www.linkedin.com/in/wasif-malik-79205a1bb/',
+    link: 'https://www.linkedin.com/in/wasif-m-79205a1bb/',
   },
   { icon: <FaGithub />, link: 'https://github.com/Wosmos' },
   { icon: <SiHashnode />, link: 'https://hashnode.com/@Wosmo' },
@@ -193,20 +195,36 @@ export const socialIcons = [
 
 export const experiencesData = [
   {
-    title: 'Freelance Dev',
-    location: 'Remote ',
-    description:
-      'I started my journey as a web developer by freelancing remotely. I gained valuable experience and skills during this time.',
-    icon: React.createElement(LuGraduationCap),
-    date: '2022 ',
-  },
-  {
-    title: 'React Developer',
+    title: 'Freelance Web Developer',
     location: 'Remote',
     description:
-      'I interned at a startup, where I contributed as a Front-end developer. I worked on their website and helped build components using React and Tailwind CSS.',
+      'Began my professional development career through freelance work, building foundational skills in web development while working with diverse clients and projects remotely.',
+    icon: React.createElement(FaLaptopCode),
+    date: '2022',
+  },
+  {
+    title: 'Frontend React Developer',
+    location: 'Remote',
+    description:
+      'Contributed to startup growth as a Frontend Developer intern, developing website components and user interfaces using React and Tailwind CSS in an agile environment.',
     icon: React.createElement(FaReact),
     date: '2021 - present',
+  },
+  {
+    title: 'Frontend Developer Intern - LiftUp AI',
+    location: 'Jamshoro',
+    description:
+      'Developed expertise in modern frontend technologies including advanced CSS methodologies and SCSS for maintainable styling architecture. Built interactive React components, implemented state management with Redux, and integrated RESTful APIs to deliver responsive, user-centric web applications.',
+    icon: React.createElement(FaRocket),
+    date: 'Jan 2024 - Mar 2024',
+  },
+  {
+    title: 'Full Stack Developer - Avialdo Solutions',
+    location: 'Karachi',
+    description:
+      'Currently building scalable web applications with Next.js framework and managing PostgreSQL databases. Actively collaborate with cross-functional teams using Jira for project management and Confluence for documentation in a product-driven development environment.',
+    icon: React.createElement(FaCode),
+    date: 'Jan 2024 - Present',
   },
 ] as const;
 

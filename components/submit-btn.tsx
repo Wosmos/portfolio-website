@@ -8,16 +8,34 @@ export default function SubmitBtn() {
   return (
     <button
       type='submit'
-      className='group flex items-center justify-center gap-2 h-[3rem] md:w-[8rem] w-full  dark:text-white rounded-full outline-none transition-all focus:scale-110 hover:scale-110 hover:bg-gray-950 active:scale-105 bg-white dark:bg-opacity-10 disabled:scale-100 disabled:bg-opacity-65 shadow-md hover:shadow-2xl      
-        px-7 py-3 cursor-pointer borderBlack dark:bg-black/90 shadow-black/10 '
+      className={`group flex items-center justify-center gap-2 h-[3rem] w-full md:w-[10rem] rounded-full outline-none transition-all 
+        focus:scale-[1.02] hover:scale-[1.02] active:scale-[1.01] disabled:scale-100 disabled:cursor-not-allowed
+        bg-purple-600 text-white font-medium
+        hover:shadow-lg hover:shadow-blue-500/30
+        focus:ring-2 focus:ring-blue-400 focus:ring-offset-2
+        dark:from-blue-700 dark:to-blue-600 dark:hover:shadow-blue-700/30
+        dark:focus:ring-blue-500 dark:focus:ring-offset-gray-800 
+            hover:bg-purple-700 
+             duration-300 
+            shadow-lg shadow-purple-500/50 
+           
+            dark:bg-purple-800 
+            dark:hover:bg-purple-700
+
+        ${pending ? 'opacity-80' : 'opacity-100'}`}
       disabled={pending}
+      aria-disabled={pending}
+      aria-busy={pending}
     >
       {pending ? (
-        <div className='h-5 w-5 animate-spin rounded-full border-b-2 border-white'></div>
+        <div className='flex items-center justify-center gap-2'>
+          <div className='h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent'></div>
+          <span>Sending...</span>
+        </div>
       ) : (
         <>
-          Submit{' '}
-          <FaPaperPlane className='text-xs opacity-70 transition-all group-hover:translate-x-1 group-hover:-translate-y-1' />{' '}
+          <span>Send Message</span>
+          <FaPaperPlane className='text-xs transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5' />
         </>
       )}
     </button>

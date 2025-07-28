@@ -94,6 +94,16 @@ import {
   BsPerson,
   BsStackOverflow,
 } from 'react-icons/bs';
+
+import { 
+  SiNextdotjs, 
+  SiTailwindcss, 
+  SiTypescript,
+  SiFirebase,
+  SiGoogle,
+  SiVercel,
+  SiGemini
+} from 'react-icons/si';
 import Wlogo from '@/components/w-logo';
 import { Tailwind } from '@react-email/tailwind';
 
@@ -277,7 +287,7 @@ export const projectsData = [
   {
     title: 'Wizmo 2.0',
     description:
-      'Wizmo 2.0 is an WebChat AI Assistant, an intelligent chatbot that can analyze and discuss the content of any website. Simply enter a URL, and start a conversation about the webpage&apos;s content.',
+      'Wizmo 2.0 is a WebChat AI Assistant, an intelligent chatbot that can analyze and discuss the content of any website. Simply enter a URL, and start a conversation about the webpage&apos;s content.',
     tags: [
       React.createElement(SiTypescript),
       React.createElement(SiReact),
@@ -290,6 +300,23 @@ export const projectsData = [
     imageUrl: wizmo2Image,
     sourceCode: 'https://github.com/Wosmos/test-chatbot.git',
     site: 'https://wizmo-20.vercel.app/',
+    isShareable: false,
+  },
+   {
+    title: 'ResumeRight - AI Resume Analyser',
+    description: 'AI-powered resume optimisation tool with ATS checks.',
+    tags: [
+      React.createElement(SiNextdotjs, { key: 'next' }),
+      React.createElement(SiTailwindcss, { key: 'tailwind' }),
+      React.createElement(SiTypescript, { key: 'typescript' }),
+      React.createElement(SiFirebase, { key: 'firebase' }),
+      React.createElement(SiGoogle, { key: 'google' }), // For Gemini API
+      React.createElement(SiVercel, { key: 'vercel' }), // If deployed on Vercel
+      React.createElement(SiGemini, { key: 'gemini' }) // If available (or use SiGoogle)
+    ],
+    imageUrl: "https://api.microlink.io/?url=https://ai-resume-checker-peach.vercel.app&screenshot=true&meta=false&embed=screenshot.url",
+    sourceCode: 'https://github.com/Wosmos/AI-Resume-checker',
+    site: 'https://ai-resume-checker-peach.vercel.app/',
     isShareable: false,
   },
 ] as const;

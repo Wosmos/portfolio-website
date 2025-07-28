@@ -15,6 +15,7 @@ import wizmoImage from '@/public/projectsThumbnails/wizmoLandingPage.png';
 import wizmo2Image from '@/public/projectsThumbnails/wizmo2.0.png';
 import ResumeRight from '@/public/projectsThumbnails/ResumeRight.png';
 import travelSiteLandingPageImage from '@/public/projectsThumbnails/travelSiteLandingPage.png';
+import JsMiniProjects from '@/public/projectsThumbnails/JsMiniProjects.png';
 import {
   FaInstagram,
   FaLinkedin,
@@ -40,6 +41,8 @@ import {
   FaNode,
   FaRocket,
   FaCode,
+  FaCss3,
+  FaJava,
 } from 'react-icons/fa';
 import { PiNewspaperClippingLight } from 'react-icons/pi';
 
@@ -65,6 +68,7 @@ import {
   SiUpstash,
   SiNextdotjs,
   SiRedis,
+  SiJavascript,
 } from 'react-icons/si';
 import { link } from 'fs';
 import { IconBrandFramerMotion, IconMail } from '@tabler/icons-react';
@@ -229,7 +233,7 @@ export const experiencesData = [
     description:
       'Currently building scalable web applications with Next.js framework and managing PostgreSQL databases. Actively collaborate with cross-functional teams using Jira for project management and Confluence for documentation in a product-driven development environment.',
     icon: React.createElement(FaCode),
-    date: 'Jan 2024 - Present',
+    date: 'Jan 2025 - Present',
   },
 ] as const;
 
@@ -246,6 +250,21 @@ export const projectsData = [
     imageUrl: travelSiteLandingPageImage,
     sourceCode: 'https://github.com/Wosmos/Travel-app',
     site: 'https://sparkly-fenglisu-c6f2fa.netlify.app/ ',
+    isShareable: true,
+  },
+  {
+    title: 'Mini Projects',
+    description:
+      'A collection of mini intresting projects build with simple html, css and javascript.',
+    tags: [
+      React.createElement(FaHtml5),
+      React.createElement(FaCss3),
+      React.createElement(SiTailwindcss),
+      React.createElement(SiJavascript),
+    ],
+    imageUrl: JsMiniProjects,
+    sourceCode: 'https://github.com/Wosmos/mini-apps?tab=readme-ov-file',
+    site: 'https://wosmos.github.io/mini-apps/main.html',
     isShareable: true,
   },
   {

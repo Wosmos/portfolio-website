@@ -13,6 +13,7 @@ import {
 import movieSiteImage from '@/public/projectsThumbnails/wovies.png';
 import wizmoImage from '@/public/projectsThumbnails/wizmoLandingPage.png';
 import wizmo2Image from '@/public/projectsThumbnails/wizmo2.0.png';
+import ResumeRight from '@/public/projectsThumbnails/ResumeRight.png';
 import travelSiteLandingPageImage from '@/public/projectsThumbnails/travelSiteLandingPage.png';
 import {
   FaInstagram,
@@ -258,7 +259,7 @@ export const projectsData = [
       React.createElement(SiRedux),
       React.createElement(MdApi),
     ],
-    imageUrl: '',
+    imageUrl: movieSiteImage,
     sourceCode: '',
     site: 'https://darling-queijadas-e8f108.netlify.app/',
     isShareable: true,
@@ -307,7 +308,7 @@ export const projectsData = [
       React.createElement(SiGoogle, { key: 'google' }),
       React.createElement(SiVercel, { key: 'vercel' }),
     ],
-    imageUrl: "https://api.microlink.io/?url=https://ai-resume-checker-peach.vercel.app&screenshot=true&meta=false&embed=screenshot.url",
+    imageUrl: ResumeRight,
     sourceCode: 'https://github.com/Wosmos/AI-Resume-checker',
     site: 'https://ai-resume-checker-peach.vercel.app/',
     isShareable: false,

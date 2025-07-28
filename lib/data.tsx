@@ -14,9 +14,6 @@ import movieSiteImage from '@/public/projectsThumbnails/wovies.png';
 import wizmoImage from '@/public/projectsThumbnails/wizmoLandingPage.png';
 import wizmo2Image from '@/public/projectsThumbnails/wizmo2.0.png';
 import travelSiteLandingPageImage from '@/public/projectsThumbnails/travelSiteLandingPage.png';
-import { PiNewspaperFill } from 'react-icons/pi';
-import Whome from '@/public/logo.png';
-import { LuGraduationCap } from 'react-icons/lu';
 import {
   FaInstagram,
   FaLinkedin,
@@ -96,14 +93,11 @@ import {
 } from 'react-icons/bs';
 
 import { 
-  SiNextdotjs, 
-  SiTailwindcss, 
-  SiTypescript,
   SiFirebase,
   SiGoogle,
-  SiVercel,
-  SiGemini
+  SiVercel
 } from 'react-icons/si';
+
 import Wlogo from '@/components/w-logo';
 import { Tailwind } from '@react-email/tailwind';
 
@@ -264,7 +258,7 @@ export const projectsData = [
       React.createElement(SiRedux),
       React.createElement(MdApi),
     ],
-    imageUrl: movieSiteImage,
+    imageUrl: '',
     sourceCode: '',
     site: 'https://darling-queijadas-e8f108.netlify.app/',
     isShareable: true,
@@ -310,9 +304,8 @@ export const projectsData = [
       React.createElement(SiTailwindcss, { key: 'tailwind' }),
       React.createElement(SiTypescript, { key: 'typescript' }),
       React.createElement(SiFirebase, { key: 'firebase' }),
-      React.createElement(SiGoogle, { key: 'google' }), // For Gemini API
-      React.createElement(SiVercel, { key: 'vercel' }), // If deployed on Vercel
-      React.createElement(SiGemini, { key: 'gemini' }) // If available (or use SiGoogle)
+      React.createElement(SiGoogle, { key: 'google' }),
+      React.createElement(SiVercel, { key: 'vercel' }),
     ],
     imageUrl: "https://api.microlink.io/?url=https://ai-resume-checker-peach.vercel.app&screenshot=true&meta=false&embed=screenshot.url",
     sourceCode: 'https://github.com/Wosmos/AI-Resume-checker',

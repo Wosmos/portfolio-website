@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wasif Malik | Cosmic Engineer</title>
+    
+    <!-- SEO & Meta -->
+    <meta name="description" content="Wasif Malik - Full Stack Engineer crafting digital experiences with Next.js, Flutter, and AI. Building the future, one line of code at a time.">
+    <meta name="keywords" content="Wasif Malik, Software Engineer, Next.js, Flutter, React, AI, Full Stack Developer">
+    <meta property="og:title" content="Wasif Malik | Cosmic Engineer">
+    <meta property="og:description" content="Building scalable digital ecosystems with cutting-edge technology">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/typed.js@2.0.16/lib/typed.min.js"></script>
+    
+    <!-- Tabler Icons for better tech icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons@latest/icons-sprite.svg">
+    <script src="https://unpkg.com/@tabler/icons@latest/dist/tabler-icons.min.js"></script>
+
+    <style>
+        :root {
+            --cosmic-void: #000000;
+            --cosmic-dark: #0a0a0f;
+            --cosmic-surface: #0f0f23;
+            --cosmic-panel: #1a1a2e;
+            --cosmic-primary: #00d4ff;
+            --cosmic-secondary: #7c3aed;
+            --cosmic-accent: #ff6b35;
+            --cosmic-success: #00ff88;
+            --cosmic-warning: #ffaa00;
+            --cosmic-text: #ffffff;
+            --cosmic-text-dim: #a0a9c0;
+            --cosmic-text-muted: #6b7280;
+            --cosmic-border: #2a2a3e;
+            --cosmic-glow: rgba(0, 212, 255, 0.3);
+            --font-display: 'Orbitron', sans-serif;
+            --font-body: 'Rajdhani', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: var(--cosmic-void);
+            color: var(--cosmic-text);
+            font-family: var(--font-body);
+            overflow-x: hidden;
+            line-height: 1.6;
+            font-weight: 400;
+        }
+
+        /* Futuristic Grid Background */
+        .cosmic-grid {
+            background-image: 
+                linear-gradient(rgba(0, 212, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 212, 255, 0.05) 1px, transparent 1px),
+                radial-gradient(circle at 25% 25%, rgba(124, 58, 237, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(255, 107, 53, 0.1) 0%, transparent 50%);
+            background-size: 60px 60px, 60px 60px, 800px 800px, 800px 800px;
+            background-position: 0 0, 0 0, 0 0, 400px 400px;
+        }
+
+        /* Uniform Glass Panels */
+        .glass-panel {
+            background: rgba(15, 15, 35, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--cosmic-border);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-panel:hover {
+            border-color: var(--cosmic-primary);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 20px var(--cosmic-glow),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Uniform Card System */
+        .cosmic-card {
+            background: var(--cosmic-surface);
+            border: 1px solid var(--cosmic-border);
+            border-radius: 16px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .cosmic-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--cosmic-primary), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .cosmic-card:hover::before {
+            opacity: 1;
+        }
+
+        .cosmic-card:hover {
+            border-color: var(--cosmic-primary);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Futuristic Text Effects */
+        .cosmic-glow {
+            text-shadow: 
+                0 0 10px var(--cosmic-primary),
+                0 0 20px var(--cosmic-primary),
+                0 0 40px var(--cosmic-primary);
+        }
+
+        .neon-text {
+            color: var(--cosmic-primary);
+            text-shadow: 
+                0 0 5px currentColor,
+                0 0 10px currentColor,
+                0 0 15px currentColor,
+                0 0 20px currentColor;
+        }
+
+        /* Cosmic Orbs with Better Animation */
+        .cosmic-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.4;
+            animation: cosmicFloat 8s ease-in-out infinite;
+        }
+
+        @keyframes cosmicFloat {
+            0%, 100% { 
+                transform: translateY(0px) rotate(0deg) scale(1); 
+                opacity: 0.4;
+            }
+            33% { 
+                transform: translateY(-30px) rotate(120deg) scale(1.1); 
+                opacity: 0.6;
+            }
+            66% { 
+                transform: translateY(15px) rotate(240deg) scale(0.9); 
+                opacity: 0.3;
+            }
+        }
+
+        /* Tech Icons */
+        .tech-icon {
+            width: 24px;
+            height: 24px;
+            filter: drop-shadow(0 0 8px currentColor);
+            transition: all 0.3s ease;
+        }
+
+        .tech-icon:hover {
+            filter: drop-shadow(0 0 12px currentColor);
+            transform: scale(1.1);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--cosmic-dark); }
+        ::-webkit-scrollbar-thumb { 
+            background: linear-gradient(var(--cosmic-primary), var(--cosmic-accent));
+            border-radius: 4px;
+        }
+
+        /* Animations */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(99, 102, 241, 0.6); }
+        }
+
+        @keyframes rotate-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+        .animate-rotate-slow { animation: rotate-slow 20s linear infinite; }
+        .animate-marquee { animation: marquee 30s linear infinite; }
+
+        /* Futuristic Dock Navigation */
+        .cosmic-dock {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+        }
+
+        .dock-container {
+            background: rgba(15, 15, 35, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--cosmic-border);
+            border-radius: 24px;
+            padding: 12px 20px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .dock-item {
+            position: relative;
+            padding: 12px;
+            border-radius: 12px;
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dock-item:hover {
+            transform: translateY(-8px) scale(1.15);
+            background: rgba(0, 212, 255, 0.1);
+            box-shadow: 0 8px 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .dock-item::before {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: calc(100% + 16px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--cosmic-panel);
+            color: var(--cosmic-text);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            border: 1px solid var(--cosmic-border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .dock-item:hover::before {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-4px);
+        }
+
+        .dock-separator {
+            width: 1px;
+            height: 24px;
+            background: var(--cosmic-border);
+            margin: 0 8px;
+        }
+
+        /* Bento Grid */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            grid-auto-rows: minmax(200px, auto);
+        }
+
+        .bento-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 1.5rem;
+            transition: all 0.4s ease;
+        }
+
+        .bento-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .bento-large { grid-column: span 2; }
+        .bento-tall { grid-row: span 2; }
+
+        /* Project Cards */
+        .project-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 1rem;
+            transition: all 0.4s ease;
+        }
+
+        .project-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .project-card:hover::before {
+            left: 100%;
+        }
+
+        /* Advanced Terminal Interface */
+        .terminal {
+            background: linear-gradient(135deg, #000000 0%, #0a0a0f 100%);
+            border: 1px solid var(--cosmic-border);
+            border-radius: 12px;
+            font-family: var(--font-mono);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .terminal-header {
+            background: linear-gradient(90deg, #1a1a2e 0%, #16213e 100%);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--cosmic-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .terminal-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .terminal-dot.close { background: #ff5f57; }
+        .terminal-dot.minimize { background: #ffbd2e; }
+        .terminal-dot.maximize { background: #28ca42; }
+
+        .terminal-title {
+            font-size: 12px;
+            color: var(--cosmic-text-dim);
+            font-family: var(--font-mono);
+        }
+
+        .terminal-content {
+            padding: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .terminal-line {
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+        }
+
+        .terminal-prompt {
+            color: var(--cosmic-primary);
+            margin-right: 8px;
+        }
+
+        .terminal-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: var(--cosmic-primary);
+            animation: terminalBlink 1.2s infinite;
+            margin-left: 2px;
+        }
+
+        @keyframes terminalBlink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .code-comment { color: #6b7280; }
+        .code-keyword { color: var(--cosmic-secondary); }
+        .code-string { color: var(--cosmic-success); }
+        .code-number { color: var(--cosmic-accent); }
+        .code-property { color: var(--cosmic-primary); }
+        .code-value { color: #fbbf24; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .bento-large { grid-column: span 1; }
+            .cosmic-dock { bottom: 1rem; }
+        }
+    </style>
+</head>
+<body class="cosmic-grid selection:bg-indigo-500 selection:text-white">
+
+    <!-- Cosmic Orbs -->
+    <div class="cosmic-orb w-96 h-96" style="background: var(--cosmic-primary); top: 10%; right: -10%;"></div>
+    <div class="cosmic-orb w-64 h-64" style="background: var(--cosmic-secondary); bottom: 20%; left: -5%; animation-delay: -3s;"></div>
+    <div class="cosmic-orb w-48 h-48" style="background: var(--cosmic-accent); top: 50%; left: 30%; animation-delay: -1.5s;"></div>
+
+    <!-- Three.js Canvas -->
+    <canvas id="cosmic-canvas" class="fixed inset-0 -z-10 opacity-20"></canvas>
+
+    <!-- Futuristic Dock Navigation -->
+    <nav class="cosmic-dock">
+        <div class="dock-container flex items-center gap-2">
+            <a href="#home" class="dock-item" data-tooltip="HOME">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                </svg>
+            </a>
+            <a href="#about" class="dock-item" data-tooltip="ABOUT">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+            </a>
+            <a href="#projects" class="dock-item" data-tooltip="PROJECTS">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                </svg>
+            </a>
+            <a href="#experience" class="dock-item" data-tooltip="EXPERIENCE">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2V6"/>
+                </svg>
+            </a>
+            <a href="#blog" class="dock-item" data-tooltip="BLOG">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                </svg>
+            </a>
+            <div class="dock-separator"></div>
+            <a href="https://github.com/Wosmos" target="_blank" class="dock-item" data-tooltip="GITHUB">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+            </a>
+            <a href="https://www.linkedin.com/in/wasif-m-79205a1bb/" target="_blank" class="dock-item" data-tooltip="LINKEDIN">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                </svg>
+            </a>
+            <a href="#contact" class="dock-item" data-tooltip="CONTACT" style="background: var(--cosmic-primary); color: var(--cosmic-void);">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="min-h-screen flex items-center justify-center px-6 relative">
+        <div class="max-w-7xl w-full">
+            
+            <!-- Status Bar -->
+            <div class="mb-8 flex justify-center">
+                <div class="glass-panel px-6 py-3 rounded-full flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                        <span class="text-sm font-mono text-green-400">SYSTEM ONLINE</span>
+                    </div>
+                    <div class="w-px h-4 bg-gray-600"></div>
+                    <span class="text-sm font-mono text-gray-400">Available for Projects</span>
+                </div>
+            </div>
+
+            <!-- Main Hero Grid -->
+            <div class="grid lg:grid-cols-12 gap-8 items-center">
+                
+                <!-- Hero Content - Left Side -->
+                <div class="lg:col-span-7 hero-content">
+                    <div class="mb-6">
+                        <div class="text-sm font-mono text-gray-400 mb-2">FULL_STACK_ENGINEER.exe</div>
+                        <h1 class="text-7xl md:text-8xl font-black tracking-tighter mb-4" style="font-family: var(--font-display);">
+                            <span class="neon-text">WASIF</span><br/>
+                            <span class="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">MALIK</span>
+                        </h1>
+                    </div>
+                    
+                    <div class="text-xl text-gray-300 max-w-lg mb-8 leading-relaxed font-medium">
+                        <span id="typed-text"></span>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4 mb-8">
+                        <button class="group relative px-8 py-4 bg-gradient-to-r from-blue-500 to-cyan-400 text-black font-bold rounded-xl overflow-hidden transition-all hover:scale-105 hover:shadow-2xl">
+                            <span class="relative z-10 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                DOWNLOAD_CV
+                            </span>
+                        </button>
+                        <button class="px-8 py-4 border border-cyan-400/50 text-cyan-400 rounded-xl hover:bg-cyan-400/10 transition-all font-bold">
+                            VIEW_PROJECTS →
+                        </button>
+                    </div>
+
+                    <!-- Tech Stack Icons -->
+                    <div class="flex items-center gap-4 mb-8">
+                        <span class="text-sm font-mono text-gray-500">TECH_STACK:</span>
+                        <div class="flex gap-3">
+                            <div class="tech-icon text-blue-400" title="React">⚛️</div>
+                            <div class="tech-icon text-cyan-400" title="Next.js">▲</div>
+                            <div class="tech-icon text-blue-500" title="Flutter">🔷</div>
+                            <div class="tech-icon text-green-400" title="Node.js">🟢</div>
+                            <div class="tech-icon text-purple-400" title="AI">🤖</div>
+                        </div>
+                    </div>
+
+                    <!-- Social Links -->
+                    <div class="flex gap-3">
+                        <a href="https://github.com/Wosmos" target="_blank" class="glass-panel p-3 rounded-lg hover:bg-cyan-400/10 transition-all group">
+                            <svg class="w-5 h-5 group-hover:text-cyan-400 transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                        </a>
+                        <a href="https://www.linkedin.com/in/wasif-m-79205a1bb/" target="_blank" class="glass-panel p-3 rounded-lg hover:bg-blue-400/10 transition-all group">
+                            <svg class="w-5 h-5 group-hover:text-blue-400 transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                            </svg>
+                        </a>
+                        <a href="https://www.instagram.com/wosmo_tech/" target="_blank" class="glass-panel p-3 rounded-lg hover:bg-pink-400/10 transition-all group">
+                            <svg class="w-5 h-5 group-hover:text-pink-400 transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                            </svg>
+                        </a>
+                        <a href="https://hashnode.com/@Wosmo" target="_blank" class="glass-panel p-3 rounded-lg hover:bg-green-400/10 transition-all group">
+                            <svg class="w-5 h-5 group-hover:text-green-400 transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M22.351 8.019l-6.37-6.37a5.63 5.63 0 0 0-7.962 0l-6.37 6.37a5.63 5.63 0 0 0 0 7.962l6.37 6.37a5.63 5.63 0 0 0 7.962 0l6.37-6.37a5.63 5.63 0 0 0 0-7.962zM12 15.953a3.953 3.953 0 1 1 0-7.906 3.953 3.953 0 0 1 0 7.906z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Advanced Terminal - Right Side -->
+                <div class="lg:col-span-5 hero-visual">
+                    <div class="terminal group">
+                        <div class="terminal-header">
+                            <div class="terminal-controls">
+                                <div class="terminal-dot close"></div>
+                                <div class="terminal-dot minimize"></div>
+                                <div class="terminal-dot maximize"></div>
+                            </div>
+                            <div class="terminal-title">wasif_malik.dev</div>
+                            <div class="text-xs text-gray-500">zsh</div>
+                        </div>
+                        <div class="terminal-content">
+                            <div class="terminal-line">
+                                <span class="terminal-prompt">$</span>
+                                <span class="code-keyword">cat</span> 
+                                <span class="code-string">developer.json</span>
+                            </div>
+                            <div class="terminal-line mt-3">
+                                <span class="code-comment">// System Profile</span>
+                            </div>
+                            <div class="terminal-line">
+                                <span class="code-keyword">const</span> 
+                                <span class="code-property">developer</span> = {
+                            </div>
+                            <div class="terminal-line pl-4">
+                                <span class="code-property">name</span>: 
+                                <span class="code-string">"Wasif Malik"</span>,
+                            </div>
+                            <div class="terminal-line pl-4">
+                                <span class="code-property">role</span>: 
+                                <span class="code-string">"Full Stack Engineer"</span>,
+                            </div>
+                            <div class="terminal-line pl-4">
+                                <span class="code-property">location</span>: 
+                                <span class="code-string">"Karachi, PK"</span>,
+                            </div>
+                            <div class="terminal-line pl-4">
+                                <span class="code-property">experience</span>: 
+                                <span class="code-number">3</span>,
+                            </div>
+                            <div class="terminal-line pl-4">
+                                <span class="code-property">skills</span>: [
+                            </div>
+                            <div class="terminal-line pl-8">
+                                <span class="code-string">"Next.js"</span>, 
+                                <span class="code-string">"Flutter"</span>,
+                            </div>
+                            <div class="terminal-line pl-8">
+                                <span class="code-string">"React Native"</span>, 
+                                <span class="code-string">"AI"</span>
+                            </div>
+                            <div class="terminal-line pl-4">],</div>
+                            <div class="terminal-line pl-4">
+                                <span class="code-property">status</span>: 
+                                <span class="code-string">"available"</span>
+                            </div>
+                            <div class="terminal-line">};</div>
+                            <div class="terminal-line mt-3">
+                                <span class="terminal-prompt">$</span>
+                                <span class="code-keyword">npm</span> 
+                                <span class="code-string">run</span> 
+                                <span class="code-value">build-future</span>
+                                <span class="terminal-cursor"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Floating Tech Elements -->
+                    <div class="absolute -top-6 -right-6 w-12 h-12 border border-cyan-400/30 rounded-lg rotate-45 animate-pulse"></div>
+                    <div class="absolute -bottom-6 -left-6 w-8 h-8 border border-purple-400/30 rounded-full animate-bounce"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tech Stack Marquee -->
+    <div class="py-16 border-y border-cyan-400/20 bg-gradient-to-r from-transparent via-cyan-400/5 to-transparent overflow-hidden">
+        <div class="flex gap-20 animate-marquee whitespace-nowrap">
+            <div class="flex items-center gap-3 text-2xl font-bold font-mono text-gray-400 hover:text-cyan-400 transition-colors">
+                <span class="text-orange-400">⚡</span> HTML5
+            </div>
+            <div class="flex items-center gap-3 text-2xl font-bold font-mono text-gray-400 hover:text-cyan-400 transition-colors">
+                <span class="text-blue-400">🎨</span> CSS3
+            </div>
+            <div class="flex items-center gap-3 text-2xl font-bold font-mono text-gray-400 hover:text-cyan-400 transition-colors">
+                <span class="text-yellow-400">⚡</span> JAVASCRIPT
+            </div>
+            <div class="flex items-center gap-3 text-2xl font-bold font-mono text-gray-400 hover:text-cyan-400 transition-colors">
+                <span class="text-cyan-400">⚛️</span> REACT
+            </div>
+            <div class="flex items-center gap-3 text-2xl font-bold font-mono text-gray-400 hover:text-cyan-400 transition-colors">
+                <span class="text-white">▲</span> NEXT.JS
+            </div>
+            <div class="flex items-center gap-3 text-2xl font-bold font-mono text-gray-400 hover:text-cyan-400 transition-colors">
+                <span class="text-blue-500">🔷</span> FLUTTER
+            </div>
+            <div class="flex items-center gap-3 text-2xl font-bold font-mono text-gray-400 hover:text-cyan-400 transition-colors">
+                <span class="text-blue-600">📘</span> TYPESCRIPT
+            </div>
+            <div class="flex items-center gap-3 text-2xl font-bold font-mono text-gray-400 hover:text-cyan-400 transition-colors">
+                <span class="text-green-400">🟢</span> NODE.JS
+            </div>
+            <div class="flex items-center gap-3 text-2xl font-bold font-mono text-gray-400 hover:text-cyan-400 transition-colors">
+                <span class="text-green-500">🍃</span> MONGODB
+            </div>
+            <div class="flex items-center gap-3 text-2xl font-bold font-mono text-gray-400 hover:text-cyan-400 transition-colors">
+                <span class="text-cyan-400">🌊</span> TAILWIND
+            </div>
+            <!-- Duplicate for seamless loop -->
+            <div class="flex items-center gap-3 text-2xl font-bold font-mono text-gray-400 hover:text-cyan-400 transition-colors">
+                <span class="text-orange-400">⚡</span> HTML5
+            </div>
+            <div class="flex items-center gap-3 text-2xl font-bold font-mono text-gray-400 hover:text-cyan-400 transition-colors">
+                <span class="text-blue-400">🎨</span> CSS3
+            </div>
+            <div class="flex items-center gap-3 text-2xl font-bold font-mono text-gray-400 hover:text-cyan-400 transition-colors">
+                <span class="text-yellow-400">⚡</span> JAVASCRIPT
+            </div>
+            <div class="flex items-center gap-3 text-2xl font-bold font-mono text-gray-400 hover:text-cyan-400 transition-colors">
+                <span class="text-cyan-400">⚛️</span> REACT
+            </div>
+        </div>
+    </div>    <!-- About Section - Bento Grid -->
+    <section id="about" class="py-24 px-6 max-w-7xl mx-auto">
+        <div class="mb-16 text-center">
+            <div class="inline-flex items-center gap-2 px-4 py-2 glass-panel rounded-full mb-6">
+                <span class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></span>
+                <span class="text-sm font-mono text-cyan-400">ABOUT_MODULE</span>
+            </div>
+            <h2 class="text-5xl md:text-6xl font-bold mb-4 cosmic-glow" style="font-family: var(--font-display);">SYSTEM PROFILE</h2>
+            <div class="h-px w-32 bg-gradient-to-r from-transparent via-cyan-400 to-transparent mx-auto"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <!-- Main Bio Card -->
+            <div class="md:col-span-2 lg:col-span-2 cosmic-card">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold" style="font-family: var(--font-display);">THE ARCHITECT</h3>
+                </div>
+                <p class="text-gray-300 leading-relaxed mb-6">
+                    Software Engineering student passionate about bridging design and functionality. 
+                    Crafting intuitive interfaces with <span class="text-cyan-400 font-semibold">React Native</span> and 
+                    building robust backends with <span class="text-cyan-400 font-semibold">Node.js</span>. Currently exploring 
+                    Generative AI and modern web technologies.
+                </p>
+                <div class="flex flex-wrap gap-2">
+                    <span class="px-3 py-1 bg-cyan-400/10 text-cyan-400 rounded-full text-sm border border-cyan-400/20">📍 Karachi, Pakistan</span>
+                    <span class="px-3 py-1 bg-purple-400/10 text-purple-400 rounded-full text-sm border border-purple-400/20">🎓 Software Engineering</span>
+                    <span class="px-3 py-1 bg-orange-400/10 text-orange-400 rounded-full text-sm border border-orange-400/20">🚀 3+ Years Experience</span>
+                </div>
+            </div>
+
+            <!-- GitHub Stats -->
+            <div class="cosmic-card text-center">
+                <div class="w-12 h-12 bg-gradient-to-r from-gray-700 to-gray-900 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                </div>
+                <div class="text-4xl font-bold text-white mb-2" style="font-family: var(--font-display);">45+</div>
+                <div class="text-gray-400 text-sm">REPOSITORIES</div>
+                <div class="text-xs text-cyan-400 mt-2 font-mono">ACTIVE_CONTRIBUTOR</div>
+            </div>
+
+            <!-- Current Focus -->
+            <div class="cosmic-card">
+                <div class="w-10 h-10 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center mb-4">
+                    <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <h4 class="text-lg font-bold mb-2" style="font-family: var(--font-display);">LEARNING</h4>
+                <p class="text-gray-400 text-sm mb-3">System Design & LLM Agents</p>
+                <div class="w-full bg-gray-800 rounded-full h-2 mb-2">
+                    <div class="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full w-3/4"></div>
+                </div>
+                <div class="text-xs text-orange-400 font-mono">75% COMPLETE</div>
+            </div>
+
+            <!-- Skills Showcase -->
+            <div class="md:col-span-2 lg:col-span-2 cosmic-card">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                        </svg>
+                    </div>
+                    <h4 class="text-xl font-bold" style="font-family: var(--font-display);">TECH ARSENAL</h4>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="skill-item">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm font-medium">FRONTEND</span>
+                            <span class="text-sm text-cyan-400 font-mono">95%</span>
+                        </div>
+                        <div class="w-full bg-gray-800 rounded-full h-2">
+                            <div class="bg-gradient-to-r from-cyan-400 to-blue-500 h-2 rounded-full w-[95%]"></div>
+                        </div>
+                    </div>
+                    <div class="skill-item">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm font-medium">BACKEND</span>
+                            <span class="text-sm text-green-400 font-mono">88%</span>
+                        </div>
+                        <div class="w-full bg-gray-800 rounded-full h-2">
+                            <div class="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full w-[88%]"></div>
+                        </div>
+                    </div>
+                    <div class="skill-item">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm font-medium">MOBILE</span>
+                            <span class="text-sm text-purple-400 font-mono">92%</span>
+                        </div>
+                        <div class="w-full bg-gray-800 rounded-full h-2">
+                            <div class="bg-gradient-to-r from-purple-400 to-pink-500 h-2 rounded-full w-[92%]"></div>
+                        </div>
+                    </div>
+                    <div class="skill-item">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-sm font-medium">AI/ML</span>
+                            <span class="text-sm text-orange-400 font-mono">85%</span>
+                        </div>
+                        <div class="w-full bg-gray-800 rounded-full h-2">
+                            <div class="bg-gradient-to-r from-orange-400 to-red-500 h-2 rounded-full w-[85%]"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tech Stack Grid -->
+                <div class="grid grid-cols-6 gap-3">
+                    <div class="glass-panel p-3 rounded-lg text-center group hover:bg-cyan-400/10 transition-all">
+                        <div class="text-xl mb-1">⚛️</div>
+                        <div class="text-xs text-gray-400 group-hover:text-cyan-400 font-mono">REACT</div>
+                    </div>
+                    <div class="glass-panel p-3 rounded-lg text-center group hover:bg-blue-400/10 transition-all">
+                        <div class="text-xl mb-1">🔷</div>
+                        <div class="text-xs text-gray-400 group-hover:text-blue-400 font-mono">FLUTTER</div>
+                    </div>
+                    <div class="glass-panel p-3 rounded-lg text-center group hover:bg-green-400/10 transition-all">
+                        <div class="text-xl mb-1">🟢</div>
+                        <div class="text-xs text-gray-400 group-hover:text-green-400 font-mono">NODE</div>
+                    </div>
+                    <div class="glass-panel p-3 rounded-lg text-center group hover:bg-purple-400/10 transition-all">
+                        <div class="text-xl mb-1">🤖</div>
+                        <div class="text-xs text-gray-400 group-hover:text-purple-400 font-mono">AI</div>
+                    </div>
+                    <div class="glass-panel p-3 rounded-lg text-center group hover:bg-yellow-400/10 transition-all">
+                        <div class="text-xl mb-1">⚡</div>
+                        <div class="text-xs text-gray-400 group-hover:text-yellow-400 font-mono">JS</div>
+                    </div>
+                    <div class="glass-panel p-3 rounded-lg text-center group hover:bg-cyan-400/10 transition-all">
+                        <div class="text-xl mb-1">▲</div>
+                        <div class="text-xs text-gray-400 group-hover:text-cyan-400 font-mono">NEXT</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Latest Articles -->
+            <div class="bento-card bento-large glass-cosmic p-6 relative overflow-hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h4 class="text-xl font-bold flex items-center gap-2">
+                        <i data-lucide="pen-tool" class="w-6 h-6 text-purple-400"></i>
+                        Latest Articles
+                    </h4>
+                    <a href="https://hashnode.com/@Wosmo" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 transition-colors">
+                        View All →
+                    </a>
+                </div>
+                <div class="space-y-4">
+                    <article class="glass-cosmic p-4 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="text-xs font-mono text-indigo-400">Mar 27, 2024</span>
+                            <span class="w-1 h-1 bg-gray-500 rounded-full"></span>
+                            <span class="text-xs text-gray-400">TypeScript</span>
+                        </div>
+                        <h5 class="font-semibold group-hover:text-indigo-300 transition-colors">TypeScript: The Second Love</h5>
+                        <p class="text-sm text-gray-400 mt-1">Why transitioning from JS to TS is painful at first but essential for scalability.</p>
+                    </article>
+                    <article class="glass-cosmic p-4 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="text-xs font-mono text-indigo-400">Feb 24, 2024</span>
+                            <span class="w-1 h-1 bg-gray-500 rounded-full"></span>
+                            <span class="text-xs text-gray-400">React</span>
+                        </div>
+                        <h5 class="font-semibold group-hover:text-indigo-300 transition-colors">Memoization in React 18</h5>
+                        <p class="text-sm text-gray-400 mt-1">Understanding useMemo and useCallback deeper than just syntax.</p>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Experience Section -->
+    <section id="experience" class="py-24 px-6 max-w-6xl mx-auto">
+        <div class="mb-16 text-center">
+            <h2 class="text-5xl md:text-6xl font-bold mb-4 cosmic-glow">Experience</h2>
+            <div class="h-1 w-20 bg-gradient-to-r from-indigo-500 to-cyan-400 mx-auto"></div>
+        </div>
+
+        <div class="relative">
+            <!-- Timeline Line -->
+            <div class="absolute left-8 top-0 bottom-0 w-px bg-gradient-to-b from-indigo-500 via-purple-500 to-cyan-400"></div>
+            
+            <div class="space-y-12">
+                <!-- Experience Item 1 -->
+                <div class="relative pl-20 group">
+                    <div class="absolute left-6 top-6 w-4 h-4 rounded-full bg-cyan-400 shadow-lg shadow-cyan-400/50 group-hover:scale-150 transition-transform"></div>
+                    <div class="glass-cosmic p-8 rounded-2xl hover:bg-white/5 transition-all duration-300 transform hover:-translate-y-2">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                            <div>
+                                <h3 class="text-2xl font-bold text-white mb-1">Full Stack Developer</h3>
+                                <p class="text-indigo-400 font-medium">Avialdo Solutions • Karachi</p>
+                            </div>
+                            <span class="text-sm font-mono text-cyan-400 bg-cyan-400/10 px-3 py-1 rounded-full mt-2 md:mt-0">
+                                Jan 2025 - Present
+                            </span>
+                        </div>
+                        <p class="text-gray-300 leading-relaxed mb-4">
+                            Currently building scalable web applications with Next.js framework and managing PostgreSQL databases. 
+                            Actively collaborate with cross-functional teams using Jira for project management and Confluence for 
+                            documentation in a product-driven development environment.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-sm">Next.js 14</span>
+                            <span class="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm">PostgreSQL</span>
+                            <span class="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-sm">Microservices</span>
+                            <span class="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm">Jira</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Experience Item 2 -->
+                <div class="relative pl-20 group">
+                    <div class="absolute left-6 top-6 w-4 h-4 rounded-full bg-purple-500 shadow-lg shadow-purple-500/50 group-hover:scale-150 transition-transform"></div>
+                    <div class="glass-cosmic p-8 rounded-2xl hover:bg-white/5 transition-all duration-300 transform hover:-translate-y-2">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                            <div>
+                                <h3 class="text-2xl font-bold text-white mb-1">Frontend Developer Intern</h3>
+                                <p class="text-indigo-400 font-medium">LiftUp AI • Jamshoro</p>
+                            </div>
+                            <span class="text-sm font-mono text-purple-400 bg-purple-400/10 px-3 py-1 rounded-full mt-2 md:mt-0">
+                                Jan 2024 - Mar 2024
+                            </span>
+                        </div>
+                        <p class="text-gray-300 leading-relaxed mb-4">
+                            Developed expertise in modern frontend technologies including advanced CSS methodologies and SCSS for 
+                            maintainable styling architecture. Built interactive React components, implemented state management with 
+                            Redux, and integrated RESTful APIs to deliver responsive, user-centric web applications.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm">React.js</span>
+                            <span class="px-3 py-1 bg-pink-500/20 text-pink-300 rounded-full text-sm">SCSS</span>
+                            <span class="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm">Redux</span>
+                            <span class="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm">REST APIs</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Experience Item 3 -->
+                <div class="relative pl-20 group">
+                    <div class="absolute left-6 top-6 w-4 h-4 rounded-full bg-indigo-500 shadow-lg shadow-indigo-500/50 group-hover:scale-150 transition-transform"></div>
+                    <div class="glass-cosmic p-8 rounded-2xl hover:bg-white/5 transition-all duration-300 transform hover:-translate-y-2">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                            <div>
+                                <h3 class="text-2xl font-bold text-white mb-1">Frontend React Developer</h3>
+                                <p class="text-indigo-400 font-medium">Remote</p>
+                            </div>
+                            <span class="text-sm font-mono text-indigo-400 bg-indigo-400/10 px-3 py-1 rounded-full mt-2 md:mt-0">
+                                2021 - Present
+                            </span>
+                        </div>
+                        <p class="text-gray-300 leading-relaxed mb-4">
+                            Contributed to startup growth as a Frontend Developer intern, developing website components and user 
+                            interfaces using React and Tailwind CSS in an agile environment.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm">React</span>
+                            <span class="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-sm">Tailwind CSS</span>
+                            <span class="px-3 py-1 bg-orange-500/20 text-orange-300 rounded-full text-sm">Agile</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Experience Item 4 -->
+                <div class="relative pl-20 group">
+                    <div class="absolute left-6 top-6 w-4 h-4 rounded-full bg-yellow-500 shadow-lg shadow-yellow-500/50 group-hover:scale-150 transition-transform"></div>
+                    <div class="glass-cosmic p-8 rounded-2xl hover:bg-white/5 transition-all duration-300 transform hover:-translate-y-2">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                            <div>
+                                <h3 class="text-2xl font-bold text-white mb-1">Freelance Web Developer</h3>
+                                <p class="text-indigo-400 font-medium">Remote</p>
+                            </div>
+                            <span class="text-sm font-mono text-yellow-400 bg-yellow-400/10 px-3 py-1 rounded-full mt-2 md:mt-0">
+                                2022
+                            </span>
+                        </div>
+                        <p class="text-gray-300 leading-relaxed mb-4">
+                            Began my professional development career through freelance work, building foundational skills in web 
+                            development while working with diverse clients and projects remotely.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-sm">Web Development</span>
+                            <span class="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm">Client Relations</span>
+                            <span class="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm">Remote Work</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section> 
+   <!-- Projects Section -->
+    <section id="projects" class="py-24 px-6 bg-black/20 backdrop-blur-sm">
+        <div class="max-w-7xl mx-auto">
+            <div class="mb-16 text-center">
+                <h2 class="text-5xl md:text-6xl font-bold mb-4 cosmic-glow">Selected Works</h2>
+                <p class="text-gray-400 text-lg">Applications crafted with precision and passion</p>
+                <div class="h-1 w-20 bg-gradient-to-r from-indigo-500 to-cyan-400 mx-auto mt-4"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 auto-rows-[400px]">
+                
+                <!-- Featured Project - NextSoft Brand Website -->
+                <article class="md:col-span-2 md:row-span-2 project-card glass-cosmic rounded-3xl overflow-hidden group relative">
+                    <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-cyan-500/20"></div>
+                    <div class="absolute top-8 left-8 z-20">
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                            <span class="text-xs font-mono text-green-400">LIVE PROJECT</span>
+                        </div>
+                        <h3 class="text-3xl font-bold mb-2">NextSoft Brand Website</h3>
+                        <p class="text-gray-300 max-w-md">A modern, responsive brand website for NextSoft, featuring smooth animations, blog section, and contact form.</p>
+                    </div>
+                    
+                    <!-- Mock Browser Window -->
+                    <div class="absolute bottom-8 right-8 w-3/4 h-3/4 bg-gray-900 rounded-lg border border-white/10 group-hover:scale-105 transition-transform duration-500 overflow-hidden">
+                        <div class="bg-gray-800 px-4 py-2 flex items-center gap-2 border-b border-white/10">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                            <div class="ml-4 text-xs text-gray-400 font-mono">nextsoft-website.vercel.app</div>
+                        </div>
+                        <div class="p-4 h-full bg-gradient-to-br from-indigo-900/50 to-purple-900/50 flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">🚀</div>
+                                <div class="text-sm text-gray-300">NextSoft Website</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="absolute bottom-8 left-8 flex gap-2 z-20">
+                        <span class="px-3 py-1 bg-black/50 backdrop-blur rounded-full text-xs">Next.js</span>
+                        <span class="px-3 py-1 bg-black/50 backdrop-blur rounded-full text-xs">TypeScript</span>
+                        <span class="px-3 py-1 bg-black/50 backdrop-blur rounded-full text-xs">Tailwind</span>
+                    </div>
+                    
+                    <div class="absolute top-8 right-8 flex gap-2 z-20">
+                        <a href="https://github.com/Wosmos/NextSoft-Brand-Website" target="_blank" class="p-2 bg-black/30 backdrop-blur rounded-full hover:bg-black/50 transition-colors">
+                            <i data-lucide="github" class="w-4 h-4"></i>
+                        </a>
+                        <a href="https://nextsoft-website.vercel.app/" target="_blank" class="p-2 bg-black/30 backdrop-blur rounded-full hover:bg-black/50 transition-colors">
+                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                </article>
+
+                <!-- Wizmo AI Project -->
+                <article class="project-card glass-cosmic rounded-3xl overflow-hidden group relative p-8 flex flex-col justify-between">
+                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/30 rounded-full blur-2xl group-hover:blur-xl transition-all"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-purple-500/20 rounded-full">
+                                <i data-lucide="brain" class="w-6 h-6 text-purple-400"></i>
+                            </div>
+                            <div class="flex gap-2">
+                                <a href="https://github.com/Wosmos/wizmo.git" target="_blank" class="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+                                    <i data-lucide="github" class="w-4 h-4"></i>
+                                </a>
+                                <a href="https://wizmo.netlify.app/" target="_blank" class="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+                                    <i data-lucide="external-link" class="w-4 h-4"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-2">Wizmo AI</h3>
+                        <p class="text-gray-400 text-sm mb-4">AI-powered summarizer that transforms any blog URL into concise, digestible summaries using advanced language models.</p>
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="px-2 py-1 bg-white/10 rounded text-xs">React</span>
+                            <span class="px-2 py-1 bg-white/10 rounded text-xs">OpenAI</span>
+                            <span class="px-2 py-1 bg-white/10 rounded text-xs">API</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 h-24 bg-gradient-to-t from-purple-500/20 to-transparent rounded-xl border border-white/5 flex items-center justify-center">
+                        <div class="text-3xl">🤖</div>
+                    </div>
+                </article>
+
+                <!-- Wovies Project -->
+                <article class="project-card glass-cosmic rounded-3xl overflow-hidden group relative p-8 flex flex-col justify-between">
+                    <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-red-500/30 rounded-full blur-2xl group-hover:blur-xl transition-all"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-red-500/20 rounded-full">
+                                <i data-lucide="film" class="w-6 h-6 text-red-400"></i>
+                            </div>
+                            <a href="https://darling-queijadas-e8f108.netlify.app/" target="_blank" class="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+                                <i data-lucide="external-link" class="w-4 h-4"></i>
+                            </a>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-2">Wovies</h3>
+                        <p class="text-gray-400 text-sm mb-4">Movie discovery platform with search, ratings, reviews, and watchlist functionality using TMDB API.</p>
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="px-2 py-1 bg-white/10 rounded text-xs">React</span>
+                            <span class="px-2 py-1 bg-white/10 rounded text-xs">SASS</span>
+                            <span class="px-2 py-1 bg-white/10 rounded text-xs">Redux</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 h-24 bg-gradient-to-t from-red-500/20 to-transparent rounded-xl border border-white/5 flex items-center justify-center">
+                        <div class="text-3xl">🎬</div>
+                    </div>
+                </article>
+
+                <!-- Mini Projects -->
+                <article class="project-card glass-cosmic rounded-3xl overflow-hidden group relative p-8 flex flex-col justify-between">
+                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-green-500/30 rounded-full blur-2xl group-hover:blur-xl transition-all"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-green-500/20 rounded-full">
+                                <i data-lucide="layers" class="w-6 h-6 text-green-400"></i>
+                            </div>
+                            <div class="flex gap-2">
+                                <a href="https://github.com/Wosmos/mini-apps?tab=readme-ov-file" target="_blank" class="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+                                    <i data-lucide="github" class="w-4 h-4"></i>
+                                </a>
+                                <a href="https://wosmos.github.io/mini-apps/main.html" target="_blank" class="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+                                    <i data-lucide="external-link" class="w-4 h-4"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-2">Mini Projects</h3>
+                        <p class="text-gray-400 text-sm mb-4">Collection of interactive mini projects showcasing vanilla web technologies and creative implementations.</p>
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="px-2 py-1 bg-white/10 rounded text-xs">HTML5</span>
+                            <span class="px-2 py-1 bg-white/10 rounded text-xs">CSS3</span>
+                            <span class="px-2 py-1 bg-white/10 rounded text-xs">JavaScript</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 h-24 bg-gradient-to-t from-green-500/20 to-transparent rounded-xl border border-white/5 flex items-center justify-center">
+                        <div class="text-3xl">⚡</div>
+                    </div>
+                </article>
+
+                <!-- ResumeRight Project -->
+                <article class="md:col-span-2 project-card glass-cosmic rounded-3xl overflow-hidden group relative p-8 flex items-center justify-between">
+                    <div class="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-yellow-500/10"></div>
+                    <div class="relative z-10 flex-1">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="p-3 bg-orange-500/20 rounded-full">
+                                <i data-lucide="file-text" class="w-6 h-6 text-orange-400"></i>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></span>
+                                <span class="text-xs font-mono text-yellow-400">IN DEVELOPMENT</span>
+                            </div>
+                        </div>
+                        <h3 class="text-3xl font-bold mb-2">ResumeRight</h3>
+                        <p class="text-gray-300 mb-4 max-w-md">AI-powered resume optimization tool with ATS compatibility checks, keyword analysis, and improvement suggestions.</p>
+                        <div class="flex gap-2 flex-wrap mb-4">
+                            <span class="px-3 py-1 bg-white/10 rounded-full text-xs">Next.js</span>
+                            <span class="px-3 py-1 bg-white/10 rounded-full text-xs">TypeScript</span>
+                            <span class="px-3 py-1 bg-white/10 rounded-full text-xs">Firebase</span>
+                            <span class="px-3 py-1 bg-white/10 rounded-full text-xs">Google AI</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <a href="https://github.com/Wosmos/AI-Resume-checker" target="_blank" class="px-4 py-2 bg-orange-500/20 text-orange-300 rounded-lg hover:bg-orange-500/30 transition-colors text-sm">
+                                View Code
+                            </a>
+                            <a href="https://ai-resume-checker-peach.vercel.app/" target="_blank" class="px-4 py-2 border border-white/20 rounded-lg hover:bg-white/5 transition-colors text-sm">
+                                Preview
+                            </a>
+                        </div>
+                    </div>
+                    <div class="relative z-10 flex-shrink-0 ml-8">
+                        <div class="w-48 h-32 bg-gradient-to-br from-orange-500/20 to-yellow-500/20 rounded-xl border border-white/10 flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">📄</div>
+                                <div class="text-sm text-gray-300">Resume Analyzer</div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+
+            <!-- View More Projects Button -->
+            <div class="text-center mt-12">
+                <a href="https://github.com/Wosmos" target="_blank" class="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold rounded-xl hover:scale-105 transition-all hover:shadow-2xl hover:shadow-indigo-500/25">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                    View All Projects on GitHub
+                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Blog Section -->
+    <section id="blog" class="py-24 px-6 max-w-6xl mx-auto">
+        <div class="mb-16 text-center">
+            <h2 class="text-5xl md:text-6xl font-bold mb-4 cosmic-glow">Thoughts & Code</h2>
+            <p class="text-gray-400 text-lg">Sharing insights from the development journey</p>
+            <div class="h-1 w-20 bg-gradient-to-r from-indigo-500 to-cyan-400 mx-auto mt-4"></div>
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-8">
+            <!-- Blog Post 1 -->
+            <article class="group">
+                <div class="glass-cosmic rounded-2xl overflow-hidden hover:bg-white/5 transition-all duration-300 transform hover:-translate-y-2">
+                    <div class="h-48 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">📘</div>
+                                <div class="text-sm text-gray-300">TypeScript Guide</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="text-xs font-mono text-indigo-400 bg-indigo-400/10 px-2 py-1 rounded">TypeScript</span>
+                            <span class="text-xs text-gray-500">Mar 27, 2024</span>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2 group-hover:text-indigo-300 transition-colors">TypeScript: The Second Love</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed">Why transitioning from JavaScript to TypeScript is painful at first but essential for building scalable, maintainable applications.</p>
+                        <div class="mt-4 flex items-center text-indigo-400 text-sm font-medium group-hover:gap-2 transition-all">
+                            Read More <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            
+            <!-- Blog Post 2 -->
+            <article class="group">
+                <div class="glass-cosmic rounded-2xl overflow-hidden hover:bg-white/5 transition-all duration-300 transform hover:-translate-y-2">
+                    <div class="h-48 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="text-4xl mb-2">⚛️</div>
+                                <div class="text-sm text-gray-300">React Optimization</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="text-xs font-mono text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded">React</span>
+                            <span class="text-xs text-gray-500">Feb 24, 2024</span>
+                        </div>
+                        <h3 class="text-xl font-bold mb-2 group-hover:text-cyan-300 transition-colors">Memoization in React 18</h3>
+                        <p class="text-gray-400 text-sm leading-relaxed">Understanding useMemo and useCallback deeper than just syntax - when to use them and when they might hurt performance.</p>
+                        <div class="mt-4 flex items-center text-cyan-400 text-sm font-medium group-hover:gap-2 transition-all">
+                            Read More <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <!-- View All Articles Button -->
+        <div class="text-center mt-12">
+            <a href="https://hashnode.com/@Wosmo" target="_blank" class="inline-flex items-center gap-2 px-6 py-3 border border-indigo-500/50 text-indigo-400 rounded-xl hover:bg-indigo-500/10 transition-all">
+                <i data-lucide="external-link" class="w-4 h-4"></i>
+                View All Articles
+            </a>
+        </div>
+    </section>    <!-
+- Contact Section -->
+    <section id="contact" class="py-24 px-6 relative">
+        <div class="max-w-4xl mx-auto">
+            <div class="glass-cosmic rounded-3xl p-8 md:p-12 relative overflow-hidden">
+                <!-- Background Effects -->
+                <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl"></div>
+                <div class="absolute bottom-0 left-0 w-48 h-48 bg-cyan-400/20 rounded-full blur-2xl"></div>
+
+                <div class="relative z-10">
+                    <div class="text-center mb-12">
+                        <h2 class="text-4xl md:text-5xl font-bold mb-4 cosmic-glow">Let's Build Something</h2>
+                        <h3 class="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400 mb-6">Incredible Together</h3>
+                        <p class="text-gray-300 text-lg max-w-2xl mx-auto">
+                            Ready to bring your ideas to life? Whether it's a cutting-edge web application, mobile app, or AI integration, 
+                            I'm here to help transform your vision into reality.
+                        </p>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-12">
+                        <!-- Contact Info -->
+                        <div class="space-y-8">
+                            <div>
+                                <h4 class="text-xl font-bold mb-6 flex items-center gap-2">
+                                    <i data-lucide="zap" class="w-6 h-6 text-yellow-400"></i>
+                                    Quick Connect
+                                </h4>
+                                <div class="space-y-4">
+                                    <div class="flex items-center gap-4 p-4 glass-cosmic rounded-lg hover:bg-white/5 transition-colors">
+                                        <div class="p-3 bg-indigo-500/20 rounded-full">
+                                            <i data-lucide="mail" class="w-5 h-5 text-indigo-400"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm text-gray-400">Email</div>
+                                            <div class="font-medium">wasif@example.com</div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-4 p-4 glass-cosmic rounded-lg hover:bg-white/5 transition-colors">
+                                        <div class="p-3 bg-green-500/20 rounded-full">
+                                            <i data-lucide="phone" class="w-5 h-5 text-green-400"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm text-gray-400">Phone</div>
+                                            <div class="font-medium">+92 306 224 8224</div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-4 p-4 glass-cosmic rounded-lg hover:bg-white/5 transition-colors">
+                                        <div class="p-3 bg-purple-500/20 rounded-full">
+                                            <i data-lucide="map-pin" class="w-5 h-5 text-purple-400"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm text-gray-400">Location</div>
+                                            <div class="font-medium">Karachi, Pakistan</div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-4 p-4 glass-cosmic rounded-lg hover:bg-white/5 transition-colors">
+                                        <div class="p-3 bg-cyan-500/20 rounded-full">
+                                            <i data-lucide="clock" class="w-5 h-5 text-cyan-400"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm text-gray-400">Timezone</div>
+                                            <div class="font-medium">UTC+5 (PKT)</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Social Links -->
+                            <div>
+                                <h4 class="text-lg font-bold mb-4">Connect on Social</h4>
+                                <div class="flex gap-4">
+                                    <a href="https://github.com/Wosmos" target="_blank" class="p-3 glass-cosmic rounded-full hover:bg-indigo-500/20 transition-all hover:scale-110">
+                                        <i data-lucide="github" class="w-5 h-5"></i>
+                                    </a>
+                                    <a href="https://www.linkedin.com/in/wasif-m-79205a1bb/" target="_blank" class="p-3 glass-cosmic rounded-full hover:bg-blue-500/20 transition-all hover:scale-110">
+                                        <i data-lucide="linkedin" class="w-5 h-5"></i>
+                                    </a>
+                                    <a href="https://www.instagram.com/wosmo_tech/" target="_blank" class="p-3 glass-cosmic rounded-full hover:bg-pink-500/20 transition-all hover:scale-110">
+                                        <i data-lucide="instagram" class="w-5 h-5"></i>
+                                    </a>
+                                    <a href="https://hashnode.com/@Wosmo" target="_blank" class="p-3 glass-cosmic rounded-full hover:bg-green-500/20 transition-all hover:scale-110">
+                                        <i data-lucide="hash" class="w-5 h-5"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contact Form -->
+                        <form class="space-y-6" id="contact-form">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">Name</label>
+                                    <input type="text" name="name" required class="w-full bg-black/30 border border-white/10 rounded-lg p-4 focus:outline-none focus:border-indigo-500 transition-colors text-white placeholder-gray-500" placeholder="John Doe">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                                    <input type="email" name="email" required class="w-full bg-black/30 border border-white/10 rounded-lg p-4 focus:outline-none focus:border-indigo-500 transition-colors text-white placeholder-gray-500" placeholder="john@example.com">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Subject</label>
+                                <input type="text" name="subject" required class="w-full bg-black/30 border border-white/10 rounded-lg p-4 focus:outline-none focus:border-indigo-500 transition-colors text-white placeholder-gray-500" placeholder="Project Discussion">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Message</label>
+                                <textarea name="message" rows="5" required class="w-full bg-black/30 border border-white/10 rounded-lg p-4 focus:outline-none focus:border-indigo-500 transition-colors text-white placeholder-gray-500 resize-none" placeholder="Tell me about your project..."></textarea>
+                            </div>
+                            <button type="submit" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold py-4 rounded-lg hover:from-purple-600 hover:to-cyan-400 transition-all shadow-lg shadow-indigo-500/25 hover:shadow-purple-500/25 hover:scale-105 transform">
+                                <span class="flex items-center justify-center gap-2">
+                                    Send Message
+                                    <i data-lucide="send" class="w-5 h-5"></i>
+                                </span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Call to Action -->
+                    <div class="mt-12 text-center">
+                        <div class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-full text-green-400">
+                            <span class="relative flex h-2 w-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
+                            </span>
+                            Available for new projects
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 px-6 border-t border-white/5 bg-black/20 backdrop-blur-sm">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid md:grid-cols-3 gap-8 mb-8">
+                <!-- Brand -->
+                <div>
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">W</span>
+                        </div>
+                        <span class="text-xl font-bold">Wasif Malik</span>
+                    </div>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Full Stack Engineer crafting digital experiences with modern technologies. 
+                        Building the future, one line of code at a time.
+                    </p>
+                </div>
+
+                <!-- Quick Links -->
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Quick Links</h4>
+                    <div class="space-y-2">
+                        <a href="#about" class="block text-gray-400 hover:text-indigo-400 transition-colors text-sm">About</a>
+                        <a href="#projects" class="block text-gray-400 hover:text-indigo-400 transition-colors text-sm">Projects</a>
+                        <a href="#experience" class="block text-gray-400 hover:text-indigo-400 transition-colors text-sm">Experience</a>
+                        <a href="#blog" class="block text-gray-400 hover:text-indigo-400 transition-colors text-sm">Blog</a>
+                        <a href="#contact" class="block text-gray-400 hover:text-indigo-400 transition-colors text-sm">Contact</a>
+                    </div>
+                </div>
+
+                <!-- Services -->
+                <div>
+                    <h4 class="text-lg font-bold mb-4">Services</h4>
+                    <div class="space-y-2 text-sm text-gray-400">
+                        <div>Web Development</div>
+                        <div>Mobile App Development</div>
+                        <div>AI Integration</div>
+                        <div>UI/UX Design</div>
+                        <div>Technical Consulting</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Bar -->
+            <div class="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="text-gray-500 text-sm">
+                    © 2024 Wasif Malik. Crafted with 💜 and lots of ☕
+                </p>
+                <div class="flex items-center gap-4">
+                    <a href="https://github.com/Wosmos" target="_blank" class="text-gray-500 hover:text-indigo-400 transition-colors">
+                        <i data-lucide="github" class="w-4 h-4"></i>
+                    </a>
+                    <a href="https://www.linkedin.com/in/wasif-m-79205a1bb/" target="_blank" class="text-gray-500 hover:text-indigo-400 transition-colors">
+                        <i data-lucide="linkedin" class="w-4 h-4"></i>
+                    </a>
+                    <a href="https://www.instagram.com/wosmo_tech/" target="_blank" class="text-gray-500 hover:text-indigo-400 transition-colors">
+                        <i data-lucide="instagram" class="w-4 h-4"></i>
+                    </a>
+                    <a href="https://hashnode.com/@Wosmo" target="_blank" class="text-gray-500 hover:text-indigo-400 transition-colors">
+                        <i data-lucide="hash" class="w-4 h-4"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // GSAP Animations
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Enhanced Hero Animations
+        const heroTl = gsap.timeline();
+        
+        heroTl
+            .from(".hero-content > *", {
+                y: 60,
+                opacity: 0,
+                duration: 1.2,
+                stagger: 0.15,
+                ease: "power4.out"
+            })
+            .from(".hero-visual", {
+                x: 100,
+                opacity: 0,
+                duration: 1.5,
+                ease: "power4.out"
+            }, "-=0.8")
+            .from(".terminal-line", {
+                opacity: 0,
+                x: -20,
+                duration: 0.8,
+                stagger: 0.1,
+                ease: "power2.out"
+            }, "-=0.5");
+
+        // Floating elements animation
+        gsap.to(".tech-icon", {
+            y: -10,
+            duration: 2,
+            ease: "power2.inOut",
+            stagger: 0.2,
+            repeat: -1,
+            yoyo: true
+        });
+
+        // Terminal cursor animation enhancement
+        gsap.to(".terminal-cursor", {
+            opacity: 0,
+            duration: 0.8,
+            ease: "power2.inOut",
+            repeat: -1,
+            yoyo: true
+        });
+
+        // Enhanced Scroll Animations
+        gsap.utils.toArray('.cosmic-card').forEach((card, index) => {
+            gsap.from(card, {
+                scrollTrigger: {
+                    trigger: card,
+                    start: "top 85%",
+                    toggleActions: "play none none reverse"
+                },
+                y: 50,
+                opacity: 0,
+                duration: 1,
+                delay: index * 0.1,
+                ease: "power3.out"
+            });
+        });
+
+        gsap.utils.toArray('.project-card').forEach((card, index) => {
+            gsap.from(card, {
+                scrollTrigger: {
+                    trigger: card,
+                    start: "top 80%",
+                    toggleActions: "play none none reverse"
+                },
+                y: 60,
+                opacity: 0,
+                duration: 1.2,
+                delay: index * 0.15,
+                ease: "power3.out"
+            });
+        });
+
+        // Section headers animation
+        gsap.utils.toArray('h2').forEach(header => {
+            gsap.from(header, {
+                scrollTrigger: {
+                    trigger: header,
+                    start: "top 85%",
+                },
+                y: 30,
+                opacity: 0,
+                duration: 1,
+                ease: "power3.out"
+            });
+        });
+
+        // Skill bars animation
+        gsap.utils.toArray('.skill-item').forEach(skill => {
+            const bar = skill.querySelector('.bg-gradient-to-r');
+            if (bar) {
+                gsap.from(bar, {
+                    scrollTrigger: {
+                        trigger: skill,
+                        start: "top 80%",
+                    },
+                    width: 0,
+                    duration: 1.5,
+                    ease: "power2.out"
+                });
+            }
+        });
+
+        // Enhanced Typed.js for Hero Text
+        new Typed('#typed-text', {
+            strings: [
+                'Crafting digital experiences with <span class="neon-text">cutting-edge technology</span>.',
+                'Building scalable systems with <span class="text-cyan-400">Next.js</span>, <span class="text-blue-500">Flutter</span>, and <span class="text-purple-400">AI</span>.',
+                'Transforming complex problems into <span class="text-orange-400">elegant solutions</span>.',
+                'Engineering the future, <span class="text-green-400">one commit at a time</span>.'
+            ],
+            typeSpeed: 40,
+            backSpeed: 20,
+            backDelay: 3000,
+            loop: true,
+            showCursor: true,
+            cursorChar: '<span class="text-cyan-400">▊</span>',
+            contentType: 'html'
+        });
+
+        // Three.js Cosmic Background
+        const initCosmicBackground = () => {
+            const canvas = document.getElementById('cosmic-canvas');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
+            
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            // Create Particles
+            const particlesGeometry = new THREE.BufferGeometry();
+            const particlesCount = 2000;
+            const posArray = new Float32Array(particlesCount * 3);
+            const colorsArray = new Float32Array(particlesCount * 3);
+
+            for(let i = 0; i < particlesCount * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 100;
+                colorsArray[i] = Math.random();
+            }
+
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colorsArray, 3));
+
+            const particlesMaterial = new THREE.PointsMaterial({
+                size: 0.8,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8,
+            });
+
+            const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+            scene.add(particlesMesh);
+
+            camera.position.z = 30;
+
+            // Mouse interaction
+            let mouseX = 0;
+            let mouseY = 0;
+
+            document.addEventListener('mousemove', (event) => {
+                mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+                mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+            });
+
+            // Animation loop
+            const clock = new THREE.Clock();
+
+            const animate = () => {
+                const elapsedTime = clock.getElapsedTime();
+
+                // Rotate particles
+                particlesMesh.rotation.y = elapsedTime * 0.05;
+                particlesMesh.rotation.x = mouseY * 0.2;
+                particlesMesh.rotation.y += mouseX * 0.2;
+
+                // Wave effect
+                const positions = particlesGeometry.attributes.position.array;
+                for(let i = 0; i < particlesCount; i++) {
+                    const i3 = i * 3;
+                    const x = positions[i3];
+                    const z = positions[i3 + 2];
+                    positions[i3 + 1] = Math.sin(elapsedTime + x * 0.01) * Math.cos(elapsedTime + z * 0.01) * 2;
+                }
+                particlesGeometry.attributes.position.needsUpdate = true;
+
+                renderer.render(scene, camera);
+                requestAnimationFrame(animate);
+            };
+
+            animate();
+
+            // Handle resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        };
+
+        // Initialize Three.js after page load
+        window.addEventListener('load', initCosmicBackground);
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Contact form handling
+        document.getElementById('contact-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const formData = new FormData(this);
+            const name = formData.get('name');
+            const email = formData.get('email');
+            const subject = formData.get('subject');
+            const message = formData.get('message');
+            
+            // Create mailto link
+            const mailtoLink = `mailto:wasif@example.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`)}`;
+            
+            // Open email client
+            window.location.href = mailtoLink;
+            
+            // Show success message
+            const button = this.querySelector('button[type="submit"]');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<span class="flex items-center justify-center gap-2">Message Sent! <i data-lucide="check" class="w-5 h-5"></i></span>';
+            button.style.background = 'linear-gradient(to right, #10b981, #059669)';
+            
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.style.background = '';
+                this.reset();
+            }, 3000);
+        });
+
+        // Add loading animation
+        window.addEventListener('load', () => {
+            document.body.style.opacity = '0';
+            document.body.style.transition = 'opacity 0.5s ease-in-out';
+            setTimeout(() => {
+                document.body.style.opacity = '1';
+            }, 100);
+        });
+
+        // Parallax effect for cosmic orbs
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const orbs = document.querySelectorAll('.cosmic-orb');
+            
+            orbs.forEach((orb, index) => {
+                const speed = 0.5 + (index * 0.2);
+                orb.style.transform = `translateY(${scrolled * speed}px)`;
+            });
+        });
+
+    </script>
+</body>
+</html>

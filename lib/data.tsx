@@ -67,6 +67,7 @@ import {
   SiReact,
   SiUpstash,
   SiNextdotjs,
+  
   SiRedis,
   SiJavascript,
 } from 'react-icons/si';
@@ -105,6 +106,7 @@ import {
 
 import Wlogo from '@/components/w-logo';
 import { Tailwind } from '@react-email/tailwind';
+import { Resend } from 'resend';
 
 export const pageLinks = [
   {
@@ -239,17 +241,21 @@ export const experiencesData = [
 
 export const projectsData = [
   {
-    title: 'Travel site landing page',
+    title: 'NextSoft Brand Website',
     description:
-      'A simple landing page Ui designed for a Travel Agency. The page showcases the About, service and highlights its features.',
+      'A modern, responsive brand website for NextSoft, a software development company. Built with Next.js, Tailwind CSS, shadcn, the site features smooth animations, a blog section, and a contact form.',
     tags: [
       React.createElement(FaReact),
       React.createElement(IoLogoJavascript),
       React.createElement(SiTailwindcss),
+      React.createElement(SiNextdotjs),
+      React.createElement(SiTypescript),
+      React.createElement(Resend),
+      
     ],
-    imageUrl: travelSiteLandingPageImage,
-    sourceCode: 'https://github.com/Wosmos/Travel-app',
-    site: 'https://sparkly-fenglisu-c6f2fa.netlify.app/ ',
+    imageUrl: '',
+    sourceCode: 'https://github.com/Wosmos/NextSoft-Brand-Website',
+    site: 'https://nextsoft-website.vercel.app/',
     isShareable: true,
   },
   {
@@ -297,24 +303,6 @@ export const projectsData = [
     sourceCode: 'https://github.com/Wosmos/wizmo.git',
     site: 'https://wizmo.netlify.app/',
     isShareable: true,
-  },
-  {
-    title: 'Wizmo 2.0',
-    description:
-      'Wizmo 2.0 is a WebChat AI Assistant, an intelligent chatbot that can analyze and discuss the content of any website. Simply enter a URL, and start a conversation about the webpage&apos;s content.',
-    tags: [
-      React.createElement(SiTypescript),
-      React.createElement(SiReact),
-      React.createElement(SiNextdotjs),
-      React.createElement(SiOpenai),
-      React.createElement(SiTailwindcss),
-      React.createElement(SiUpstash),
-      React.createElement(SiRedis),
-    ],
-    imageUrl: wizmo2Image,
-    sourceCode: 'https://github.com/Wosmos/test-chatbot.git',
-    site: 'https://wizmo-20.vercel.app/',
-    isShareable: false,
   },
    {
     title: 'ResumeRight - AI Resume Analyser',

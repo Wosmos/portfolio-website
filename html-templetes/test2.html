@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wasif Malik | Stellar Engineer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Manrope:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root { --accent: #a855f7; }
+        body { background: #000; color: #e2e8f0; font-family: 'Manrope', sans-serif; overflow-x: hidden; }
+        h1, h2, h3 { font-family: 'Syncopate', sans-serif; }
+        
+        .void-card {
+            background: rgba(10, 10, 10, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .void-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.2);
+            transform: translateY(-5px);
+        }
+        
+        .glow-text { text-shadow: 0 0 20px rgba(168, 85, 247, 0.5); }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { bg: #000; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+    </style>
+</head>
+<body class="selection:bg-purple-900 selection:text-white">
+
+    <!-- THREE.JS CANVAS -->
+    <div id="star-canvas" class="fixed inset-0 z-0 opacity-80 pointer-events-none"></div>
+
+    <!-- NAVIGATION -->
+    <nav class="fixed top-0 w-full z-50 px-6 py-6 flex justify-between items-center mix-blend-difference text-white">
+        <div class="text-2xl font-bold tracking-widest">WOSMO</div>
+        <div class="hidden md:flex gap-8 text-sm font-semibold tracking-widest uppercase">
+            <a href="#projects" class="hover:text-purple-400 transition-colors">Works</a>
+            <a href="#experience" class="hover:text-purple-400 transition-colors">Log</a>
+            <a href="#contact" class="hover:text-purple-400 transition-colors">Signal</a>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="relative min-h-screen flex items-center justify-center z-10 px-4">
+        <div class="text-center">
+            <p class="text-purple-400 tracking-[0.3em] text-sm mb-4 animate-pulse">SYSTEM ONLINE</p>
+            <h1 class="text-6xl md:text-9xl font-bold uppercase tracking-tighter mix-blend-overlay glow-text leading-none">
+                Wasif<br>Malik
+            </h1>
+            <div class="mt-8 flex flex-col items-center gap-4">
+                <p class="max-w-md text-gray-400 text-center mx-auto">
+                    Full Stack Engineer navigating the digital void. <br> 
+                    Specializing in <span class="text-white">Next.js</span> & <span class="text-white">Flutter</span> propulsion systems.
+                </p>
+                <div class="h-16 w-[1px] bg-gradient-to-b from-purple-500 to-transparent mt-8"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BENTO GRID PROJECTS -->
+    <section id="projects" class="relative z-10 py-24 px-6 max-w-7xl mx-auto">
+        <div class="flex items-end justify-between mb-16 border-b border-white/10 pb-4">
+            <h2 class="text-4xl md:text-6xl">Mission<br>Log</h2>
+            <span class="text-xs tracking-widest text-gray-500">SELECTED_WORKS_2024</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 auto-rows-[300px]">
+            
+            <!-- Featured Project -->
+            <article class="col-span-1 md:col-span-2 row-span-2 void-card rounded-xl p-8 flex flex-col justify-end group relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10"></div>
+                <!-- Abstract Planet BG -->
+                <div class="absolute -right-20 -top-20 w-80 h-80 rounded-full bg-purple-600 blur-[80px] opacity-40 group-hover:opacity-60 transition-opacity"></div>
+                
+                <div class="relative z-20 transform group-hover:translate-x-2 transition-transform">
+                    <h3 class="text-4xl font-bold mb-2">Wizmo AI</h3>
+                    <p class="text-gray-400 mb-4">Intelligent summarization engine driven by LLMs.</p>
+                    <div class="flex gap-2">
+                        <span class="px-3 py-1 border border-white/20 rounded-full text-xs uppercase">Next.js</span>
+                        <span class="px-3 py-1 border border-white/20 rounded-full text-xs uppercase">OpenAI</span>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Secondary Project -->
+            <article class="col-span-1 md:col-span-2 void-card rounded-xl p-8 relative group overflow-hidden">
+                <div class="absolute -left-10 -bottom-10 w-40 h-40 rounded-full bg-blue-600 blur-[60px] opacity-30"></div>
+                <h3 class="text-2xl font-bold mb-2">Travel Landing</h3>
+                <p class="text-gray-400 text-sm">Flutter-based immersive UI.</p>
+                <i data-lucide="arrow-up-right" class="absolute top-8 right-8 text-gray-500 group-hover:text-white transition-colors"></i>
+            </article>
+
+            <!-- Stats/Tech -->
+            <div class="col-span-1 void-card rounded-xl p-6 flex flex-col justify-center items-center text-center">
+                <div class="text-5xl font-bold text-purple-400 mb-2">45+</div>
+                <div class="text-xs uppercase tracking-widest text-gray-500">Repositories</div>
+            </div>
+
+            <div class="col-span-1 void-card rounded-xl p-6 flex flex-col justify-center items-center text-center group cursor-pointer hover:bg-purple-900/20">
+                <i data-lucide="github" class="w-10 h-10 mb-4 text-gray-400 group-hover:text-white"></i>
+                <div class="text-xs uppercase tracking-widest">Github Access</div>
+            </div>
+
+             <!-- Writing -->
+             <article class="col-span-1 md:col-span-2 void-card rounded-xl p-8 flex items-center justify-between group">
+                <div>
+                    <div class="text-xs text-purple-400 mb-2">LATEST TRANSMISSION</div>
+                    <h3 class="text-xl font-bold">TypeScript Mastery</h3>
+                </div>
+                <div class="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center group-hover:bg-white group-hover:text-black transition-all">
+                    <i data-lucide="book-open" class="w-5 h-5"></i>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <!-- EXPERIENCE (Timeline) -->
+    <section id="experience" class="py-24 px-6 max-w-4xl mx-auto">
+        <h2 class="text-4xl mb-12 text-center">Flight Path</h2>
+        <div class="space-y-8">
+            <!-- Job 1 -->
+            <div class="flex gap-6 group">
+                <div class="flex flex-col items-center">
+                    <div class="w-4 h-4 rounded-full bg-purple-500 shadow-[0_0_15px_#a855f7]"></div>
+                    <div class="w-px h-full bg-white/10 my-2"></div>
+                </div>
+                <div class="void-card p-6 rounded-xl w-full">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-xl font-bold">Full Stack Developer</h3>
+                        <span class="text-xs text-gray-500 border border-white/10 px-2 py-1 rounded">PRESENT</span>
+                    </div>
+                    <p class="text-purple-400 text-sm mb-4">Avialdo Solutions</p>
+                    <p class="text-gray-400 text-sm leading-relaxed">Scaling backend infrastructure using microservices and Next.js.</p>
+                </div>
+            </div>
+             <!-- Job 2 -->
+             <div class="flex gap-6 group">
+                <div class="flex flex-col items-center">
+                    <div class="w-4 h-4 rounded-full bg-gray-600 group-hover:bg-purple-500 transition-colors"></div>
+                    <div class="w-px h-full bg-white/10 my-2"></div>
+                </div>
+                <div class="void-card p-6 rounded-xl w-full">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-xl font-bold">Frontend Intern</h3>
+                        <span class="text-xs text-gray-500 border border-white/10 px-2 py-1 rounded">2024</span>
+                    </div>
+                    <p class="text-purple-400 text-sm mb-4">LiftUp AI</p>
+                    <p class="text-gray-400 text-sm leading-relaxed">Engineered React components and optimized rendering performance.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact" class="py-24 px-6 text-center">
+        <div class="max-w-2xl mx-auto void-card p-12 rounded-2xl relative overflow-hidden">
+             <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
+             
+             <h2 class="text-4xl mb-6">Initialize Uplink</h2>
+             <p class="text-gray-400 mb-8">Ready to collaborate on the next frontier of web technology?</p>
+             
+             <form class="space-y-4 text-left">
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" placeholder="ID" class="bg-black/40 border border-white/10 p-4 rounded-lg focus:border-purple-500 outline-none text-white placeholder-gray-600">
+                    <input type="email" placeholder="COMM_CHANNEL" class="bg-black/40 border border-white/10 p-4 rounded-lg focus:border-purple-500 outline-none text-white placeholder-gray-600">
+                </div>
+                <textarea placeholder="DATA_PACKET" rows="4" class="w-full bg-black/40 border border-white/10 p-4 rounded-lg focus:border-purple-500 outline-none text-white placeholder-gray-600"></textarea>
+                <button class="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-bold tracking-widest uppercase rounded-lg transition-all shadow-[0_0_20px_rgba(147,51,234,0.3)]">
+                    Transmit
+                </button>
+             </form>
+        </div>
+    </section>
+
+    <script>
+        lucide.createIcons();
+
+        // THREE.JS STARFIELD
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('star-canvas').appendChild(renderer.domElement);
+
+        const geometry = new THREE.BufferGeometry();
+        const count = 3000;
+        const positions = new Float32Array(count * 3);
+        const velocities = new Float32Array(count); // Store speed for each star
+
+        for(let i=0; i<count*3; i++){
+            positions[i] = (Math.random() - 0.5) * 100; // Spread stars wide
+        }
+        for(let i=0; i<count; i++){
+             velocities[i] = Math.random() * 0.2 + 0.05; // Random speed
+        }
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const material = new THREE.PointsMaterial({ size: 0.15, color: 0xffffff });
+        const stars = new THREE.Points(geometry, material);
+        scene.add(stars);
+
+        camera.position.z = 5;
+
+        // Mouse Parallax
+        let mouseX = 0;
+        let mouseY = 0;
+        document.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+            mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+        });
+
+        const animate = () => {
+            requestAnimationFrame(animate);
+            
+            const posAttr = geometry.attributes.position;
+            
+            for(let i=0; i<count; i++){
+                // Move stars towards camera (Z axis)
+                let zIndex = i * 3 + 2;
+                posAttr.array[zIndex] += velocities[i];
+
+                // If star passes camera, reset to back
+                if(posAttr.array[zIndex] > 5) {
+                    posAttr.array[zIndex] = -50;
+                }
+            }
+            posAttr.needsUpdate = true;
+
+            // Rotation based on mouse
+            stars.rotation.x += (mouseY * 0.005 - stars.rotation.x) * 0.1;
+            stars.rotation.y += (mouseX * 0.005 - stars.rotation.y) * 0.1;
+
+            renderer.render(scene, camera);
+        };
+        animate();
+
+        // GSAP
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.from(".void-card", {
+            scrollTrigger: { trigger: "#projects", start: "top 80%" },
+            y: 50, opacity: 0, stagger: 0.1, duration: 1
+        });
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

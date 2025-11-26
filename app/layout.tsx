@@ -11,14 +11,17 @@ import DynamicLayout from '@/components/DynamicLayout';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
+  metadataBase: new URL('https://wosmo.vercel.app'), // 👈 Add this
   title: 'Wosmo | Front-end Developer Portfolio',
   description:
     'Wosmo (Muhammad Wasif Malik) is a skilled Front-end Developer with 2+ years of experience in building modern web applications using cutting-edge technologies.',
   keywords:
     'Front-end Developer, Web Developer, React, JavaScript, HTML, CSS, Portfolio, Wosmo, Muhammad Wasif Malik',
-  author: 'Muhammad Wasif Malik',
-  robots: 'index, follow',
-  canonical: 'https://wosmo.com', // Replace with your actual domain once purchased
+  authors: [{ name: 'Muhammad Wasif Malik' }], // 👈 Use `authors` (array), not `author`
+  robots: { index: true, follow: true }, // 👈 Prefer object form for type safety
+  alternates: {
+    canonical: '/', // 👈 relative path; resolved via metadataBase
+  },
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',
@@ -28,11 +31,11 @@ export const metadata = {
     title: 'Wosmo | Front-end Developer Portfolio',
     description:
       'Wosmo (Muhammad Wasif Malik) is a skilled Front-end Developer with 2+ years of experience in building modern web applications using cutting-edge technologies.',
-    url: 'https://wosmo.com', // Replace with your actual domain once purchased
-    siteName: 'Wosfolio',
+    url: '/', // 👈 can now be relative
+    siteName: 'Wosmo Portfolio',
     images: [
       {
-        url: 'https://your-website.com/og-image.jpg', // Replace with your open graph image URL
+        url: '/og-image.jpg', // 👈 now safe to use relative path
         width: 1200,
         height: 630,
         alt: 'Wosmo Front-end Developer Portfolio',
@@ -46,9 +49,9 @@ export const metadata = {
     title: 'Wosmo | Front-end Developer Portfolio',
     description:
       'Wosmo (Muhammad Wasif Malik) is a skilled Front-end Developer with 2+ years of experience in building modern web applications using cutting-edge technologies.',
-    site: '@your-twitter-handle', // Replace with your Twitter handle
-    creator: '@your-twitter-handle', // Replace with your Twitter handle
-    images: ['https://your-website.com/twitter-card.jpg'], // Replace with your Twitter card image URL
+    site: '@your-twitter-handle',
+    creator: '@your-twitter-handle',
+    images: ['/twitter-card.jpg'], // 👈 relative path OK now
   },
 };
 

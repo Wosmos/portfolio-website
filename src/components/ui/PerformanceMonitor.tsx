@@ -2,66 +2,81 @@
 
 import { useEffect } from 'react';
 
+// Type definitions for Performance Entry types
+interface PerformanceEntryWithProcessing extends PerformanceEntry {
+  processingStart: number;
+}
+
+interface LayoutShiftEntry extends PerformanceEntry {
+  hadRecentInput: boolean;
+  value: number;
+}
+
 const PerformanceMonitor = () => {
   useEffect(() => {
+    // Only run in development or if explicitly enabled
+    if (process.env.NODE_ENV !== 'development') return;
+    
     // Monitor Core Web Vitals
-    if (typeof window !== 'undefined' && 'performance' in window) {
+    if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
+      const observers: PerformanceObserver[] = [];
+
       // Largest Contentful Paint
-      const observer = new PerformanceObserver((list) => {
-        for (const entry of list.getEntries()) {
-          if (entry.entryType === 'largest-contentful-paint') {
-            console.log('LCP:', entry.startTime);
-          }
-        }
-      });
-      
       try {
-        observer.observe({ entryTypes: ['largest-contentful-paint'] });
-      } catch (e) {
-        // Fallback for browsers that don't support this
+        const lcpObserver = new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          const lastEntry = entries[entries.length - 1];
+          if (lastEntry) {
+            console.log('LCP:', Math.round(lastEntry.startTime), 'ms');
+          }
+        });
+        lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
+        observers.push(lcpObserver);
+      } catch {
+        // Browser doesn't support this metric
       }
 
       // First Input Delay
-      const fidObserver = new PerformanceObserver((list) => {
-        for (const entry of list.getEntries()) {
-          if (entry.entryType === 'first-input') {
-            console.log('FID:', entry.processingStart - entry.startTime);
-          }
-        }
-      });
-
       try {
+        const fidObserver = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            const fidEntry = entry as PerformanceEntryWithProcessing;
+            if (fidEntry.processingStart) {
+              console.log('FID:', Math.round(fidEntry.processingStart - fidEntry.startTime), 'ms');
+            }
+          }
+        });
         fidObserver.observe({ entryTypes: ['first-input'] });
-      } catch (e) {
-        // Fallback for browsers that don't support this
+        observers.push(fidObserver);
+      } catch {
+        // Browser doesn't support this metric
       }
 
       // Cumulative Layout Shift
-      let clsValue = 0;
-      const clsObserver = new PerformanceObserver((list) => {
-        for (const entry of list.getEntries()) {
-          if (!entry.hadRecentInput) {
-            clsValue += entry.value;
-          }
-        }
-        console.log('CLS:', clsValue);
-      });
-
       try {
+        let clsValue = 0;
+        const clsObserver = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            const layoutEntry = entry as LayoutShiftEntry;
+            if (!layoutEntry.hadRecentInput && layoutEntry.value) {
+              clsValue += layoutEntry.value;
+            }
+          }
+          console.log('CLS:', clsValue.toFixed(4));
+        });
         clsObserver.observe({ entryTypes: ['layout-shift'] });
-      } catch (e) {
-        // Fallback for browsers that don't support this
+        observers.push(clsObserver);
+      } catch {
+        // Browser doesn't support this metric
       }
 
       return () => {
-        observer.disconnect();
-        fidObserver.disconnect();
-        clsObserver.disconnect();
+        observers.forEach(observer => observer.disconnect());
       };
     }
   }, []);
 
-  return null; // This component doesn't render anything
+  return null;
 };
 
 export default PerformanceMonitor;

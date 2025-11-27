@@ -64,7 +64,7 @@ const Experience = () => {
 
   useGSAP(() => {
     const items = gsap.utils.toArray('.experience-item');
-    items.forEach((item: unknown, index) => {
+    items.forEach((item: any, index) => {
         gsap.from(item, {
             scrollTrigger: {
                 trigger: item,

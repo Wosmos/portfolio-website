@@ -4,6 +4,7 @@ import Dock from '@/components/layout/Dock';
 import Hero from '@/components/sections/Hero';
 import TechMarquee from '@/components/sections/TechMarquee';
 import PerformanceMonitor from '@/components/ui/PerformanceMonitor';
+import LoadingScreen from '@/components/ui/LoadingScreen';
 
 // Lazy load components for better performance
 const About = dynamic(() => import('@/components/sections/About'), {
@@ -18,6 +19,7 @@ const Footer = dynamic(() => import('@/components/layout/Footer'));
 export default function Home() {
   return (
     <main className="relative min-h-screen cosmic-grid">
+      <LoadingScreen/>
       <PerformanceMonitor />
       {/* <CosmicBackground /> */}
       

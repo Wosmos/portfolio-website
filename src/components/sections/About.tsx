@@ -12,7 +12,9 @@ gsap.registerPlugin(ScrollTrigger);
 const About = () => {
   const containerRef = useRef(null);
 
-  useGSAP(() => {
+  
+
+   useGSAP(() => {
     const cards = gsap.utils.toArray('.cosmic-card');
     cards.forEach((card: any, index) => {
         gsap.from(card, {
@@ -23,26 +25,43 @@ const About = () => {
             },
             y: 50,
             opacity: 0,
-            duration: 1,
+            duration: 0.8,
             delay: index * 0.1,
             ease: "power3.out"
         });
     });
 
-    const skills = gsap.utils.toArray('.skill-item');
-    skills.forEach((skill: any) => {
-        const bar = skill.querySelector('.bg-gradient-to-r');
-        if (bar) {
-            gsap.from(bar, {
-                scrollTrigger: {
-                    trigger: skill,
-                    start: "top 80%",
-                },
-                width: 0,
-                duration: 1.5,
-                ease: "power2.out"
-            });
-        }
+    // Animate skill bars only when their parent card is visible
+    const skillsContainer = containerRef.current?.querySelector('.skills-container');
+    if (skillsContainer) {
+        const skillBars = gsap.utils.toArray('.skill-bar');
+        gsap.from(skillBars, {
+            scrollTrigger: {
+                trigger: skillsContainer,
+                start: "top 85%",
+                toggleActions: "play none none reverse"
+            },
+            scaleX: 0,
+            transformOrigin: "left center",
+            duration: 1.2,
+            stagger: 0.15,
+            ease: "power2.out"
+        });
+    }
+
+    // Tech stack icons animation
+    const techIcons = gsap.utils.toArray('.tech-icon');
+    gsap.from(techIcons, {
+        scrollTrigger: {
+            trigger: '.tech-stack-grid',
+            start: "top 85%",
+            toggleActions: "play none none reverse"
+        },
+        scale: 0,
+        opacity: 0,
+        duration: 0.5,
+        stagger: 0.08,
+        ease: "back.out(1.7)"
     });
   }, { scope: containerRef });
 

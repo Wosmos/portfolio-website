@@ -152,7 +152,9 @@ const CodeTerminal = () => {
         </div>
 
         {/* Editor Content */}
-        <div className="bg-[#1e1e1e] p-6  text-gray-300 min-h-[300px] overflow-x-auto">
+        <div className="bg-[#1e1e1e] p-6 text-gray-300 overflow-x-auto overflow-y-hidden"
+        style={{ width: '600px', height: '408px' }}
+        >
             <div className="min-w-[500px] ">
 
           {activeTab === 0 && (
@@ -339,18 +341,18 @@ const CodeTerminal = () => {
         </div>
 
         {/* Terminal Section */}
-        <div className="bg-[#181818] border-t border-[#2d2d30]">
+        <div className="bg-[#181818] border-t border-[#2d2d30] xl:block hidden">
           <div className="flex items-center justify-between px-4 py-2 border-b border-[#2d2d30]">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-xs font-medium text-white">
                 <TerminalIcon className="w-3 h-3" />
                 TERMINAL
               </div>
-              <div className="flex gap-4 text-xs text-gray-500">
+              {/* <div className="flex gap-4 text-xs text-gray-500">
                 <button className="hover:text-white transition-colors">PROBLEMS</button>
                 <button className="hover:text-white transition-colors">OUTPUT</button>
                 <button className="hover:text-white transition-colors">DEBUG CONSOLE</button>
-              </div>
+              </div> */}
             </div>
             <div className="flex items-center gap-2">
               <Play className="w-3 h-3 text-green-400 cursor-pointer hover:text-green-300 transition-colors" />

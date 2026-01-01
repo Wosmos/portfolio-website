@@ -6,6 +6,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { User, Github, BookOpen, Layers, PenTool, ArrowRight, Cpu, Code, Smartphone, Server, Zap, Triangle } from 'lucide-react';
 import { SiFlutter, SiJavascript, SiNextdotjs, SiNodedotjs, SiReact } from 'react-icons/si';
+import { siteData } from '@/data/siteData';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -101,10 +102,7 @@ const About = () => {
                         <h3 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>THE ARCHITECT</h3>
                     </div>
                     <p className="text-gray-300 leading-relaxed mb-6">
-                        Software Engineering student passionate about bridging design and functionality.
-                        Crafting intuitive interfaces with <span className="text-cyan-400 font-semibold">React Native</span> and
-                        building robust backends with <span className="text-cyan-400 font-semibold">Node.js</span>. Currently exploring
-                        Generative AI and modern web technologies.
+                        {siteData.about.bio}
                     </p>
                     <div className="flex flex-wrap gap-2">
                         <span className="px-3 py-1 bg-cyan-400/10 text-cyan-400 rounded-full text-sm border border-cyan-400/20 flex items-center gap-1">
@@ -113,11 +111,11 @@ const About = () => {
                         </span>
                         <span className="px-3 py-1 bg-purple-400/10 text-purple-400 rounded-full text-sm border border-purple-400/20 flex items-center gap-1">
                             <BookOpen className="w-3 h-3" />
-                            Software Engineering
+                            {siteData.about.stats.education}
                         </span>
                         <span className="px-3 py-1 bg-orange-400/10 text-orange-400 rounded-full text-sm border border-orange-400/20 flex items-center gap-1">
                             <Layers className="w-3 h-3" />
-                            2+ Years Experience
+                            {siteData.about.stats.experience}
                         </span>
                     </div>
                 </div>
@@ -127,7 +125,7 @@ const About = () => {
                     <div className="w-12 h-12 bg-gradient-to-r from-gray-700 to-gray-900 rounded-lg flex items-center justify-center mx-auto mb-4">
                         <Github className="w-6 h-6 text-white" />
                     </div>
-                    <div className="text-4xl font-bold text-white mb-2" style={{ fontFamily: 'var(--font-display)' }}>45+</div>
+                    <div className="text-4xl font-bold text-white mb-2" style={{ fontFamily: 'var(--font-display)' }}>{siteData.about.stats.repositories}</div>
                     <div className="text-gray-400 text-sm">REPOSITORIES</div>
                     <div className="text-xs text-cyan-400 mt-2 font-mono">ACTIVE_CONTRIBUTOR</div>
                 </div>
@@ -138,11 +136,11 @@ const About = () => {
                         <BookOpen className="w-6 h-6 text-black" />
                     </div>
                     <h4 className="text-lg font-bold mb-2" style={{ fontFamily: 'var(--font-display)' }}>LEARNING</h4>
-                    <p className="text-gray-400 text-sm mb-3">System Design & LLM Agents</p>
+                    <p className="text-gray-400 text-sm mb-3">{siteData.about.currentFocus.topic}</p>
                     <div className="w-full bg-gray-800 rounded-full h-2 mb-2">
                         <div className="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full w-3/4"></div>
                     </div>
-                    <div className="text-xs text-orange-400 font-mono">75% COMPLETE</div>
+                    <div className="text-xs text-orange-400 font-mono">{siteData.about.currentFocus.progress}% COMPLETE</div>
                 </div>
 
                 {/* Skills Showcase */}

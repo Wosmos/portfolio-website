@@ -29,22 +29,24 @@ export const siteData = {
   },
 
   about: {
-    bio: "Software Engineering student passionate about bridging design and functionality. Crafting intuitive interfaces with React Native and building robust backends with Node.js. Currently exploring Generative AI and modern web technologies.",
-    stats: {
-      repositories: "45+",
-      experience: "2+ Years Experience",
-      education: "Software Engineering",
-    },
+    bio: "Full-stack engineer and systems thinker obsessed with building high-performance, scalable applications. Currently deep in Go (Golang) for backend services, Next.js for frontend, and exploring Rust for tooling. Passionate about clean architecture, concurrency, and pushing the limits of what’s possible with modern infra. Building real-world systems—not just CRUD apps.",
+   stats: {
+    repositories: "50+",
+    experience: "2+ Years Experience",
+    education: "Software Engineering ",
+  },
     currentFocus: {
-      title: "LEARNING",
-      topic: "System Design & LLM Agents",
-      progress: 75,
-    },
+    title: "LEARNING",
+    topic: "Go Concurrency & Cloud-Native Systems",
+    progress: 65,
+  },
     skills: [
-      { name: "FRONTEND", percentage: 95, color: "from-cyan-400 to-blue-500" },
-      { name: "BACKEND", percentage: 88, color: "from-green-400 to-emerald-500" },
-      { name: "MOBILE", percentage: 92, color: "from-purple-400 to-pink-500" },
-      { name: "AI/ML", percentage: 85, color: "from-orange-400 to-red-500" },
+      { name: "FRONTEND", percentage: 85, color: "from-cyan-400 to-blue-500" },
+      { name: "BACKEND", percentage: 58, color: "from-green-400 to-emerald-500" },
+      { name: "MOBILE", percentage: 62, color: "from-purple-400 to-pink-500" },
+      { name: "AI/ML", percentage: 55, color: "from-orange-400 to-red-500" },
+      { name: "SYSTEM DESIGN", percentage: 55, color: "from-orange-400 to-red-500" },
+      { name: "CLOUD INFRA", percentage: 55, color: "from-orange-400 to-red-500" },
     ],
   },
 

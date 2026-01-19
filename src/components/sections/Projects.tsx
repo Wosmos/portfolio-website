@@ -1,266 +1,372 @@
-'use client';
+"use client";
 
-import { useRef } from 'react';
-import Image from 'next/image';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { useGSAP } from '@gsap/react';
-import { Github, ExternalLink, Brain, Film, Layers, FileText, ArrowRight } from 'lucide-react';
+import { useRef, useState, useEffect, useCallback } from "react";
+import Image from "next/image";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
+import {
+  Github,
+  ExternalLink,
+  ArrowRight,
+  Code2,
+  Cpu,
+  Database,
+  Smartphone,
+  Globe,
+  Terminal,
+  X,
+  Layers,
+} from "lucide-react";
+import { siteData } from "@/data/siteData";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const Projects = () => {
-  const containerRef = useRef(null);
+// --- UTILS ---
+const cn = (...classes: string[]) => classes.filter(Boolean).join(" ");
 
-  useGSAP(() => {
-    const cards = gsap.utils.toArray('.project-card') as HTMLElement[];
-    
-    // Set initial state
-    gsap.set(cards, { opacity: 1, y: 0 });
-    
-    cards.forEach((card, index) => {
-      gsap.fromTo(card, 
-        { 
-          opacity: 0, 
-          y: 40 
-        },
-        {
-          scrollTrigger: {
-            trigger: card,
-            start: "top 90%",
-            end: "top 60%",
-            toggleActions: "play none none none",
-            once: true // Only animate once
-          },
-          opacity: 1,
-          y: 0,
-          duration: 0.8,
-          delay: index * 0.1,
-          ease: "power2.out"
-        }
-      );
+const getTechIcon = (tech: string) => {
+  const t = tech.toLowerCase();
+  if (t.includes("react") || t.includes("next") || t.includes("vue"))
+    return <Code2 size={14} />;
+  if (t.includes("ai") || t.includes("model") || t.includes("gpt"))
+    return <Cpu size={14} />;
+  if (t.includes("sql") || t.includes("data") || t.includes("mongo"))
+    return <Database size={14} />;
+  if (t.includes("mobile") || t.includes("flutter"))
+    return <Smartphone size={14} />;
+  if (t.includes("css") || t.includes("tail") || t.includes("style"))
+    return <Globe size={14} />;
+  return <Terminal size={14} />;
+};
+
+/**
+ * --- PROJECT MODAL ---
+ * (Kept largely the same as it handles the details perfectly)
+ */
+const ProjectModal = ({
+  project,
+  onClose,
+}: {
+  project: any;
+  onClose: () => void;
+}) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, []);
+
+  const handleClose = useCallback(() => {
+    gsap.to(contentRef.current, { y: 50, opacity: 0, duration: 0.3 });
+    gsap.to(modalRef.current, {
+      opacity: 0,
+      duration: 0.3,
+      onComplete: onClose,
     });
-  }, { scope: containerRef });
+  }, [onClose]);
+
+  useGSAP(
+    () => {
+      const tl = gsap.timeline();
+      tl.fromTo(
+        modalRef.current,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.3 },
+      ).fromTo(
+        contentRef.current,
+        { y: 50, opacity: 0, scale: 0.95 },
+        { y: 0, opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.1)" },
+        "-=0.1",
+      );
+    },
+    { scope: modalRef },
+  );
 
   return (
-    <section id="projects" className="py-24 px-6 bg-black/20 backdrop-blur-sm" ref={containerRef}>
-        <div className="max-w-7xl mx-auto">
-            <div className="mb-16 text-center">
-                <h2 className="text-5xl md:text-6xl font-bold mb-4 cosmic-glow" style={{ fontFamily: 'var(--font-display)' }}>SELECTED WORK</h2>
-            <div className="h-px w-32 bg-gradient-to-r from-transparent via-cyan-400 to-transparent mx-auto"></div>
-            </div>
+    <div
+      ref={modalRef}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    >
+      <div
+        onClick={handleClose}
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm cursor-pointer"
+      />
+      <div
+        ref={contentRef}
+        className="relative w-full max-w-4xl max-h-[90vh] bg-[#0a0a0a] border border-white/10 rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-2xl"
+      >
+        <button
+          onClick={handleClose}
+          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/50 text-white hover:bg-white/20 transition-all"
+        >
+          <X size={20} />
+        </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                
-                {/* Featured Project - NextSoft Brand Website */}
-                <article className="md:col-span-2 lg:col-span-2 lg:row-span-2 project-card glass-cosmic rounded-3xl overflow-hidden group relative min-h-[400px] lg:min-h-[500px]">
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-cyan-500/20"></div>
-                    <div className="absolute top-6 left-6 z-20">
-                        <div className="flex items-center gap-2 mb-3">
-                            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                            <span className="text-xs font-mono text-green-400">FEATURED PROJECT</span>
-                        </div>
-                        <h3 className="text-2xl lg:text-3xl font-bold mb-2">NextSoft Brand Website</h3>
-                        <p className="text-gray-300 max-w-sm text-sm lg:text-base">A modern, responsive brand website featuring smooth animations, blog section, and contact form.</p>
-                    </div>
-                    
-                    {/* Mock Browser Window with Image */}
-                    <div className="absolute bottom-6 right-6 w-[70%] h-[60%] bg-gray-900 rounded-lg border border-white/10 group-hover:scale-[1.02] transition-transform duration-500 overflow-hidden shadow-2xl">
-                        <div className="bg-gray-800 px-3 py-2 flex items-center gap-2 border-b border-white/10">
-                            <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
-                            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
-                            <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
-                            <div className="ml-3 text-xs text-gray-400 font-mono truncate">nextsoft-website.vercel.app</div>
-                        </div>
-                        <div className="relative h-[calc(100%-32px)] w-full">
-                            <Image 
-                                src="/projectsThumbnails/travelSiteLandingPage.png" 
-                                alt="NextSoft Website Preview"
-                                fill
-                                className="object-cover object-top"
-                                sizes="(max-width: 768px) 100vw, 50vw"
-                            />
-                        </div>
-                    </div>
-                    
-                    <div className="absolute bottom-6 left-6 flex gap-2 z-20 flex-wrap">
-                        <span className="px-2.5 py-1 bg-black/50 backdrop-blur rounded-full text-xs">Next.js</span>
-                        <span className="px-2.5 py-1 bg-black/50 backdrop-blur rounded-full text-xs">TypeScript</span>
-                        <span className="px-2.5 py-1 bg-black/50 backdrop-blur rounded-full text-xs">Tailwind</span>
-                    </div>
-                    
-                    <div className="absolute top-6 right-6 flex gap-2 z-20">
-                        <a href="https://github.com/Wosmos/NextSoft-Brand-Website" target="_blank" rel="noopener noreferrer" className="p-2 bg-black/30 backdrop-blur rounded-full hover:bg-black/50 transition-colors">
-                            <Github className="w-4 h-4" />
-                        </a>
-                        <a href="https://nextsoft-website.vercel.app/" target="_blank" rel="noopener noreferrer" className="p-2 bg-black/30 backdrop-blur rounded-full hover:bg-black/50 transition-colors">
-                            <ExternalLink className="w-4 h-4" />
-                        </a>
-                    </div>
-                </article>
-
-                {/* Wizmo AI Project */}
-                <article className="project-card glass-cosmic rounded-3xl overflow-hidden group relative p-6 flex flex-col justify-between min-h-[320px]">
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/30 rounded-full blur-2xl group-hover:blur-xl transition-all pointer-events-none"></div>
-                    <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="p-3 bg-purple-500/20 rounded-full">
-                                <Brain className="w-6 h-6 text-purple-400" />
-                            </div>
-                            <div className="flex gap-2">
-                                <a href="https://github.com/Wosmos/wizmo.git" target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
-                                    <Github className="w-4 h-4" />
-                                </a>
-                                <a href="https://wizmo.netlify.app/" target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
-                                    <ExternalLink className="w-4 h-4" />
-                                </a>
-                            </div>
-                        </div>
-                        <h3 className="text-xl font-bold mb-2">Wizmo AI</h3>
-                        <p className="text-gray-400 text-sm mb-4">AI-powered summarizer that transforms any blog URL into concise summaries using advanced language models.</p>
-                        <div className="flex gap-2 flex-wrap">
-                            <span className="px-2 py-1 bg-white/10 rounded text-xs">React</span>
-                            <span className="px-2 py-1 bg-white/10 rounded text-xs">OpenAI</span>
-                            <span className="px-2 py-1 bg-white/10 rounded text-xs">API</span>
-                        </div>
-                    </div>
-                    <div className="mt-4 h-24 rounded-xl border border-white/5 overflow-hidden relative">
-                        <Image 
-                            src="/projectsThumbnails/wizmo2.0.png" 
-                            alt="Wizmo AI Preview"
-                            fill
-                            className="object-cover object-top"
-                            sizes="(max-width: 768px) 100vw, 33vw"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-purple-500/40 to-transparent"></div>
-                    </div>
-                </article>
-
-                {/* Wovies Project */}
-                <article className="project-card glass-cosmic rounded-3xl overflow-hidden group relative p-6 flex flex-col justify-between min-h-[320px]">
-                    <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-red-500/30 rounded-full blur-2xl group-hover:blur-xl transition-all pointer-events-none"></div>
-                    <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="p-3 bg-red-500/20 rounded-full">
-                                <Film className="w-6 h-6 text-red-400" />
-                            </div>
-                            <a href="https://darling-queijadas-e8f108.netlify.app/" target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
-                                <ExternalLink className="w-4 h-4" />
-                            </a>
-                        </div>
-                        <h3 className="text-xl font-bold mb-2">Wovies</h3>
-                        <p className="text-gray-400 text-sm mb-4">Movie discovery platform with search, ratings, reviews, and watchlist functionality using TMDB API.</p>
-                        <div className="flex gap-2 flex-wrap">
-                            <span className="px-2 py-1 bg-white/10 rounded text-xs">React</span>
-                            <span className="px-2 py-1 bg-white/10 rounded text-xs">SASS</span>
-                            <span className="px-2 py-1 bg-white/10 rounded text-xs">Redux</span>
-                        </div>
-                    </div>
-                    <div className="mt-4 h-24 rounded-xl border border-white/5 overflow-hidden relative">
-                        <Image 
-                            src="/projectsThumbnails/wovies.png" 
-                            alt="Wovies Preview"
-                            fill
-                            className="object-cover object-top"
-                            sizes="(max-width: 768px) 100vw, 33vw"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-red-500/40 to-transparent"></div>
-                    </div>
-                </article>
-
-                {/* ResumeRight Project - Wide Card */}
-                <article className="lg:col-span-2 project-card glass-cosmic rounded-3xl overflow-hidden group relative p-6 min-h-[280px]">
-                    <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 pointer-events-none"></div>
-                    <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between h-full gap-6">
-                        <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="p-3 bg-orange-500/20 rounded-full">
-                                    <FileText className="w-6 h-6 text-orange-400" />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></span>
-                                    <span className="text-xs font-mono text-yellow-400">IN DEVELOPMENT</span>
-                                </div>
-                            </div>
-                            <h3 className="text-2xl font-bold mb-2">ResumeRight</h3>
-                            <p className="text-gray-300 mb-4 text-sm">AI-powered resume optimization tool with ATS compatibility checks, keyword analysis, and improvement suggestions.</p>
-                            <div className="flex gap-2 flex-wrap mb-4">
-                                <span className="px-2.5 py-1 bg-white/10 rounded-full text-xs">Next.js</span>
-                                <span className="px-2.5 py-1 bg-white/10 rounded-full text-xs">TypeScript</span>
-                                <span className="px-2.5 py-1 bg-white/10 rounded-full text-xs">Firebase</span>
-                                <span className="px-2.5 py-1 bg-white/10 rounded-full text-xs">Google AI</span>
-                            </div>
-                            <div className="flex gap-2">
-                                <a href="https://github.com/Wosmos/AI-Resume-checker" target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-orange-500/20 text-orange-300 rounded-lg hover:bg-orange-500/30 transition-colors text-sm">
-                                    View Code
-                                </a>
-                                <a href="https://ai-resume-checker-peach.vercel.app/" target="_blank" rel="noopener noreferrer" className="px-4 py-2 border border-white/20 rounded-lg hover:bg-white/5 transition-colors text-sm">
-                                    Preview
-                                </a>
-                            </div>
-                        </div>
-                        <div className="shrink-0 hidden md:flex">
-                            <div className="w-44 h-32 rounded-xl border border-white/10 overflow-hidden relative">
-                                <Image 
-                                    src="/projectsThumbnails/ResumeRight.png" 
-                                    alt="ResumeRight Preview"
-                                    fill
-                                    className="object-cover object-top"
-                                    sizes="200px"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-yellow-500/20"></div>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-
-                {/* Mini Projects */}
-                <article className="project-card glass-cosmic rounded-3xl overflow-hidden group relative p-6 flex flex-col justify-between min-h-[280px]">
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-green-500/30 rounded-full blur-2xl group-hover:blur-xl transition-all pointer-events-none"></div>
-                    <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="p-3 bg-green-500/20 rounded-full">
-                                <Layers className="w-6 h-6 text-green-400" />
-                            </div>
-                            <div className="flex gap-2">
-                                <a href="https://github.com/Wosmos/mini-apps?tab=readme-ov-file" target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
-                                    <Github className="w-4 h-4" />
-                                </a>
-                                <a href="https://wosmos.github.io/mini-apps/main.html" target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
-                                    <ExternalLink className="w-4 h-4" />
-                                </a>
-                            </div>
-                        </div>
-                        <h3 className="text-xl font-bold mb-2">Mini Projects</h3>
-                        <p className="text-gray-400 text-sm mb-4">Collection of interactive mini projects showcasing vanilla web technologies and creative implementations.</p>
-                        <div className="flex gap-2 flex-wrap">
-                            <span className="px-2 py-1 bg-white/10 rounded text-xs">HTML5</span>
-                            <span className="px-2 py-1 bg-white/10 rounded text-xs">CSS3</span>
-                            <span className="px-2 py-1 bg-white/10 rounded text-xs">JavaScript</span>
-                        </div>
-                    </div>
-                    <div className="mt-4 h-20 rounded-xl border border-white/5 overflow-hidden relative">
-                        <Image 
-                            src="/projectsThumbnails/JsMiniProjects.png" 
-                            alt="Mini Projects Preview"
-                            fill
-                            className="object-cover object-center"
-                            sizes="(max-width: 768px) 100vw, 33vw"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-green-500/40 to-transparent"></div>
-                    </div>
-                </article>
-            </div>
-
-            {/* View More Projects Button */}
-            <div className="text-center mt-12">
-                <a href="https://github.com/Wosmos" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold rounded-xl hover:scale-105 transition-all hover:shadow-2xl hover:shadow-indigo-500/25">
-                    <Github className="w-5 h-5" />
-                    View All Projects on GitHub
-                    <ArrowRight className="w-5 h-5" />
-                </a>
-            </div>
+        {/* Image Side */}
+        <div className="w-full md:w-5/12 h-64 md:h-auto relative bg-neutral-900">
+          <Image
+            src={project.mobileImage}
+            alt={project.title}
+            fill
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
         </div>
+
+        {/* Content Side */}
+        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-[#0f0f0f]">
+          <h2 className="text-3xl font-bold text-white mb-2">
+            {project.title}
+          </h2>
+          <div className="flex gap-4 mb-6">
+            {project.live && (
+              <a
+                href={project.live}
+                target="_blank"
+                className="flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300"
+              >
+                <ExternalLink size={14} /> Live Demo
+              </a>
+            )}
+            {project.github && (
+              <a
+                href={project.github}
+                target="_blank"
+                className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white"
+              >
+                <Github size={14} /> Source Code
+              </a>
+            )}
+          </div>
+          <p className="text-neutral-300 mb-6 leading-relaxed">
+            {project.description}
+          </p>
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-neutral-500 uppercase tracking-wider flex items-center gap-2">
+              <Layers size={14} /> Technologies
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {project.technologies.map((t: string, i: number) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-1 px-3 py-1 rounded bg-white/5 border border-white/10 text-xs text-neutral-300"
+                >
+                  {getTechIcon(t)} {t}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * --- SIMPLIFIED CARD ---
+ * Pure CSS hover effects, no JS tilt for smoother performance
+ */
+const ProjectCard = ({
+  project,
+  className,
+  onClick,
+}: {
+  project: any;
+  className?: any;
+  onClick: () => void;
+}) => {
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        "group relative overflow-hidden rounded-2xl bg-neutral-900 border border-white/10 cursor-pointer project-card-entry",
+        "transition-all duration-500 hover:border-white/30 hover:shadow-2xl",
+        className,
+      )}
+    >
+      <div className="absolute inset-0 w-full h-full">
+        <Image
+          src={project.image}
+          alt={project.title}
+          fill
+          className="
+      object-cover
+      transition-transform duration-700
+      group-hover:scale-110
+      opacity-80
+      group-hover:opacity-55
+    "
+        />
+
+        {/* Premium Glass Layer */}
+        <div
+          className="
+      absolute inset-0
+      opacity-0 group-hover:opacity-100
+      transition-all duration-500 ease-out
+
+      bg-white/5
+      backdrop-blur-xl
+      backdrop-saturate-150
+      backdrop-brightness-110
+
+      ring-1 ring-white/10
+      shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]
+    "
+        />
+
+        {/* Light Reflection */}
+        <div
+          className="
+      pointer-events-none
+      absolute -top-1/2 left-0 w-full h-full
+      opacity-0 group-hover:opacity-100
+      transition-opacity duration-700
+
+      bg-gradient-to-b
+      from-white/15
+      via-transparent
+      to-transparent
+    "
+        />
+
+        {/* Depth Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-black/90" />
+      </div>
+
+      {/* Content Layer */}
+      <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">
+        <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 ease-out">
+          {/* Category Tag */}
+          <span className="inline-block mb-3 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/10 backdrop-blur-md text-cyan-300 border border-white/10">
+            {project.category}
+          </span>
+
+          {/* Title */}
+          <h3 className="text-2xl md:text-3xl font-bold text-white mb-2 leading-tight">
+            {project.title}
+          </h3>
+
+          {/* Hidden Details revealed on hover */}
+          <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-500">
+            <div className="overflow-hidden">
+              <div className="pt-2 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-100">
+                <span className="text-sm text-neutral-300 line-clamp-1">
+                  {project.description}
+                </span>
+                <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white text-black shrink-0">
+                  <ArrowRight
+                    size={16}
+                    className="-rotate-45 group-hover:rotate-0 transition-transform duration-300"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * --- MAIN LAYOUT ---
+ * 3 Cols Top, 2 Cols Bottom
+ */
+const Projects = () => {
+  const containerRef = useRef(null);
+  const [selectedProject, setSelectedProject] = useState<any>(null);
+
+  // Strictly select first 5 projects
+  const projects = siteData.projects.slice(0, 5);
+
+  useGSAP(
+    () => {
+      // Simple fade up animation for cards
+      gsap.fromTo(
+        ".project-card-entry",
+        { y: 50, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          stagger: 0.1,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: "top 80%",
+          },
+        },
+      );
+    },
+    { scope: containerRef },
+  );
+
+  return (
+    <section
+      id="projects"
+      ref={containerRef}
+      className="relative py-20 px-4 md:px-8 min-h-screen flex flex-col justify-center"
+    >
+      {/* Background Ambience */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[10%] left-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[10%] right-[-10%] w-[500px] h-[500px] bg-cyan-900/10 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="max-w-[1400px] mx-auto w-full relative z-10">
+        {/* Header */}
+        <div className="mb-16 text-center">
+        <h2
+          className="text-5xl md:text-6xl font-bold mb-4 cosmic-glow"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          Selected Works
+        </h2>
+        <div className="h-px w-32 bg-gradient-to-r from-transparent via-cyan-400 to-transparent mx-auto"></div>
+      </div>
+
+        {/* 
+          GRID LAYOUT EXPLANATION:
+          - lg:grid-cols-6 creates a 6-column grid.
+          - Row 1 (Items 0,1,2): col-span-2 (2+2+2 = 6, fills width).
+          - Row 2 (Items 3,4): col-span-3 (3+3 = 6, fills width, splits perfectly).
+          - h-[40vh] makes rows responsive to laptop screen height.
+        */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
+          {projects.map((project, idx) => {
+            // Logic for 3 on top, 2 on bottom
+            // If idx < 3 (0, 1, 2) -> Span 2 cols each (3 items per row)
+            // If idx >= 3 (3, 4)   -> Span 3 cols each (2 items per row)
+            const isTopRow = idx < 3;
+            const colSpanClass = isTopRow ? "lg:col-span-2" : "lg:col-span-3";
+
+            return (
+              <ProjectCard
+                key={idx}
+                project={project}
+                className={`
+                  ${colSpanClass} 
+                  h-[350px] lg:h-[40vh] min-h-[300px] 
+                `}
+                onClick={() => setSelectedProject(project)}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {selectedProject && (
+        <ProjectModal
+          project={selectedProject}
+          onClose={() => setSelectedProject(null)}
+        />
+      )}
     </section>
   );
 };

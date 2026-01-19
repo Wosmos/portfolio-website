@@ -19,20 +19,11 @@ const Footer = dynamic(() => import('@/components/layout/Footer'));
 export default function Home() {
   return (
     <main className="relative min-h-screen cosmic-grid">
-      <LoadingScreen/>
+      {/* <LoadingScreen/> */}
       <PerformanceMonitor />
       {/* <CosmicBackground /> */}
       
-      {/* Optimized Cosmic Orbs */}
-      {/* <div 
-        className="cosmic-orb xl:block hidden w-96 h-96 pointer-events-none" 
-        style={{ 
-          background: 'var(--cosmic-primary)', 
-          top: '10%', 
-          right: '-10%',
-          willChange: 'transform'
-        }}
-      /> */}
+    
       <div 
         className="cosmic-orb w-64 h-64 pointer-events-none" 
         style={{ 

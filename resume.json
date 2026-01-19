@@ -1,0 +1,121 @@
+{
+  "personalInfo": {
+    "fullName": "Muhammad Wasif Malik",
+    "title": "Software Engineer",
+    "email": "m.wasifmalik17@gmail.com",
+    "phone": "+923062248224",
+    "github": "https://github.com/Wosmos",
+    "linkedin": "https://linkedin.com/in/wasif-malik-79205a1bb/",
+    "portfolio": "https://wasiff.vercel.app"
+  },
+  "about": "Full Stack Developer with over two years of hands-on experience building web applications using React and Next.js. I specialise in creating responsive user interfaces and integrating them with backend APIs to deliver complete solutions. My professional work focuses primarily on the MERN stack and Next.js, where I have developed production applications, including real-time collaborative tools and enterprise management systems. I am comfortable working across the full development lifecycle, from designing database schemas to deploying applications on cloud platforms. Currently pursuing my Bachelor's degree in Software Engineering while actively expanding my technical knowledge through personal projects exploring Go, Python frameworks, and React Native for mobile development.",
+  "technicalExpertise": {
+    "frontend": ["React", "Next.js 14/15/16", "TypeScript", "Redux Toolkit", "Tailwind CSS", "Framer Motion", "SCSS"],
+    "backend": ["Node.js", "Go (Golang)", "Python (FastAPI, Django)", "RESTful APIs", "WebSockets"],
+    "databases": ["PostgreSQL (Relational Design)", "MongoDB", "MySQL", "Firebase", "RDS"],
+    "cloudAndDevOps": ["AWS (S3, EC2)", "Vercel", "Docker", "Git", "GitHub Actions", "CI/CD"],
+    "tools": ["Jira", "Confluence", "Postman", "Clerk Auth", "Liveblocks", "Zod", "Lexical Editor"]
+  },
+  "workExperience": [
+    {
+      "role": "Next.js Developer",
+      "company": "Avialdo Solutions",
+      "duration": "February 2025 - Present",
+      "location": "Karachi, Pakistan",
+      "responsibilities": [
+        "Developing production-grade applications using Next.js 15, focusing on server-side rendering (SSR) and optimised data fetching.",
+        "Designing and managing complex PostgreSQL schemas; optimising queries to ensure data integrity for enterprise-level systems.",
+        "Leading technical decision-making in an Agile environment using Jira and Confluence to track sprints and document system architecture."
+      ]
+    },
+    {
+      "role": "Frontend Developer",
+      "company": "Liftup AI",
+      "duration": "January 2024 - March 2024",
+      "location": "Jamshoro",
+      "responsibilities": [
+        "Engineered responsive interfaces using React and Redux; implemented a reusable component library with Tailwind CSS, reducing development time for new features by 30%.",
+        "Seamlessly integrated RESTful APIs to handle dynamic, real-time data updates for AI-driven dashboards.",
+        "Achieved 60fps animations and sub-2s page loads through code-splitting and asset optimisation."
+      ]
+    },
+    {
+      "role": "Web Designer",
+      "company": "Interns Pakistan",
+      "duration": "October 2022 - December 2022",
+      "location": "Remote, Pakistan",
+      "responsibilities": [
+        "Established foundation in web development through hands-on experience with HTML5, CSS3, and modern JavaScript (ES6+).",
+        "Learned version control with Git and GitHub workflows.",
+        "Developed clean, semantic code following industry best practices and accessibility standards."
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Learnity – AI-Powered EdTech Platform (FYP)",
+      "techStack": ["Next.js 15", "TypeScript", "PostgreSQL", "getStream", "Tailwind CSS", "Firebase"],
+      "achievements": [
+        "Developed a custom engine with an XP system and streak multipliers; implemented levelling using the formulas.",
+        "Integrated getStream for synchronous video study groups and implemented role-based access for Students, Teachers, and Admins."
+      ]
+    },
+    {
+      "name": "DocXO – Real-Time Collaborative Editor",
+      "techStack": ["Next.js", "Liveblocks", "Lexical Editor", "Clerk Auth", "TypeScript"],
+      "achievements": [
+        "Built a Google Docs-inspired portal allowing multiple users to edit documents simultaneously with conflict-free resolution via Liveblocks.",
+        "Integrated Lexical Editor with features for inline commenting, secure email invitations, & version history."
+      ]
+    },
+    {
+      "name": "NetLink – High-Performance Chat Backend",
+      "techStack": ["Go (Golang)", "WebSockets", "PostgreSQL"],
+      "achievements": [
+        "Leveraged Go’s Goroutines and Channels to handle thousands of concurrent WebSocket connections with minimal latency.",
+        "Architected a lightweight protocol for bidirectional messaging and persistent storage of chat history."
+      ]
+    },
+    {
+      "name": "Scrappo – Automated Web Scraping Tool",
+      "techStack": ["Python", "FastAPI", "Trafilatura", "APScheduler", "SQLite"],
+      "achievements": [
+        "Built a dual-mode scraper (on-demand and scheduled) utilising Trafilatura for robust text extraction from complex DOM structures.",
+        "Implemented automated email reporting and multi-format exports (CSV, PDF, Excel) for analysed data."
+      ]
+    },
+    {
+      "name": "Django Blogs – Minimal Blog CMS",
+      "techStack": ["Django 5.0", "Python", "CodeMirror", "SQLite"],
+      "achievements": [
+        "Developed a full-featured CMS with Markdown support, real-time previews, and optimised ORM queries."
+      ]
+    },
+    {
+      "name": "DevToolsHQ – Developer Productivity Suite",
+      "techStack": ["Next.js", "TypeScript", "Firebase Auth"],
+      "achievements": [
+        "Created a unified dashboard of utility tools (formatters, testers, code generators) optimized for Developer Experience (DX)."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "Bachelor of Science in Software Engineering",
+      "institution": "University of Sindh",
+      "years": "2022 – 2026"
+    },
+    {
+      "qualification": "Intermediate - Pre-Engineering",
+      "institution": "Eagle House",
+      "years": "2021 - 2022",
+      "percentage": "89%"
+    },
+    {
+      "qualification": "Matriculation - Science",
+      "institution": "Eagle House",
+      "years": "2019 - 2020",
+      "percentage": "84.24%"
+    }
+  ]
+}

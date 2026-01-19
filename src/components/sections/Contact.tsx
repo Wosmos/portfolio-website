@@ -95,10 +95,10 @@ const Contact = () => {
               {/* Contact Info */}
               <div className="space-y-8">
                 <div>
-                  <h4 className="text-xl font-bold mb-6 flex items-center gap-2">
+                  <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
                     <Zap className="w-6 h-6 text-yellow-400" />
                     Quick Connect
-                  </h4>
+                  </h3>
                   <div className="space-y-4">
                     <div className="flex items-center gap-4 p-4 glass-cosmic rounded-lg hover:bg-white/5 transition-colors">
                       <div className="p-3 bg-indigo-500/20 rounded-full">
@@ -143,7 +143,7 @@ const Contact = () => {
 
                 {/* Social Links */}
                 <div>
-                  <h4 className="text-lg font-bold mb-4">Connect on Social</h4>
+                  <h3 className="text-lg font-bold mb-4">Connect on Social</h3>
                   <div className="flex gap-4">
                     <a
                       href="https://github.com/Wosmos"

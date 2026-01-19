@@ -1,0 +1,21 @@
+{
+  "name": "Wasif Malik | Cosmic Engineer",
+  "short_name": "Wosmo",
+  "description": "Wasif Malik - Full Stack Engineer crafting digital experiences with Next.js, Flutter, and AI.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0d1b",
+  "theme_color": "#00d4ff",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png"
+    }
+  ]
+}

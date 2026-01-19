@@ -1,7 +1,16 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { Home, User, Code, Briefcase, BookOpen, Github, Linkedin, Mail } from 'lucide-react';
+import Link from "next/link";
+import {
+  Home,
+  User,
+  Code,
+  Briefcase,
+  BookOpen,
+  Github,
+  Linkedin,
+  Mail,
+} from "lucide-react";
 
 const Dock = () => {
   return (
@@ -25,8 +34,8 @@ const Dock = () => {
             <Briefcase className="w-5 h-5" />
             <span className="text-[10px] mt-1">Exp</span>
           </Link>
-          <Link 
-            href="#contact" 
+          <Link
+            href="#contact"
             className="dock-item-mobile text-cosmic-primary"
           >
             <Mail className="w-5 h-5" />
@@ -37,29 +46,77 @@ const Dock = () => {
 
       {/* Desktop: Floating dock */}
       <div className="hidden md:flex dock-container items-center gap-2">
-        <Link href="#home" className="dock-item" data-tooltip="HOME">
+        <Link
+          href="#home"
+          className="dock-item"
+          data-tooltip="HOME"
+          aria-label="Home"
+        >
           <Home className="w-5 h-5" />
         </Link>
-        <Link href="#about" className="dock-item" data-tooltip="ABOUT">
+        <Link
+          href="#about"
+          className="dock-item"
+          data-tooltip="ABOUT"
+          aria-label="About"
+        >
           <User className="w-5 h-5" />
         </Link>
-        <Link href="#projects" className="dock-item" data-tooltip="PROJECTS">
+        <Link
+          href="#projects"
+          className="dock-item"
+          data-tooltip="PROJECTS"
+          aria-label="Projects"
+        >
           <Code className="w-5 h-5" />
         </Link>
-        <Link href="#experience" className="dock-item" data-tooltip="EXPERIENCE">
+        <Link
+          href="#experience"
+          className="dock-item"
+          data-tooltip="EXPERIENCE"
+          aria-label="Experience"
+        >
           <Briefcase className="w-5 h-5" />
         </Link>
-        <Link href="#blog" className="dock-item" data-tooltip="BLOG">
+        <Link
+          href="#blog"
+          className="dock-item"
+          data-tooltip="BLOG"
+          aria-label="Blog"
+        >
           <BookOpen className="w-5 h-5" />
         </Link>
         <div className="dock-separator"></div>
-        <a href="https://github.com/Wosmos" target="_blank" rel="noopener noreferrer" className="dock-item" data-tooltip="GITHUB">
+        <a
+          href="https://github.com/Wosmos"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="dock-item"
+          data-tooltip="GITHUB"
+          aria-label="GitHub"
+        >
           <Github className="w-5 h-5" />
         </a>
-        <a href="https://www.linkedin.com/in/wasif-m-79205a1bb/" target="_blank" rel="noopener noreferrer" className="dock-item" data-tooltip="LINKEDIN">
+        <a
+          href="https://www.linkedin.com/in/wasif-m-79205a1bb/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="dock-item"
+          data-tooltip="LINKEDIN"
+          aria-label="LinkedIn"
+        >
           <Linkedin className="w-5 h-5" />
         </a>
-        <Link href="#contact" className="dock-item" data-tooltip="CONTACT" style={{ background: 'var(--cosmic-primary)', color: 'var(--cosmic-void)' }}>
+        <Link
+          href="#contact"
+          className="dock-item"
+          data-tooltip="CONTACT"
+          style={{
+            background: "var(--cosmic-primary)",
+            color: "var(--cosmic-void)",
+          }}
+          aria-label="Contact"
+        >
           <Mail className="w-5 h-5" />
         </Link>
       </div>

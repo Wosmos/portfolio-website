@@ -102,6 +102,7 @@ const ProjectModal = ({
       >
         <button
           onClick={handleClose}
+          aria-label="Close modal"
           className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/50 text-white hover:bg-white/20 transition-all"
         >
           <X size={20} />

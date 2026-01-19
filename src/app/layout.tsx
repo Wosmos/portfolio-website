@@ -22,16 +22,25 @@ const jetbrainsMono = JetBrains_Mono({
 
 // Viewport configuration (separate export as required by Next.js 14+)
 export const viewport: Viewport = {
-  width: 'device-width',
+  width: "device-width",
   initialScale: 1,
   maximumScale: 5,
-  themeColor: '#00d4ff',
+  themeColor: "#00d4ff",
 };
 
 export const metadata: Metadata = {
   title: "Wasif Malik | Cosmic Engineer",
-  description: "Wasif Malik - Full Stack Engineer crafting digital experiences with Next.js, Flutter, and AI. Building the future, one line of code at a time.",
-  keywords: ["Wasif Malik", "Software Engineer", "Next.js", "Flutter", "React", "AI", "Full Stack Developer"],
+  description:
+    "Wasif Malik - Full Stack Engineer crafting digital experiences with Next.js, Flutter, and AI. Building the future, one line of code at a time.",
+  keywords: [
+    "Wasif Malik",
+    "Software Engineer",
+    "Next.js",
+    "Flutter",
+    "React",
+    "AI",
+    "Full Stack Developer",
+  ],
   authors: [{ name: "Wasif Malik" }],
   creator: "Wasif Malik",
   publisher: "Wasif Malik",
@@ -39,16 +48,17 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
     googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      "index": true,
+      "follow": true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
     },
   },
   openGraph: {
     title: "Wasif Malik | Cosmic Engineer",
-    description: "Building scalable digital ecosystems with cutting-edge technology",
+    description:
+      "Building scalable digital ecosystems with cutting-edge technology",
     type: "website",
     locale: "en_US",
     siteName: "Wasif Malik Portfolio",
@@ -56,8 +66,14 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Wasif Malik | Cosmic Engineer",
-    description: "Building scalable digital ecosystems with cutting-edge technology",
+    description:
+      "Building scalable digital ecosystems with cutting-edge technology",
   },
+  metadataBase: new URL("https://wosmo.vercel.app"),
+  alternates: {
+    canonical: "/",
+  },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -69,7 +85,11 @@ export default function RootLayout({
     <html lang="en" className="scroll-smooth">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
         <meta name="color-scheme" content="dark" />
       </head>
       <body

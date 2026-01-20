@@ -17,7 +17,6 @@ import CodeTerminal from "./CodeWindow";
 import { siteData } from "../../data/siteData";
 
 const {
-
   personal: { f_name, l_name, status, cvUrl },
   social,
   hero: { typedStrings },
@@ -147,22 +146,25 @@ const Hero = () => {
             {/* Social Links */}
             <div className="hero-content-item flex gap-4 text-gray-400">
               {[
-                { Icon: Github, href: social.github },
+                { Icon: Github, href: social.github, label: "GitHub" },
                 {
                   Icon: Linkedin,
                   href: social.linkedin,
+                  label: "LinkedIn",
                 },
                 {
                   Icon: Instagram,
                   href: social.instagram,
+                  label: "Instagram",
                 },
-                { Icon: Hash, href: social.hashnode },
-              ].map(({ Icon, href }, idx) => (
+                { Icon: Hash, href: social.hashnode, label: "Hashnode" },
+              ].map(({ Icon, href, label }, idx) => (
                 <a
                   key={idx}
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label={label}
                   className="p-2 hover:text-white hover:scale-110 transition-all duration-300"
                 >
                   <Icon className="w-6 h-6" />

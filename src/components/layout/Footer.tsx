@@ -1,6 +1,6 @@
-import { Github, Linkedin, Instagram, Hash } from 'lucide-react';
-import Logo from '@/components/ui/Logo';
-import { siteData } from '@/data/siteData'; // adjust path if needed
+import { Github, Linkedin, Instagram, Hash } from "lucide-react";
+import Logo from "@/components/ui/Logo";
+import { siteData } from "@/data/siteData"; // adjust path if needed
 
 const Footer = () => {
   const {
@@ -10,18 +10,18 @@ const Footer = () => {
   } = siteData;
 
   const quickLinks = [
-    { label: 'About', href: '#about' },
-    { label: 'Projects', href: '#projects' },
-    { label: 'Experience', href: '#experience' },
-    { label: 'Blog', href: '#blog' },
-    { label: 'Contact', href: '#contact' },
+    { label: "About", href: "#about" },
+    { label: "Projects", href: "#projects" },
+    { label: "Experience", href: "#experience" },
+    { label: "Blog", href: "#blog" },
+    { label: "Contact", href: "#contact" },
   ];
 
   const socialLinks = [
-    { Icon: Github, href: social.github },
-    { Icon: Linkedin, href: social.linkedin },
-    { Icon: Instagram, href: social.instagram },
-    { Icon: Hash, href: social.hashnode },
+    { Icon: Github, href: social.github, label: "GitHub" },
+    { Icon: Linkedin, href: social.linkedin, label: "LinkedIn" },
+    { Icon: Instagram, href: social.instagram, label: "Instagram" },
+    { Icon: Hash, href: social.hashnode, label: "Hashnode" },
   ];
 
   return (
@@ -71,12 +71,13 @@ const Footer = () => {
             {copyright}
           </p>
           <div className="flex items-center gap-4">
-            {socialLinks.map(({ Icon, href }, idx) => (
+            {socialLinks.map(({ Icon, href, label }, idx) => (
               <a
                 key={idx}
                 href={href.trim()} // or fix trailing spaces in data.ts
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label={label}
                 className="text-gray-500 hover:text-indigo-400 transition-colors"
               >
                 <Icon className="w-4 h-4" />

@@ -140,6 +140,17 @@ export const siteData = {
       status: "IN DEVELOPMENT"
     },
     {
+      id: "zcrypt",
+      title: "Zcrypt",
+      description: "Zero-knowledge encrypted cloud storage with AES-256-GCM encryption, Git-based distributed architecture, and bring-your-own-backend support.",
+      image: "/projectsThumbnails/zcrypt.png",
+      technologies: ["Next.js", "Go", "AES-256-GCM"],
+      github: null,
+      live: "https://zcrypt.cloud",
+      featured: false,
+      category: "web"
+    },
+    {
       id: "miniprojects",
       title: "Mini Projects",
       description: "Collection of interactive mini projects showcasing vanilla web technologies and creative implementations.",

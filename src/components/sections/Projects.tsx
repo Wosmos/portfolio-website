@@ -5,7 +5,7 @@ import Image from 'next/image';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
-import { Github, ExternalLink, Brain, Film, Layers, FileText, ArrowRight } from 'lucide-react';
+import { Github, ExternalLink, Brain, Film, Layers, FileText, ArrowRight, Shield } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -165,6 +165,38 @@ const Projects = () => {
                             sizes="(max-width: 768px) 100vw, 33vw"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-red-500/40 to-transparent"></div>
+                    </div>
+                </article>
+
+                {/* Zcrypt Project */}
+                <article className="project-card glass-cosmic rounded-3xl overflow-hidden group relative p-6 flex flex-col justify-between min-h-[320px]">
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-cyan-500/30 rounded-full blur-2xl group-hover:blur-xl transition-all pointer-events-none"></div>
+                    <div className="relative z-10">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="p-3 bg-cyan-500/20 rounded-full">
+                                <Shield className="w-6 h-6 text-cyan-400" />
+                            </div>
+                            <a href="https://zcrypt.cloud" target="_blank" rel="noopener noreferrer" className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+                                <ExternalLink className="w-4 h-4" />
+                            </a>
+                        </div>
+                        <h3 className="text-xl font-bold mb-2">Zcrypt</h3>
+                        <p className="text-gray-400 text-sm mb-4">Zero-knowledge encrypted cloud storage with AES-256-GCM encryption, Git-based distributed architecture, and bring-your-own-backend support.</p>
+                        <div className="flex gap-2 flex-wrap">
+                            <span className="px-2 py-1 bg-white/10 rounded text-xs">Next.js</span>
+                            <span className="px-2 py-1 bg-white/10 rounded text-xs">Go</span>
+                            <span className="px-2 py-1 bg-white/10 rounded text-xs">AES-256-GCM</span>
+                        </div>
+                    </div>
+                    <div className="mt-4 h-24 rounded-xl border border-white/5 overflow-hidden relative">
+                        <Image
+                            src="/projectsThumbnails/zcrypt.png"
+                            alt="Zcrypt Preview"
+                            fill
+                            className="object-cover object-top"
+                            sizes="(max-width: 768px) 100vw, 33vw"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/40 to-transparent"></div>
                     </div>
                 </article>
 

@@ -271,6 +271,6 @@ export const siteData = {
 
   footer: {
     tagline: "Full Stack Engineer crafting digital experiences with modern technologies. Building the future, one line of code at a time.",
-    copyright: "© 2024 Wasif Malik. Crafted with ♥ and lots of ☕"
+    copyright: "© 2026 Wasif Malik. Crafted with ♥ and lots of ☕"
   }
 };

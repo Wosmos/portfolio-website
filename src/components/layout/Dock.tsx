@@ -1,23 +1,58 @@
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Home, User, Code, Briefcase, BookOpen, Github, Linkedin, Mail } from 'lucide-react';
 
+const NAV_SECTIONS = ['home', 'about', 'projects', 'experience', 'blog', 'contact'];
+
 const DOCK_ITEMS = [
-  { href: '#home', icon: Home, label: 'HOME', isExternal: false },
-  { href: '#about', icon: User, label: 'ABOUT', isExternal: false },
-  { href: '#projects', icon: Code, label: 'PROJECTS', isExternal: false },
-  { href: '#experience', icon: Briefcase, label: 'EXPERIENCE', isExternal: false },
-  { href: '#blog', icon: BookOpen, label: 'BLOG', isExternal: false },
+  { href: '#home', icon: Home, label: 'HOME', isExternal: false, section: 'home' },
+  { href: '#about', icon: User, label: 'ABOUT', isExternal: false, section: 'about' },
+  { href: '#experience', icon: Briefcase, label: 'EXPERIENCE', isExternal: false, section: 'experience' },
+  { href: '#projects', icon: Code, label: 'PROJECTS', isExternal: false, section: 'projects' },
+  { href: '#blog', icon: BookOpen, label: 'BLOG', isExternal: false, section: 'blog' },
   { type: 'separator' as const },
   { href: 'https://github.com/Wosmos', icon: Github, label: 'GITHUB', isExternal: true },
   { href: 'https://www.linkedin.com/in/wasif-m-79205a1bb/', icon: Linkedin, label: 'LINKEDIN', isExternal: true },
-  { href: '#contact', icon: Mail, label: 'CONTACT', isExternal: false, isAccent: true },
+  { href: '#contact', icon: Mail, label: 'CONTACT', isExternal: false, isAccent: true, section: 'contact' },
 ] as const;
 
 const Dock = () => {
   const dockRef = useRef<HTMLDivElement>(null);
+  const [activeSection, setActiveSection] = useState('home');
+
+  // Track which section is in view — uses MutationObserver to catch lazy-loaded sections
+  useEffect(() => {
+    const sectionObservers = new Map<string, IntersectionObserver>();
+
+    const observeSection = (id: string) => {
+      if (sectionObservers.has(id)) return;
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      const io = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setActiveSection(id); },
+        { rootMargin: '-30% 0px -65% 0px' }
+      );
+      io.observe(el);
+      sectionObservers.set(id, io);
+    };
+
+    // Observe any sections already in DOM
+    NAV_SECTIONS.forEach(observeSection);
+
+    // Watch for dynamically loaded sections
+    const mo = new MutationObserver(() => {
+      NAV_SECTIONS.forEach(observeSection);
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      mo.disconnect();
+      sectionObservers.forEach((io) => io.disconnect());
+    };
+  }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const dock = dockRef.current;
@@ -47,30 +82,26 @@ const Dock = () => {
   }, []);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-1/2 md:right-auto md:-translate-x-1/2 z-50">
+    <nav className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-1/2 md:right-auto md:-translate-x-1/2 z-50 backdrop-blur-xs">
       {/* Mobile: Full width bottom bar */}
-      <div className="md:hidden w-full bg-cosmic-surface/95 backdrop-blur-xl border-t border-cosmic-border px-2 py-2 safe-area-bottom">
+      <div className="md:hidden w-full bg-[rgba(30,30,60,0.65)] backdrop-blur-[120px] saturate-[2.2] brightness-[1.2] border-t border-white/[0.08] px-2 py-2 safe-area-bottom">
         <div className="flex items-center justify-around max-w-md mx-auto">
-          <Link href="#home" className="dock-item-mobile">
-            <Home className="w-5 h-5" />
-            <span className="text-[10px] mt-1">Home</span>
-          </Link>
-          <Link href="#about" className="dock-item-mobile">
-            <User className="w-5 h-5" />
-            <span className="text-[10px] mt-1">About</span>
-          </Link>
-          <Link href="#projects" className="dock-item-mobile">
-            <Code className="w-5 h-5" />
-            <span className="text-[10px] mt-1">Work</span>
-          </Link>
-          <Link href="#experience" className="dock-item-mobile">
-            <Briefcase className="w-5 h-5" />
-            <span className="text-[10px] mt-1">Exp</span>
-          </Link>
-          <Link href="#contact" className="dock-item-mobile text-cosmic-primary">
-            <Mail className="w-5 h-5" />
-            <span className="text-[10px] mt-1">Contact</span>
-          </Link>
+          {[
+            { href: '#home', icon: Home, label: 'Home', section: 'home' },
+            { href: '#about', icon: User, label: 'About', section: 'about' },
+            { href: '#projects', icon: Code, label: 'Work', section: 'projects' },
+            { href: '#experience', icon: Briefcase, label: 'Exp', section: 'experience' },
+            { href: '#contact', icon: Mail, label: 'Contact', section: 'contact' },
+          ].map(({ href, icon: Icon, label, section }) => (
+            <Link
+              key={section}
+              href={href}
+              className={`dock-item-mobile ${activeSection === section ? 'text-cosmic-primary' : ''}`}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-[10px] mt-1">{label}</span>
+            </Link>
+          ))}
         </div>
       </div>
 
@@ -86,19 +117,28 @@ const Dock = () => {
             return <div key={`sep-${idx}`} className="dock-divider mx-1" />;
           }
 
-          const { href, icon: Icon, label, isExternal, isAccent } = item as {
-            href: string; icon: typeof Home; label: string; isExternal: boolean; isAccent?: boolean;
+          const { href, icon: Icon, label, isExternal } = item as {
+            href: string; icon: typeof Home; label: string; isExternal: boolean; isAccent?: boolean; section?: string;
           };
+          const section = 'section' in item ? (item as { section?: string }).section : undefined;
+          const isAccent = 'isAccent' in item && (item as { isAccent?: boolean }).isAccent;
+          const isActive = section ? activeSection === section : false;
 
-          const className = `dock-icon relative flex flex-col items-center justify-center w-11 h-11 rounded-xl transition-[transform] duration-150 ease-out cursor-pointer group ${
+          const className = `dock-icon relative flex flex-col items-center justify-center w-11 h-11 rounded-xl transition-[transform,background,box-shadow] duration-150 ease-out cursor-pointer group border  border-white/15 shadow-sm ${
             isAccent
               ? 'bg-cosmic-primary text-cosmic-void hover:shadow-[0_0_20px_rgba(0,212,255,0.5)]'
-              : 'hover:bg-white/10'
+              : isActive
+                ? 'bg-white/15 text-cosmic-primary shadow-[0_0_12px_rgba(0,212,255,0.25)]'
+                : 'hover:bg-white/10'
           }`;
 
           const inner = (
             <>
               <Icon className="w-5 h-5" />
+              {/* Active dot indicator */}
+              {isActive && !isAccent && (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-cosmic-primary" />
+              )}
               <span className="absolute -top-9 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-cosmic-panel/95 backdrop-blur-sm text-[10px] font-mono text-cosmic-text rounded-md border border-cosmic-border whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none shadow-lg">
                 {label}
               </span>

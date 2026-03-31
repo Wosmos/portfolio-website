@@ -31,6 +31,9 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Wasif Malik | Cosmic Engineer",
   description: "Wasif Malik - Full Stack Engineer crafting digital experiences with Next.js, Flutter, and AI. Building the future, one line of code at a time.",
+  icons: {
+    icon: '/icon.svg',
+  },
   keywords: ["Wasif Malik", "Software Engineer", "Next.js", "Flutter", "React", "AI", "Full Stack Developer"],
   authors: [{ name: "Wasif Malik" }],
   creator: "Wasif Malik",

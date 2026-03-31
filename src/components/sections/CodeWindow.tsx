@@ -12,8 +12,8 @@ interface CodeLineProps {
 }
 
 const CodeLine = ({ num, children, className = "" }: CodeLineProps) => (
-  <div className={`flex font-mono text-sm leading-6 ${className}`}>
-    <span className="w-8 text-gray-500 select-none text-right mr-4">{num}</span>
+  <div className={`flex font-mono text-[11px] md:text-xs lg:text-sm leading-5 md:leading-6 ${className}`}>
+    <span className="w-6 md:w-8 text-gray-500 select-none text-right mr-2 md:mr-4">{num}</span>
     <span className="flex-1 whitespace-pre">{children}</span>
   </div>
 );
@@ -152,10 +152,8 @@ const CodeTerminal = () => {
         </div>
 
         {/* Editor Content */}
-        <div className="bg-[#1e1e1e] p-6 text-gray-300 overflow-x-auto overflow-y-hidden"
-        style={{ width: '600px', height: '408px' }}
-        >
-            <div className="min-w-[500px] ">
+        <div className="bg-[#1e1e1e] p-4 md:p-6 text-gray-300 overflow-x-auto overflow-y-hidden w-[340px] md:w-[420px] lg:w-[500px] xl:w-[600px] h-[320px] md:h-[360px] xl:h-[408px]">
+            <div className="min-w-[300px]">
 
           {activeTab === 0 && (
             <>
@@ -341,7 +339,7 @@ const CodeTerminal = () => {
         </div>
 
         {/* Terminal Section */}
-        <div className="bg-[#181818] border-t border-[#2d2d30] xl:block hidden">
+        <div className="bg-[#181818] border-t border-[#2d2d30] hidden xl:block">
           <div className="flex items-center justify-between px-4 py-2 border-b border-[#2d2d30]">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-xs font-medium text-white">

@@ -58,7 +58,7 @@ const Footer = () => {
                     <a href="https://github.com/Wosmos" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-indigo-400 transition-colors">
                         <Github className="w-4 h-4" />
                     </a>
-                    <a href="https://www.linkedin.com/in/wasif-m-79205a1bb/" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-indigo-400 transition-colors">
+                    <a href="https//:www.linkedin.com/in/wasif-malik-79205a1bb" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-indigo-400 transition-colors">
                         <Linkedin className="w-4 h-4" />
                     </a>
                     <a href="https://www.instagram.com/wosmo_tech/" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-indigo-400 transition-colors">

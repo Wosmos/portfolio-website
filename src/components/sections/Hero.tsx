@@ -129,7 +129,7 @@ const Hero = () => {
                     <div className="hero-content-item flex gap-4 text-gray-400">
                         {[
                             { Icon: Github, href: "https://github.com/Wosmos" },
-                            { Icon: Linkedin, href: "https://www.linkedin.com/in/wasif-m-79205a1bb/" },
+                            { Icon: Linkedin, href: "https//:www.linkedin.com/in/wasif-malik-79205a1bb" },
                             { Icon: Instagram, href: "https://www.instagram.com/wosmo_tech/" },
                             { Icon: Hash, href: "https://hashnode.com/@Wosmo" }
                         ].map(({ Icon, href }, idx) => (

@@ -15,7 +15,7 @@ export const siteData = {
 
   social: {
     github: "https://github.com/Wosmos",
-    linkedin: "https://www.linkedin.com/in/wasif-m-79205a1bb/",
+    linkedin: "https//:www.linkedin.com/in/wasif-malik-79205a1bb",
     instagram: "https://www.instagram.com/wosmo_tech/",
     hashnode: "https://hashnode.com/@Wosmo",
   },

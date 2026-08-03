@@ -14,7 +14,7 @@ const DOCK_ITEMS = [
   { href: '#blog', icon: BookOpen, label: 'BLOG', isExternal: false, section: 'blog' },
   { type: 'separator' as const },
   { href: 'https://github.com/Wosmos', icon: Github, label: 'GITHUB', isExternal: true },
-  { href: 'https//:www.linkedin.com/in/wasif-malik-79205a1bb', icon: Linkedin, label: 'LINKEDIN', isExternal: true },
+  { href: 'https://www.linkedin.com/in/wasif-malik-79205a1bb', icon: Linkedin, label: 'LINKEDIN', isExternal: true },
   { href: '#contact', icon: Mail, label: 'CONTACT', isExternal: false, isAccent: true, section: 'contact' },
 ] as const;
 

@@ -1,20 +1,14 @@
-import dynamic from 'next/dynamic';
-import CosmicBackground from '@/components/layout/CosmicBackground';
 import Dock from '@/components/layout/Dock';
 import Hero from '@/components/sections/Hero';
 import TechMarquee from '@/components/sections/TechMarquee';
 import PerformanceMonitor from '@/components/ui/PerformanceMonitor';
 import LoadingScreen from '@/components/ui/LoadingScreen';
-
-// Lazy load components for better performance
-const About = dynamic(() => import('@/components/sections/About'), {
-  loading: () => <div className="h-screen animate-pulse bg-cosmic-surface/20" />
-});
-const Experience = dynamic(() => import('@/components/sections/Experience'));
-const Projects = dynamic(() => import('@/components/sections/Projects'));
-const Blog = dynamic(() => import('@/components/sections/Blog'));
-const Contact = dynamic(() => import('@/components/sections/Contact'));
-const Footer = dynamic(() => import('@/components/layout/Footer'));
+import About from '@/components/sections/About';
+import Experience from '@/components/sections/Experience';
+import Projects from '@/components/sections/Projects';
+import Blog from '@/components/sections/Blog';
+import Contact from '@/components/sections/Contact';
+import Footer from '@/components/layout/Footer';
 
 export default function Home() {
   return (

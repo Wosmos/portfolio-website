@@ -29,12 +29,12 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Wasif Malik | Cosmic Engineer",
-  description: "Wasif Malik - Full Stack Engineer crafting digital experiences with Next.js, Flutter, and AI. Building the future, one line of code at a time.",
+  title: "Wasif Malik | Software Engineer",
+  description: "Wasif Malik — Software Engineer building production web applications and systems-level software end-to-end: concurrent Go backends, modern Next.js frontends, and security-first architecture.",
   icons: {
     icon: '/icon.svg',
   },
-  keywords: ["Wasif Malik", "Software Engineer", "Next.js", "Flutter", "React", "AI", "Full Stack Developer"],
+  keywords: ["Wasif Malik", "Software Engineer", "Go", "Golang", "Next.js", "React", "TypeScript", "Full Stack Developer"],
   authors: [{ name: "Wasif Malik" }],
   creator: "Wasif Malik",
   publisher: "Wasif Malik",
@@ -50,16 +50,16 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Wasif Malik | Cosmic Engineer",
-    description: "Building scalable digital ecosystems with cutting-edge technology",
+    title: "Wasif Malik | Software Engineer",
+    description: "Software Engineer building production web apps and systems-level software — Go backends, Next.js frontends, and security-first architecture.",
     type: "website",
     locale: "en_US",
     siteName: "Wasif Malik Portfolio",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Wasif Malik | Cosmic Engineer",
-    description: "Building scalable digital ecosystems with cutting-edge technology",
+    title: "Wasif Malik | Software Engineer",
+    description: "Software Engineer building production web apps and systems-level software — Go backends, Next.js frontends, and security-first architecture.",
   },
 };
 

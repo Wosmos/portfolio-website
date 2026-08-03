@@ -1,96 +1,139 @@
-// Site-wide static data
+// Site-wide static data — single source of truth for all displayed content.
+// Content is kept in sync with the resumes in /public/resume.
 export const siteData = {
   personal: {
     name: "Wasif Malik",
-    title: "Cosmic Engineer",
-    tagline: "Full Stack Engineer",
-    description: "Full Stack Engineer crafting digital experiences with Next.js, Flutter, and AI. Building the future, one line of code at a time.",
+    fullName: "Muhammad Wasif Malik",
+    title: "Software Engineer",
+    tagline: "Software Engineer",
+    description:
+      "Software Engineer building production web applications and systems-level software end-to-end — concurrent Go backends, modern Next.js frontends, and security-first architecture.",
     location: "Karachi, Pakistan",
     timezone: "UTC+5 (PKT)",
     email: "m.wasifmalik17@gmail.com",
     phone: "+92 306 224 8224",
-    cvUrl: "/my-cv.pdf",
+    cvUrl: "/resume/Wasif_Malik_Resume_SoftwareEngineer.pdf",
     status: "AVAILABLE FOR HIRE",
   },
 
+  // Resume variants offered in the download modal
+  resumes: [
+    {
+      id: "software-engineer",
+      label: "Software Engineer",
+      description: "The full picture — Go backends, Next.js frontends, and systems work. Best fit for most roles.",
+      file: "/resume/Wasif_Malik_Resume_SoftwareEngineer.pdf",
+      recommended: true,
+    },
+    {
+      id: "nextjs",
+      label: "Next.js / Frontend",
+      description: "Tailored for Next.js, React, and modern frontend engineering roles.",
+      file: "/resume/Wasif_Malik_Resume_NextJS.pdf",
+      recommended: false,
+    },
+    {
+      id: "mern",
+      label: "MERN Stack",
+      description: "Tailored for MongoDB, Express, React, and Node.js full-stack roles.",
+      file: "/resume/Wasif_Malik_Resume_MERN.pdf",
+      recommended: false,
+    },
+  ],
+
   social: {
     github: "https://github.com/Wosmos",
-    linkedin: "https//:www.linkedin.com/in/wasif-malik-79205a1bb",
+    linkedin: "https://www.linkedin.com/in/wasif-malik-79205a1bb",
     instagram: "https://www.instagram.com/wosmo_tech/",
     hashnode: "https://hashnode.com/@Wosmo",
   },
 
   hero: {
     typedStrings: [
-      'Crafting digital <span class="text-cyan-400">universes</span>.',
-      'Building with <span class="text-blue-400">Next.js</span> & <span class="text-purple-400">AI</span>.',
-      'Engineering <span class="text-green-400">elegant</span> solutions.'
+      'Building concurrent backends in <span class="text-cyan-400">Go</span>.',
+      'Shipping production apps with <span class="text-blue-400">Next.js</span>.',
+      'Engineering <span class="text-purple-400">zero-knowledge</span> security.',
     ],
   },
 
   about: {
-    bio: "Full-stack engineer and systems thinker obsessed with building high-performance, scalable applications. Currently deep in Go (Golang) for backend services, Next.js for frontend, and exploring Rust for tooling. Passionate about clean architecture, concurrency, and pushing the limits of what’s possible with modern infra. Building real-world systems—not just CRUD apps.",
-   stats: {
-    repositories: "50+",
-    experience: "2+ Years Experience",
-    education: "Software Engineering ",
-  },
+    bio: "Software engineer building production web applications and systems-level software end-to-end. Specialised in concurrent backends with Go, modern frontends with Next.js, and security-first architecture — from a zero-knowledge encrypted cloud platform to a real-time chat system across web and mobile, plus client products spanning e-commerce, POS, HRMS, and real estate. Comfortable owning every layer: schema design, backend services, client implementations, and deployment.",
+    stats: {
+      repositories: "50+",
+      experience: "3+ Years Experience",
+      education: "BS Software Engineering",
+    },
     currentFocus: {
-    title: "LEARNING",
-    topic: "Go Concurrency & Cloud-Native Systems",
-    progress: 65,
-  },
+      title: "LEARNING",
+      topic: "Go Concurrency & Cloud-Native Systems",
+      progress: 65,
+    },
+    // Skill groups mirror the Technical Skills section of the resume
     skills: [
-      { name: "FRONTEND", percentage: 85, color: "from-cyan-400 to-blue-500" },
-      { name: "BACKEND", percentage: 58, color: "from-green-400 to-emerald-500" },
-      { name: "MOBILE", percentage: 62, color: "from-purple-400 to-pink-500" },
-      { name: "AI/ML", percentage: 55, color: "from-orange-400 to-red-500" },
-      { name: "SYSTEM DESIGN", percentage: 55, color: "from-orange-400 to-red-500" },
-      { name: "CLOUD INFRA", percentage: 55, color: "from-orange-400 to-red-500" },
+      { name: "LANGUAGES", color: "text-cyan-400", items: ["TypeScript", "JavaScript", "Go", "Python", "SQL"] },
+      { name: "FRONTEND", color: "text-blue-400", items: ["Next.js", "React", "React Native", "Redux Toolkit", "Tailwind CSS"] },
+      { name: "BACKEND", color: "text-green-400", items: ["Go (net/http)", "Node.js", "NestJS", "Django", "FastAPI", "WebSockets"] },
+      { name: "DATA & CLOUD", color: "text-purple-400", items: ["PostgreSQL", "MongoDB", "Firebase", "Docker", "GitHub Actions", "Vercel"] },
+      { name: "SECURITY", color: "text-orange-400", items: ["AES-256-GCM", "PBKDF2", "Web Crypto API", "WebAssembly"] },
     ],
   },
 
   experience: [
     {
-      title: "Full Stack Developer",
+      title: "Software Engineer",
       company: "Avialdo Solutions",
-      location: "Karachi",
+      location: "Karachi, Pakistan",
       period: "Jan 2025 - Present",
-      description: "Currently building scalable web applications with Next.js framework and managing PostgreSQL databases. Actively collaborate with cross-functional teams using Jira for project management and Confluence for documentation in a product-driven development environment.",
-      technologies: ["Next.js 14", "PostgreSQL", "Microservices", "Jira"],
-      dotColor: "#00d4ff",
-      periodColor: "#00d4ff"
+      description:
+        "Building production web applications with Next.js 15 (App Router, SSR, ISR) and backend services across NestJS and Django. Designing complex PostgreSQL schemas, authoring performance-optimised queries, and driving technical decisions in Agile sprints.",
+      technologies: ["Next.js 15", "NestJS", "Django", "PostgreSQL"],
+      dotColor: "#06b6d4",
+      gradient: "from-cyan-500 to-blue-600",
     },
     {
-      title: "Frontend Developer Intern",
-      company: "LiftUp AI",
-      location: "Jamshoro",
+      title: "MERN Stack Developer (Part-Time)",
+      company: "Nexsoft",
+      location: "Karachi, Pakistan",
+      period: "May 2025 - Oct 2025",
+      description:
+        "Delivered multiple client products end-to-end: the company brand site, a full e-commerce platform with catalogue, cart, and order flows, and an internal HRMS with role-based modules for employee records and HR workflows.",
+      technologies: ["MongoDB", "Express.js", "React", "Node.js"],
+      dotColor: "#22c55e",
+      gradient: "from-green-500 to-emerald-600",
+    },
+    {
+      title: "Next.js Developer",
+      company: "Softechbar",
+      location: "Remote",
+      period: "Jan 2024 - Dec 2024",
+      description:
+        "Delivered a range of client projects — brand websites, point-of-sale systems, and real-estate solutions with property listings and search — using Next.js and TypeScript with SSR/SSG-optimised data-fetching for SEO and load speed.",
+      technologies: ["Next.js", "TypeScript", "SSR/SSG"],
+      dotColor: "#8b5cf6",
+      gradient: "from-violet-500 to-purple-600",
+    },
+    {
+      title: "Frontend Engineer (AI Products)",
+      company: "Liftup AI",
+      location: "Jamshoro, Pakistan",
       period: "Jan 2024 - Mar 2024",
-      description: "Developed expertise in modern frontend technologies including advanced CSS methodologies and SCSS for maintainable styling architecture. Built interactive React components, implemented state management with Redux, and integrated RESTful APIs to deliver responsive, user-centric web applications.",
-      technologies: ["React.js", "SCSS", "Redux", "REST APIs"],
-      dotColor: "#7c3aed",
-      periodColor: "#a855f7"
-    },
-    {
-      title: "Frontend React Developer",
-      company: "Remote",
-      location: "Remote",
-      period: "2021 - Present",
-      description: "Contributed to startup growth as a Frontend Developer intern, developing website components and user interfaces using React and Tailwind CSS in an agile environment.",
-      technologies: ["React", "Tailwind CSS", "Agile"],
+      description:
+        "Engineered production-grade React + Redux interfaces for AI-driven analytics dashboards. Architected a reusable Tailwind CSS component library that cut new-feature development time by ~30%, with 60fps animations and sub-2s page loads.",
+      technologies: ["React", "Redux", "Tailwind CSS"],
       dotColor: "#6366f1",
-      periodColor: "#6366f1"
+      gradient: "from-indigo-500 to-blue-500",
     },
     {
-      title: "Freelance Web Developer",
-      company: "Remote",
+      title: "Web Developer (Intern)",
+      company: "Interns Pakistan",
       location: "Remote",
-      period: "2022",
-      description: "Began my professional development career through freelance work, building foundational skills in web development while working with diverse clients and projects remotely.",
-      technologies: ["Web Development", "Client Relations", "Remote Work"],
+      period: "Oct 2022 - Dec 2022",
+      description:
+        "Built responsive web pages and components with React, Vue.js, and modern JavaScript (ES6+), strengthening core web fundamentals — DOM APIs, semantic markup, accessibility (WCAG), and Git-based collaboration workflows.",
+      technologies: ["React", "Vue.js", "JavaScript (ES6+)"],
       dotColor: "#eab308",
-      periodColor: "#eab308"
-    }
+      gradient: "from-yellow-400 to-orange-500",
+    },
   ],
 
   projects: [
@@ -98,9 +141,10 @@ export const siteData = {
     {
       id: "zcrypt",
       title: "Zcrypt",
-      description: "Zero-knowledge encrypted cloud storage with AES-256-GCM encryption, Git-based distributed architecture, and bring-your-own-backend support.",
+      description:
+        "Zero-knowledge encrypted cloud storage — files are encrypted client-side with AES-256-GCM before upload, so the server can never read them. One Go backend, three clients: web, desktop (Tauri), and terminal (TUI).",
       image: "/projectsThumbnails/zcrypt.png",
-      technologies: ["Next.js", "Go", "AES-256-GCM"],
+      technologies: ["Go", "Next.js", "Tauri", "WebAssembly"],
       github: null,
       live: "https://zcrypt.cloud",
       featured: true,
@@ -109,9 +153,10 @@ export const siteData = {
     {
       id: "learnity",
       title: "Learnity",
-      description: "AI-powered educational platform with gamification, XP system, streak multipliers, and real-time video study groups. Final Year Project.",
+      description:
+        "Online tutoring platform connecting students with verified tutors — custom gamification engine (XP, streaks, progression), real-time HD video via GetStream, and role-based access control. Final Year Project, shipped solo.",
       image: "/projectsThumbnails/learnity.png",
-      technologies: ["Next.js 15", "PostgreSQL", "Firebase", "getStream"],
+      technologies: ["Next.js 15", "PostgreSQL", "GetStream", "Firebase"],
       github: "https://github.com/Wosmos/Learnity",
       live: "https://learnity-app.vercel.app",
       featured: true,
@@ -120,9 +165,10 @@ export const siteData = {
     {
       id: "netlink",
       title: "NetLink",
-      description: "Scalable chat backend in Go handling thousands of concurrent WebSocket connections with minimal latency.",
+      description:
+        "Real-time chat platform — a concurrent Go WebSocket server (goroutines + channels) fanning out to Next.js web and React Native mobile clients over a shared protocol, with persistent PostgreSQL history.",
       image: null,
-      technologies: ["Go", "WebSocket", "PostgreSQL"],
+      technologies: ["Go", "WebSockets", "React Native", "PostgreSQL"],
       github: "https://github.com/Wosmos/NetLink",
       live: null,
       featured: true,
@@ -202,7 +248,7 @@ export const siteData = {
       description: "AI-powered summarizer that transforms blog URLs into concise summaries using language models.",
       image: "/projectsThumbnails/wizmo2.0.png",
       technologies: ["React", "OpenAI", "Redux"],
-      github: "https://github.com/Wosmos/wizmo.git",
+      github: "https://github.com/Wosmos/wizmo",
       live: "https://wizmo.netlify.app/",
       featured: false,
       category: "ai"
@@ -270,7 +316,7 @@ export const siteData = {
   ],
 
   footer: {
-    tagline: "Full Stack Engineer crafting digital experiences with modern technologies. Building the future, one line of code at a time.",
-    copyright: "© 2026 Wasif Malik. Crafted with ♥ and lots of ☕"
-  }
+    tagline: "Software Engineer building production web apps and systems-level software — Go backends, Next.js frontends, and security-first architecture.",
+    copyright: "Wasif Malik. Crafted with ♥ and lots of ☕",
+  },
 };

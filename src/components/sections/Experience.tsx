@@ -4,63 +4,12 @@ import { useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
+import { siteData } from '@/data/siteData';
 
 // Register ScrollTrigger
 gsap.registerPlugin(ScrollTrigger);
 
-interface ExperienceData {
-  title: string;
-  company: string;
-  location: string;
-  period: string;
-  description: string;
-  technologies: string[];
-  dotColor: string;
-  gradient: string; 
-}
-
-const experiences: ExperienceData[] = [
-  {
-    title: "Full Stack Developer",
-    company: "Avialdo Solutions",
-    location: "Karachi",
-    period: "Jan 2025 - Present",
-    description: "Building scalable web applications with Next.js 14. Managing PostgreSQL databases and orchestrating microservices. Collaborating via Jira in a high-velocity agile environment.",
-    technologies: ["Next.js 14", "PostgreSQL", "Microservices", "Jira"],
-    dotColor: "#06b6d4", // Cyan
-    gradient: "from-cyan-500 to-blue-600"
-  },
-  {
-    title: "Frontend Developer Intern",
-    company: "LiftUp AI",
-    location: "Jamshoro",
-    period: "Jan 2024 - Mar 2024",
-    description: "Engineered complex React interfaces with Redux state management. Implemented maintainable SCSS architecture and integrated high-performance REST APIs.",
-    technologies: ["React.js", "SCSS", "Redux", "REST APIs"],
-    dotColor: "#8b5cf6", // Violet
-    gradient: "from-violet-500 to-purple-600"
-  },
-  {
-    title: "Frontend React Developer",
-    company: "Remote",
-    location: "Remote",
-    period: "2021 - Present",
-    description: "Accelerated startup growth by delivering pixel-perfect React components using Tailwind CSS. Optimized load times and UI responsiveness.",
-    technologies: ["React", "Tailwind CSS", "Agile"],
-    dotColor: "#6366f1", // Indigo
-    gradient: "from-indigo-500 to-blue-500"
-  },
-  {
-    title: "Freelance Web Developer",
-    company: "Self-Employed",
-    location: "Remote",
-    period: "2022",
-    description: "Delivered custom web solutions for diverse international clients. Mastered client communication and full-lifecycle project delivery.",
-    technologies: ["Web Development", "Client Relations", "Freelance"],
-    dotColor: "#eab308", // Yellow
-    gradient: "from-yellow-400 to-orange-500"
-  }
-];
+const experiences = siteData.experience;
 
 const Experience = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -93,25 +42,24 @@ const Experience = () => {
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: card,
-          start: "top 85%",
-          end: "bottom 60%",
-          toggleActions: "play none none reverse",
+          start: "top 95%",
+          once: true,
         }
       });
 
       // Card Container entrance
       tl.fromTo(card,
-        { opacity: 0, y: 50, rotationX: -10, scale: 0.95, filter: 'blur(10px)' },
-        { opacity: 1, y: 0, rotationX: 0, scale: 1, filter: 'blur(0px)', duration: 0.8, ease: "power3.out" }
+        { opacity: 0, y: 30, scale: 0.98 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "power3.out" }
       )
       // Internal elements stagger
       .from(content, {
-        y: 20,
+        y: 12,
         opacity: 0,
-        duration: 0.5,
-        stagger: 0.1,
+        duration: 0.25,
+        stagger: 0.04,
         ease: "power2.out"
-      }, "-=0.4");
+      }, "-=0.25");
     });
 
     // 3. Animate Dots activating
@@ -119,14 +67,14 @@ const Experience = () => {
       gsap.fromTo(dot,
         { scale: 0, backgroundColor: 'transparent', border: '2px solid #333' },
         { 
-          scale: 1, 
+          scale: 1,
           backgroundColor: dot.dataset.color,
           borderColor: dot.dataset.color,
-          duration: 0.4,
+          duration: 0.3,
           scrollTrigger: {
             trigger: dot,
-            start: "top 80%",
-            toggleActions: "play none none reverse"
+            start: "top 95%",
+            once: true
           }
         }
       );

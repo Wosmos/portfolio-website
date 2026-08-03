@@ -2,6 +2,7 @@
 
 import { Github, Linkedin, Instagram, Hash } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
+import { siteData } from '@/data/siteData';
 
 const Footer = () => {
   return (
@@ -16,8 +17,7 @@ const Footer = () => {
                         </div>
                     </div>
                     <p className="text-gray-400 text-sm leading-relaxed">
-                        Full Stack Engineer crafting digital experiences with modern technologies. 
-                        Building the future, one line of code at a time.
+                        {siteData.footer.tagline}
                     </p>
                 </div>
 
@@ -49,16 +49,16 @@ const Footer = () => {
             {/* Bottom Bar */}
             <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
                 <p className="text-gray-500 text-sm flex items-center gap-1">
-                    © 2024 Wasif Malik. Crafted with 
-                    <span className="text-purple-400">♥</span> 
-                    and lots of 
+                    © {new Date().getFullYear()} Wasif Malik. Crafted with
+                    <span className="text-purple-400">♥</span>
+                    and lots of
                     <span className="text-amber-400">☕</span>
                 </p>
                 <div className="flex items-center gap-4">
                     <a href="https://github.com/Wosmos" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-indigo-400 transition-colors">
                         <Github className="w-4 h-4" />
                     </a>
-                    <a href="https//:www.linkedin.com/in/wasif-malik-79205a1bb" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-indigo-400 transition-colors">
+                    <a href="https://www.linkedin.com/in/wasif-malik-79205a1bb" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-indigo-400 transition-colors">
                         <Linkedin className="w-4 h-4" />
                     </a>
                     <a href="https://www.instagram.com/wosmo_tech/" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-indigo-400 transition-colors">

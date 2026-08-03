@@ -166,27 +166,27 @@ const CodeTerminal = () => {
               </CodeLine>
               
               <CodeLine num="3">
-                <span className="ml-4 text-[#9cdcfe]">role:</span> <span className="text-[#ce9178]">'Cosmic Architect'</span>,
+                <span className="ml-4 text-[#9cdcfe]">role:</span> <span className="text-[#ce9178]">'Software Engineer'</span>,
               </CodeLine>
-              
+
               <CodeLine num="4">
                 <span className="ml-4 text-[#9cdcfe]">location:</span> <span className="text-[#ce9178]">'Karachi, Pakistan'</span>,
               </CodeLine>
-              
+
               <CodeLine num="5">
-                <span className="ml-4 text-[#9cdcfe]">stack:</span> <span className="text-white">[</span><span className="text-[#ce9178]">'Next.js'</span>, <span className="text-[#ce9178]">'Flutter'</span>, <span className="text-[#ce9178]">'AI'</span><span className="text-white">]</span>,
+                <span className="ml-4 text-[#9cdcfe]">stack:</span> <span className="text-white">[</span><span className="text-[#ce9178]">'Go'</span>, <span className="text-[#ce9178]">'Next.js'</span>, <span className="text-[#ce9178]">'TypeScript'</span><span className="text-white">]</span>,
               </CodeLine>
-              
+
               <CodeLine num="6">
-                <span className="ml-4 text-[#9cdcfe]">hardWorker:</span> <span className="text-[#569cd6]">true</span>,
+                <span className="ml-4 text-[#9cdcfe]">openToRemote:</span> <span className="text-[#569cd6]">true</span>,
               </CodeLine>
-              
+
               <CodeLine num="7">
-                <span className="ml-4 text-[#9cdcfe]">problemSolver:</span> <span className="text-[#ffd700]">()</span> <span className="text-[#c586c0]">=&gt;</span> <span className="text-[#ffd700]">{'{'}</span>
+                <span className="ml-4 text-[#9cdcfe]">ships:</span> <span className="text-[#ffd700]">()</span> <span className="text-[#c586c0]">=&gt;</span> <span className="text-[#ffd700]">{'{'}</span>
               </CodeLine>
 
               <CodeLine num="8">
-                <span className="ml-8 text-[#c586c0]">return</span> <span className="text-[#ce9178]">"Elegant Solutions"</span>;
+                <span className="ml-8 text-[#c586c0]">return</span> <span className="text-[#ce9178]">"end-to-end products"</span>;
               </CodeLine>
 
               <CodeLine num="9">
@@ -194,7 +194,7 @@ const CodeTerminal = () => {
               </CodeLine>
 
               <CodeLine num="10">
-                <span className="ml-4 text-[#9cdcfe]">currentFocus:</span> <span className="text-[#ce9178]">'Building the Future'</span>
+                <span className="ml-4 text-[#9cdcfe]">focus:</span> <span className="text-[#ce9178]">'Security-first architecture'</span>
               </CodeLine>
 
               <CodeLine num="11">
@@ -222,7 +222,7 @@ const CodeTerminal = () => {
               </CodeLine>
               
               <CodeLine num="5">
-                <span className="ml-4 text-[#9cdcfe]">mobile:</span> <span className="text-[#4ec9b0]">string</span><span className="text-white">[]</span>;
+                <span className="ml-4 text-[#9cdcfe]">databases:</span> <span className="text-[#4ec9b0]">string</span><span className="text-white">[]</span>;
               </CodeLine>
 
               <CodeLine num="6">
@@ -238,11 +238,11 @@ const CodeTerminal = () => {
               </CodeLine>
 
               <CodeLine num="9">
-                <span className="ml-8 text-[#ce9178]">'HTML5'</span>, <span className="text-[#ce9178]">'CSS3'</span>, <span className="text-[#ce9178]">'JavaScript'</span>, <span className="text-[#ce9178]">'TypeScript'</span>,
+                <span className="ml-8 text-[#ce9178]">'TypeScript'</span>, <span className="text-[#ce9178]">'Next.js'</span>, <span className="text-[#ce9178]">'React'</span>,
               </CodeLine>
 
               <CodeLine num="10">
-                <span className="ml-8 text-[#ce9178]">'React'</span>, <span className="text-[#ce9178]">'Next.js'</span>, <span className="text-[#ce9178]">'Redux'</span>, <span className="text-[#ce9178]">'Tailwind'</span>
+                <span className="ml-8 text-[#ce9178]">'React Native'</span>, <span className="text-[#ce9178]">'Redux'</span>, <span className="text-[#ce9178]">'Tailwind'</span>
               </CodeLine>
 
               <CodeLine num="11">
@@ -250,11 +250,11 @@ const CodeTerminal = () => {
               </CodeLine>
 
               <CodeLine num="12">
-                <span className="ml-4 text-[#9cdcfe]">backend:</span> <span className="text-white">[</span><span className="text-[#ce9178]">'Node.js'</span>, <span className="text-[#ce9178]">'Express'</span>, <span className="text-[#ce9178]">'MongoDB'</span>, <span className="text-[#ce9178]">'PostgreSQL'</span><span className="text-white">]</span>,
+                <span className="ml-4 text-[#9cdcfe]">backend:</span> <span className="text-white">[</span><span className="text-[#ce9178]">'Go'</span>, <span className="text-[#ce9178]">'NestJS'</span>, <span className="text-[#ce9178]">'Django'</span>, <span className="text-[#ce9178]">'FastAPI'</span><span className="text-white">]</span>,
               </CodeLine>
 
               <CodeLine num="13">
-                <span className="ml-4 text-[#9cdcfe]">mobile:</span> <span className="text-white">[</span><span className="text-[#ce9178]">'Flutter'</span>, <span className="text-[#ce9178]">'React Native'</span><span className="text-white">]</span>
+                <span className="ml-4 text-[#9cdcfe]">databases:</span> <span className="text-white">[</span><span className="text-[#ce9178]">'PostgreSQL'</span>, <span className="text-[#ce9178]">'MongoDB'</span>, <span className="text-[#ce9178]">'Firebase'</span><span className="text-white">]</span>
               </CodeLine>
 
               <CodeLine num="14">
@@ -282,7 +282,7 @@ const CodeTerminal = () => {
               </CodeLine>
               
               <CodeLine num="4">
-                <span className="ml-12 text-[#9cdcfe]">"title"</span><span className="text-white">:</span> <span className="text-[#ce9178]">"Full Stack Developer"</span>,
+                <span className="ml-12 text-[#9cdcfe]">"title"</span><span className="text-white">:</span> <span className="text-[#ce9178]">"Software Engineer"</span>,
               </CodeLine>
               
               <CodeLine num="5">
@@ -298,7 +298,7 @@ const CodeTerminal = () => {
               </CodeLine>
 
               <CodeLine num="8">
-                <span className="ml-12 text-[#9cdcfe]">"tech"</span><span className="text-white">:</span> <span className="text-white">[</span><span className="text-[#ce9178]">"Next.js"</span>, <span className="text-[#ce9178]">"PostgreSQL"</span>, <span className="text-[#ce9178]">"Jira"</span><span className="text-white">]</span>
+                <span className="ml-12 text-[#9cdcfe]">"tech"</span><span className="text-white">:</span> <span className="text-white">[</span><span className="text-[#ce9178]">"Next.js 15"</span>, <span className="text-[#ce9178]">"NestJS"</span>, <span className="text-[#ce9178]">"PostgreSQL"</span><span className="text-white">]</span>
               </CodeLine>
 
               <CodeLine num="9">
@@ -310,15 +310,15 @@ const CodeTerminal = () => {
               </CodeLine>
 
               <CodeLine num="11">
-                <span className="ml-12 text-[#9cdcfe]">"title"</span><span className="text-white">:</span> <span className="text-[#ce9178]">"Frontend Developer Intern"</span>,
+                <span className="ml-12 text-[#9cdcfe]">"title"</span><span className="text-white">:</span> <span className="text-[#ce9178]">"MERN Stack Developer"</span>,
               </CodeLine>
 
               <CodeLine num="12">
-                <span className="ml-12 text-[#9cdcfe]">"company"</span><span className="text-white">:</span> <span className="text-[#ce9178]">"LiftUp AI"</span>,
+                <span className="ml-12 text-[#9cdcfe]">"company"</span><span className="text-white">:</span> <span className="text-[#ce9178]">"Nexsoft"</span>,
               </CodeLine>
 
               <CodeLine num="13">
-                <span className="ml-12 text-[#9cdcfe]">"period"</span><span className="text-white">:</span> <span className="text-[#ce9178]">"Jan 2024 - Mar 2024"</span>
+                <span className="ml-12 text-[#9cdcfe]">"period"</span><span className="text-white">:</span> <span className="text-[#ce9178]">"May 2025 - Oct 2025"</span>
               </CodeLine>
 
               <CodeLine num="14">
@@ -358,12 +358,12 @@ const CodeTerminal = () => {
           </div>
           
           <div className="px-4 py-3 font-mono text-sm">
-            <div className="text-gray-500 mb-1">wasif@portfolio:~/projects$</div>
-            <div className="text-green-400 mb-1">$ npm run build-future</div>
-            <div className="text-cyan-400 mb-1">&gt; Building amazing experiences...</div>
+            <div className="text-gray-500 mb-1">wasif@dev:~/zcrypt$</div>
+            <div className="text-green-400 mb-1">$ go build ./... && bun run deploy</div>
+            <div className="text-cyan-400 mb-1">&gt; Deploying zcrypt.cloud...</div>
             <div className="text-gray-400 mb-1">✓ Compiled successfully</div>
-            <div className="text-purple-400 mb-1">✓ Innovation level: Maximum</div>
-            <div className="text-yellow-400">⚡ Ready to ship!<span className="cursor-blink w-2 h-4 bg-cyan-400 inline-block ml-1 align-middle"></span></div>
+            <div className="text-purple-400 mb-1">✓ 3 clients · 1 Go backend · 0 frameworks</div>
+            <div className="text-yellow-400">⚡ Live at zcrypt.cloud<span className="cursor-blink w-2 h-4 bg-cyan-400 inline-block ml-1 align-middle"></span></div>
           </div>
         </div>
       </div>

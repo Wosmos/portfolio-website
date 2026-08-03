@@ -14,13 +14,13 @@ const Blog = () => {
         gsap.from(article, {
             scrollTrigger: {
                 trigger: article,
-                start: "top 85%",
-                toggleActions: "play none none reverse"
+                start: "top 95%",
+                once: true
             },
-            y: 50,
+            y: 30,
             opacity: 0,
-            duration: 1,
-            delay: index * 0.1,
+            duration: 0.45,
+            delay: index * 0.05,
             ease: "power3.out"
         });
     });

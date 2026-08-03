@@ -119,7 +119,7 @@ const Projects = () => {
               <div>
                 <h3 className="text-4xl lg:text-5xl font-bold mb-3 tracking-tight">Zcrypt</h3>
                 <p className="text-gray-300 text-sm leading-relaxed max-w-lg mb-5">
-                  Zero-knowledge encrypted cloud storage. Your files are encrypted before they leave your device — not even the server can read them.
+                  Zero-knowledge encrypted cloud storage — files are encrypted on your device with AES-256-GCM before upload, so not even the server can read them. One Go backend serving web, desktop, and terminal clients.
                 </p>
                 <div className="flex gap-2 flex-wrap">
                   {zcrypt.technologies.map(t => (
@@ -150,7 +150,7 @@ const Projects = () => {
 
               <div>
                 <h3 className="text-2xl font-bold mb-2">Learnity</h3>
-                <p className="text-gray-400 text-xs leading-relaxed mb-3">AI-powered learning with gamification — XP, streaks, and real-time video study groups.</p>
+                <p className="text-gray-400 text-xs leading-relaxed mb-3">Online tutoring with a custom gamification engine — XP, streaks, and real-time HD video sessions. Solo-built FYP.</p>
                 <div className="flex gap-1.5 flex-wrap">
                   {learnity.technologies.slice(0, 3).map(t => (
                     <span key={t} className="px-2.5 py-1 bg-white/10 backdrop-blur-sm rounded-full text-[10px] text-white/70">{t}</span>

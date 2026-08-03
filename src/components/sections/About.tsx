@@ -4,8 +4,8 @@ import { useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
-import { User, Github, BookOpen, Layers, PenTool, ArrowRight, Cpu, Code, Smartphone, Server, Zap, Triangle } from 'lucide-react';
-import { SiFlutter, SiJavascript, SiNextdotjs, SiNodedotjs, SiReact } from 'react-icons/si';
+import { User, Github, BookOpen, Layers, PenTool, Cpu } from 'lucide-react';
+import { SiGo, SiTypescript, SiNextdotjs, SiNodedotjs, SiReact, SiPostgresql } from 'react-icons/si';
 import { siteData } from '@/data/siteData';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -23,61 +23,20 @@ const About = () => {
 
         // Animate cards with Batch for better order control
         ScrollTrigger.batch(q(".cosmic-card, .bento-card"), {
-            interval: 0.1,
+            interval: 0.05,
             batchMax: 4,
+            once: true,
             onEnter: (batch) => {
                 gsap.to(batch, {
                     opacity: 1,
                     y: 0,
-                    duration: 0.8,
-                    stagger: 0.15,
+                    duration: 0.4,
+                    stagger: 0.06,
                     ease: "power3.out",
                     overwrite: true
                 });
             },
-            onLeaveBack: (batch) => {
-                gsap.to(batch, {
-                    opacity: 0,
-                    y: 50,
-                    duration: 0.5,
-                    ease: "power3.in",
-                    overwrite: true
-                });
-            },
-            start: "top 85%"
-        });
-
-        // Animate skill bars only when their parent card is visible
-        const skillsContainer = containerRef.current?.querySelector('.skills-container');
-        if (skillsContainer) {
-            const skillBars = gsap.utils.toArray('.skill-bar');
-            gsap.from(skillBars, {
-                scrollTrigger: {
-                    trigger: skillsContainer,
-                    start: "top 85%",
-                    toggleActions: "play none none reverse"
-                },
-                scaleX: 0,
-                transformOrigin: "left center",
-                duration: 1.2,
-                stagger: 0.15,
-                ease: "power2.out"
-            });
-        }
-
-        // Tech stack icons animation
-        const techIcons = gsap.utils.toArray('.tech-icon');
-        gsap.from(techIcons, {
-            scrollTrigger: {
-                trigger: '.tech-stack-grid',
-                start: "top 85%",
-                toggleActions: "play none none reverse"
-            },
-            scale: 0,
-            opacity: 0,
-            duration: 0.5,
-            stagger: 0.08,
-            ease: "back.out(1.7)"
+            start: "top 95%"
         });
     }, { scope: containerRef });
 
@@ -138,7 +97,7 @@ const About = () => {
                     <h4 className="text-lg font-bold mb-2" style={{ fontFamily: 'var(--font-display)' }}>LEARNING</h4>
                     <p className="text-gray-400 text-sm mb-3">{siteData.about.currentFocus.topic}</p>
                     <div className="w-full bg-gray-800 rounded-full h-2 mb-2">
-                        <div className="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full w-3/4"></div>
+                        <div className="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full" style={{ width: `${siteData.about.currentFocus.progress}%` }}></div>
                     </div>
                     <div className="text-xs text-orange-400 font-mono">{siteData.about.currentFocus.progress}% COMPLETE</div>
                 </div>
@@ -152,70 +111,44 @@ const About = () => {
                         <h4 className="text-xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>TECH ARSENAL</h4>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                        <div className="skill-item">
-                            <div className="flex justify-between mb-2">
-                                <span className="text-sm font-medium">FRONTEND</span>
-                                <span className="text-sm text-cyan-400 font-mono">95%</span>
+                    <div className="space-y-4 mb-6">
+                        {siteData.about.skills.map((group) => (
+                            <div key={group.name} className="skill-item">
+                                <div className={`text-xs font-mono mb-2 tracking-wider ${group.color}`}>{group.name}</div>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {group.items.map((item) => (
+                                        <span key={item} className="px-2.5 py-1 text-xs rounded-full bg-white/5 border border-white/10 text-gray-300">{item}</span>
+                                    ))}
+                                </div>
                             </div>
-                            <div className="w-full bg-gray-800 rounded-full h-2">
-                                <div className="bg-gradient-to-r from-cyan-400 to-blue-500 h-2 rounded-full w-[95%]"></div>
-                            </div>
-                        </div>
-                        <div className="skill-item">
-                            <div className="flex justify-between mb-2">
-                                <span className="text-sm font-medium">BACKEND</span>
-                                <span className="text-sm text-green-400 font-mono">88%</span>
-                            </div>
-                            <div className="w-full bg-gray-800 rounded-full h-2">
-                                <div className="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full w-[88%]"></div>
-                            </div>
-                        </div>
-                        <div className="skill-item">
-                            <div className="flex justify-between mb-2">
-                                <span className="text-sm font-medium">MOBILE</span>
-                                <span className="text-sm text-purple-400 font-mono">92%</span>
-                            </div>
-                            <div className="w-full bg-gray-800 rounded-full h-2">
-                                <div className="bg-gradient-to-r from-purple-400 to-pink-500 h-2 rounded-full w-[92%]"></div>
-                            </div>
-                        </div>
-                        <div className="skill-item">
-                            <div className="flex justify-between mb-2">
-                                <span className="text-sm font-medium">AI/ML</span>
-                                <span className="text-sm text-orange-400 font-mono">85%</span>
-                            </div>
-                            <div className="w-full bg-gray-800 rounded-full h-2">
-                                <div className="bg-gradient-to-r from-orange-400 to-red-500 h-2 rounded-full w-[85%]"></div>
-                            </div>
-                        </div>
+                        ))}
                     </div>
 
                     {/* Tech Stack Grid */}
-                    <div className="grid grid-cols-6 gap-3">
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                        <div className="glass-panel p-3 rounded-lg text-center group hover:bg-cyan-400/10 transition-all">
+                            <SiGo className="w-5 h-5 mx-auto mb-1 text-cyan-400" />
+                            <div className="text-xs text-gray-400 group-hover:text-cyan-400 font-mono">GO</div>
+                        </div>
+                        <div className="glass-panel p-3 rounded-lg text-center group hover:bg-blue-400/10 transition-all">
+                            <SiTypescript className="w-5 h-5 mx-auto mb-1 text-blue-400" />
+                            <div className="text-xs text-gray-400 group-hover:text-blue-400 font-mono">TS</div>
+                        </div>
+                        <div className="glass-panel p-3 rounded-lg text-center group hover:bg-gray-200/10 transition-all">
+                            <SiNextdotjs className="w-5 h-5 mx-auto mb-1 text-gray-200" />
+                            <div className="text-xs text-gray-400 group-hover:text-gray-200 font-mono">NEXT</div>
+                        </div>
                         <div className="glass-panel p-3 rounded-lg text-center group hover:bg-cyan-400/10 transition-all">
                             <SiReact className="w-5 h-5 mx-auto mb-1 text-cyan-400" />
                             <div className="text-xs text-gray-400 group-hover:text-cyan-400 font-mono">REACT</div>
-                        </div>
-                        <div className="glass-panel p-3 rounded-lg text-center group hover:bg-blue-400/10 transition-all">
-                            <SiFlutter className="w-5 h-5 mx-auto mb-1 text-blue-400" />
-                            <div className="text-xs text-gray-400 group-hover:text-blue-400 font-mono">FLUTTER</div>
                         </div>
                         <div className="glass-panel p-3 rounded-lg text-center group hover:bg-green-400/10 transition-all">
                             <SiNodedotjs className="w-5 h-5 mx-auto mb-1 text-green-400" />
                             <div className="text-xs text-gray-400 group-hover:text-green-400 font-mono">NODE</div>
                         </div>
-                        <div className="glass-panel p-3 rounded-lg text-center group hover:bg-purple-400/10 transition-all">
-                            <Cpu className="w-5 h-5 mx-auto mb-1 text-purple-400" />
-                            <div className="text-xs text-gray-400 group-hover:text-purple-400 font-mono">AI</div>
-                        </div>
-                        <div className="glass-panel p-3 rounded-lg text-center group hover:bg-yellow-400/10 transition-all">
-                            <SiJavascript className="w-5 h-5 mx-auto mb-1 text-yellow-400" />
-                            <div className="text-xs text-gray-400 group-hover:text-yellow-400 font-mono">JS</div>
-                        </div>
-                        <div className="glass-panel p-3 rounded-lg text-center group hover:bg-cyan-400/10 transition-all">
-                            <SiNextdotjs className="w-5 h-5 mx-auto mb-1 text-cyan-400" />
-                            <div className="text-xs text-gray-400 group-hover:text-cyan-400 font-mono">NEXT</div>
+                        <div className="glass-panel p-3 rounded-lg text-center group hover:bg-sky-400/10 transition-all">
+                            <SiPostgresql className="w-5 h-5 mx-auto mb-1 text-sky-400" />
+                            <div className="text-xs text-gray-400 group-hover:text-sky-400 font-mono">POSTGRES</div>
                         </div>
                     </div>
                 </div>

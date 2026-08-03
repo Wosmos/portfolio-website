@@ -1,24 +1,23 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Typed from 'typed.js';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { Download, ArrowRight, Github, Linkedin, Instagram, Hash, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import CodeTerminal from './CodeWindow';
+import ResumeModal from '@/components/ui/ResumeModal';
+import { siteData } from '@/data/siteData';
 
 const Hero = () => {
   const typedRef = useRef(null);
   const containerRef = useRef(null);
+  const [resumeModalOpen, setResumeModalOpen] = useState(false);
 
   useEffect(() => {
     const typed = new Typed(typedRef.current, {
-      strings: [
-        'Crafting digital <span class="text-cyan-400">universes</span>.',
-        'Building with <span class="text-blue-400">Next.js</span> & <span class="text-purple-400">AI</span>.',
-        'Engineering <span class="text-green-400">elegant</span> solutions.'
-      ],
+      strings: siteData.hero.typedStrings,
       typeSpeed: 50,
       backSpeed: 30,
       backDelay: 2000,
@@ -109,29 +108,29 @@ const Hero = () => {
 
                     {/* Action Buttons */}
                     <div className="hero-content-item flex flex-col sm:flex-row gap-4 mb-10">
-                        <a
-                         href='/my-cv.pdf'
-                         download
-                        className="group relative px-8 py-4 bg-white text-black font-bold rounded-full overflow-hidden transition-transform hover:scale-105">
+                        <button
+                          type="button"
+                          onClick={() => setResumeModalOpen(true)}
+                          className="group relative px-8 py-4 bg-white text-black font-bold rounded-full overflow-hidden transition-transform hover:scale-105 cursor-pointer">
                             <span className="relative z-10 flex items-center gap-2">
                                 <Download className="w-5 h-5" />
                                 Download CV
                             </span>
                             <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-purple-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        </a>
-                        
-                        {/* <Link href="#projects" className="px-8 py-4 border border-white/20 text-white rounded-full hover:bg-white/10 transition-colors font-medium flex items-center justify-center gap-2 group">
+                        </button>
+
+                        <Link href="#projects" className="px-8 py-4 border border-white/20 text-white rounded-full hover:bg-white/10 transition-colors font-medium flex items-center justify-center gap-2 group">
                             View Work <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        </Link> */}
+                        </Link>
                     </div>
 
                     {/* Social Links */}
                     <div className="hero-content-item flex gap-4 text-gray-400">
                         {[
-                            { Icon: Github, href: "https://github.com/Wosmos" },
-                            { Icon: Linkedin, href: "https//:www.linkedin.com/in/wasif-malik-79205a1bb" },
-                            { Icon: Instagram, href: "https://www.instagram.com/wosmo_tech/" },
-                            { Icon: Hash, href: "https://hashnode.com/@Wosmo" }
+                            { Icon: Github, href: siteData.social.github },
+                            { Icon: Linkedin, href: siteData.social.linkedin },
+                            { Icon: Instagram, href: siteData.social.instagram },
+                            { Icon: Hash, href: siteData.social.hashnode }
                         ].map(({ Icon, href }, idx) => (
                             <a 
                                 key={idx} 
@@ -157,6 +156,8 @@ const Hero = () => {
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce opacity-50">
             <ChevronDown className="w-8 h-8 text-gray-400" />
         </div>
+
+        <ResumeModal open={resumeModalOpen} onClose={() => setResumeModalOpen(false)} />
     </section>
   );
 };

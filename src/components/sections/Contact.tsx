@@ -127,7 +127,7 @@ const Contact = () => {
                                     <a href="https://github.com/Wosmos" target="_blank" rel="noopener noreferrer" className="p-3 glass-cosmic rounded-full hover:bg-indigo-500/20 transition-all hover:scale-110">
                                         <Github className="w-5 h-5" />
                                     </a>
-                                    <a href="https//:www.linkedin.com/in/wasif-malik-79205a1bb" target="_blank" rel="noopener noreferrer" className="p-3 glass-cosmic rounded-full hover:bg-blue-500/20 transition-all hover:scale-110">
+                                    <a href="https://www.linkedin.com/in/wasif-malik-79205a1bb" target="_blank" rel="noopener noreferrer" className="p-3 glass-cosmic rounded-full hover:bg-blue-500/20 transition-all hover:scale-110">
                                         <Linkedin className="w-5 h-5" />
                                     </a>
                                     <a href="https://www.instagram.com/wosmo_tech/" target="_blank" rel="noopener noreferrer" className="p-3 glass-cosmic rounded-full hover:bg-pink-500/20 transition-all hover:scale-110">

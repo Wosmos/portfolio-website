@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Orbitron, Rajdhani, JetBrains_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const orbitron = Orbitron({
@@ -79,6 +81,8 @@ export default function RootLayout({
         className={`${orbitron.variable} ${rajdhani.variable} ${jetbrainsMono.variable} antialiased selection:bg-indigo-500 selection:text-white`}
       >
         {children}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

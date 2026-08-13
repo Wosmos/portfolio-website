@@ -1,24 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://wosmo.vercel.app/</loc>
+    <loc>https://wosmos.vercel.app/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
   </url>
-  <url>
-    <loc>https://wosmo.vercel.app/about</loc>
-  </url>
-  <url>
-    <loc>https://wosmo.vercel.app/projects</loc>
-  </url>
-  <url>
-    <loc>https://wosmo.vercel.app/blogs</loc>
-  </url>
-  <url>
-    <loc>https://wosmo.vercel.app/contact</loc>
-  </url>
-  <url>
-    <loc>https://wosmo.vercel.app/cv</loc>
-  </url>
-  <url>
-    <loc>https://wosmo.vercel.app/more-info</loc>
-  </url>
-</urlset> 
+</urlset>

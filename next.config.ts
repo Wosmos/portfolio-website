@@ -5,8 +5,7 @@ const nextConfig: NextConfig = {
   
   // Performance optimizations
   experimental: {
-    optimizeCss: true,
-    optimizePackageImports: ['lucide-react', 'gsap', 'three'],
+    optimizePackageImports: ['lucide-react', 'gsap'],
   },
   
   // Image optimization
@@ -32,10 +31,6 @@ const nextConfig: NextConfig = {
           {
             key: 'X-Frame-Options',
             value: 'DENY',
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
           },
           {
             key: 'Referrer-Policy',

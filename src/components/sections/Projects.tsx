@@ -8,13 +8,20 @@ import { useGSAP } from '@gsap/react';
 import {
   Github, ExternalLink, ArrowRight, ArrowUpRight,
   Shield, GraduationCap, Wifi, PenTool, FileText,
-  Brain, Film, Layers, Globe, Video, Code2, BookOpen, Bug
+  Brain, Film, Layers, Globe, Video, Code2, BookOpen, Bug, Terminal
 } from 'lucide-react';
 import { siteData } from '@/data/siteData';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const HIGHLIGHTED_IDS = ['zcrypt', 'learnity', 'docxo', 'tellow', 'devtoolshq'];
+// How each project is framed. Keeps learning exercises from reading as shipped
+// products, and surfaces real client work.
+const CONTEXT_LABEL: Record<string, { label: string; cls: string }> = {
+  product:    { label: 'Product',     cls: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/15' },
+  freelance:  { label: 'Client Work', cls: 'text-amber-400 bg-amber-500/10 border-amber-500/15' },
+  coursework: { label: 'University',  cls: 'text-purple-400 bg-purple-500/10 border-purple-500/15' },
+  learning:   { label: 'Practice',    cls: 'text-gray-400 bg-white/5 border-white/10' },
+};
 
 const projectMeta: Record<string, { icon: typeof Shield; iconBg: string; iconColor: string; glow: string; gradientFrom: string; gradientTo: string; category: string }> = {
   zcrypt:        { icon: Shield,        iconBg: 'bg-cyan-500/20',    iconColor: 'text-cyan-400',    glow: 'cyan',    gradientFrom: 'from-cyan-500/20',    gradientTo: 'to-emerald-500/10', category: 'Security' },
@@ -30,13 +37,14 @@ const projectMeta: Record<string, { icon: typeof Shield; iconBg: string; iconCol
   'django-blogs':{ icon: BookOpen,      iconBg: 'bg-emerald-500/20', iconColor: 'text-emerald-400', glow: 'emerald', gradientFrom: 'from-emerald-500/20', gradientTo: 'to-green-500/10',   category: 'Backend' },
   miniprojects:  { icon: Layers,        iconBg: 'bg-teal-500/20',    iconColor: 'text-teal-400',    glow: 'teal',    gradientFrom: 'from-teal-500/20',    gradientTo: 'to-cyan-500/10',    category: 'Web' },
   nextsoft:      { icon: Globe,         iconBg: 'bg-purple-500/20',  iconColor: 'text-purple-400',  glow: 'purple',  gradientFrom: 'from-purple-500/20',  gradientTo: 'to-pink-500/10',    category: 'Web' },
+  furnizsh:      { icon: Terminal,      iconBg: 'bg-fuchsia-500/20', iconColor: 'text-fuchsia-400', glow: 'fuchsia', gradientFrom: 'from-fuchsia-500/20', gradientTo: 'to-purple-500/10',  category: 'Dev Tool' },
 };
 
 /* ──────────────────────────────────────────────────────────── */
 
 const Projects = () => {
   const containerRef = useRef(null);
-  const otherProjects = siteData.projects.filter(p => !HIGHLIGHTED_IDS.includes(p.id));
+  const otherProjects = siteData.projects.filter(p => !p.featured);
 
   const zcrypt     = siteData.projects.find(p => p.id === 'zcrypt')!;
   const learnity   = siteData.projects.find(p => p.id === 'learnity')!;
@@ -79,7 +87,7 @@ const Projects = () => {
           <h2 className="text-5xl md:text-6xl font-bold mb-4 cosmic-glow" style={{ fontFamily: 'var(--font-display)' }}>
             SELECTED WORK
           </h2>
-          <p className="text-gray-400 text-sm max-w-md mx-auto mt-3">Products I&apos;ve designed and built — from first commit to production</p>
+          <p className="text-gray-400 text-sm max-w-md mx-auto mt-3">Things I&apos;ve designed and built — from first commit to production</p>
           <div className="h-px w-32 bg-gradient-to-r from-transparent via-cyan-400 to-transparent mx-auto mt-4" />
         </div>
 
@@ -259,7 +267,7 @@ const Projects = () => {
           <h2 className="text-4xl md:text-5xl font-bold mb-3 cosmic-glow" style={{ fontFamily: 'var(--font-display)' }}>
             MORE PROJECTS
           </h2>
-          <p className="text-gray-500 text-sm">Other things I&apos;ve built and shipped</p>
+          <p className="text-gray-500 text-sm">Other builds — products, client work, and experiments</p>
           <div className="h-px w-32 bg-gradient-to-r from-transparent via-purple-400 to-transparent mx-auto mt-4" />
         </div>
 
@@ -300,7 +308,14 @@ const Projects = () => {
                       )}
                     </div>
                   </div>
-                  <h3 className="text-base font-bold mb-1.5">{project.title}</h3>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <h3 className="text-base font-bold">{project.title}</h3>
+                    {CONTEXT_LABEL[project.context] && (
+                      <span className={`text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border ${CONTEXT_LABEL[project.context].cls}`}>
+                        {CONTEXT_LABEL[project.context].label}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-gray-500 text-xs leading-relaxed mb-3 line-clamp-2">{project.description}</p>
                   <div className="flex gap-1.5 flex-wrap">
                     {project.technologies.map((tech) => (

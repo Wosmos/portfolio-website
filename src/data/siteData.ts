@@ -59,14 +59,13 @@ export const siteData = {
   about: {
     bio: "Software engineer building production web applications and systems-level software end-to-end. Specialised in concurrent backends with Go, modern frontends with Next.js, and security-first architecture — from a zero-knowledge encrypted cloud platform to a real-time chat system across web and mobile, plus client products spanning e-commerce, POS, HRMS, and real estate. Comfortable owning every layer: schema design, backend services, client implementations, and deployment.",
     stats: {
-      repositories: "50+",
-      experience: "3+ Years Experience",
+      projectsShipped: "10+",
+      experience: "2+ Years Experience",
       education: "BS Software Engineering",
     },
     currentFocus: {
       title: "LEARNING",
       topic: "Go Concurrency & Cloud-Native Systems",
-      progress: 65,
     },
     // Skill groups mirror the Technical Skills section of the resume
     skills: [
@@ -136,6 +135,10 @@ export const siteData = {
     },
   ],
 
+  // context: "product"   → personal products I build and operate (live, released)
+  //          "freelance" → built for a real external client/business
+  //          "coursework"→ university / final-year project
+  //          "learning"  → practice builds and exercises
   projects: [
     // ── Featured Projects (Bento Grid) ──
     {
@@ -145,9 +148,10 @@ export const siteData = {
         "Zero-knowledge encrypted cloud storage — files are encrypted client-side with AES-256-GCM before upload, so the server can never read them. One Go backend, three clients: web, desktop (Tauri), and terminal (TUI).",
       image: "/projectsThumbnails/zcrypt.png",
       technologies: ["Go", "Next.js", "Tauri", "WebAssembly"],
-      github: null,
+      github: "https://github.com/Wosmos/zcrypt",
       live: "https://zcrypt.cloud",
       featured: true,
+      context: "product",
       category: "security"
     },
     {
@@ -160,19 +164,8 @@ export const siteData = {
       github: "https://github.com/Wosmos/Learnity",
       live: "https://learnity-app.vercel.app",
       featured: true,
+      context: "coursework",
       category: "ai"
-    },
-    {
-      id: "netlink",
-      title: "NetLink",
-      description:
-        "Real-time chat platform — a concurrent Go WebSocket server (goroutines + channels) fanning out to Next.js web and React Native mobile clients over a shared protocol, with persistent PostgreSQL history.",
-      image: null,
-      technologies: ["Go", "WebSockets", "React Native", "PostgreSQL"],
-      github: "https://github.com/Wosmos/NetLink",
-      live: null,
-      featured: true,
-      category: "backend"
     },
     {
       id: "docxo",
@@ -183,41 +176,7 @@ export const siteData = {
       github: "https://github.com/Wosmos/DocXO",
       live: "https://doc-xo.vercel.app",
       featured: true,
-      category: "web"
-    },
-    {
-      id: "resumeright",
-      title: "ResumeRight",
-      description: "AI-powered resume optimization tool with ATS compatibility checks, keyword analysis, and improvement suggestions.",
-      image: "/projectsThumbnails/ResumeRight.png",
-      technologies: ["Next.js", "TypeScript", "Firebase", "Google AI"],
-      github: "https://github.com/Wosmos/AI-Resume-checker",
-      live: "https://ai-resume-checker-peach.vercel.app/",
-      featured: true,
-      category: "ai",
-      status: "IN DEVELOPMENT"
-    },
-    // ── All Other Projects ──
-    {
-      id: "scrappo",
-      title: "Scrappo",
-      description: "Dual-mode web scraper with scheduled jobs, email reporting, and multi-format exports (CSV, PDF, Excel).",
-      image: "/projectsThumbnails/scrappo.png",
-      technologies: ["Python", "FastAPI", "Trafilatura"],
-      github: "https://github.com/Wosmos/Scrappo",
-      live: "https://scrappo.vercel.app",
-      featured: false,
-      category: "backend"
-    },
-    {
-      id: "devtoolshq",
-      title: "DevToolsHQ",
-      description: "Unified dashboard of developer utility tools — formatters, testers, generators — optimized for DX.",
-      image: "/projectsThumbnails/devtoolshq.png",
-      technologies: ["Next.js", "TypeScript", "Firebase"],
-      github: "https://github.com/Wosmos/DevToolsHQ",
-      live: "https://dev-tools-hq-pi.vercel.app",
-      featured: false,
+      context: "product",
       category: "web"
     },
     {
@@ -228,18 +187,83 @@ export const siteData = {
       technologies: ["React Native", "Expo", "GetStream", "Clerk"],
       github: "https://github.com/Wosmos/Tellow",
       live: null,
-      featured: false,
+      featured: true,
+      context: "product",
       category: "mobile"
+    },
+    {
+      id: "devtoolshq",
+      title: "DevToolsHQ",
+      description: "Unified dashboard of developer utility tools — formatters, testers, generators — optimized for DX.",
+      image: "/projectsThumbnails/devtoolshq.png",
+      technologies: ["Next.js", "TypeScript", "Firebase"],
+      github: "https://github.com/Wosmos/DevToolsHQ",
+      live: "https://dev-tools-hq-pi.vercel.app",
+      featured: true,
+      context: "product",
+      category: "web"
+    },
+    // ── All Other Projects ──
+    {
+      id: "netlink",
+      title: "NetLink",
+      description:
+        "Real-time chat platform — a concurrent Go WebSocket server (goroutines + channels) fanning out to Next.js web and React Native mobile clients over a shared protocol, with persistent PostgreSQL history.",
+      image: null,
+      technologies: ["Go", "WebSockets", "React Native", "PostgreSQL"],
+      github: "https://github.com/Wosmos/netlink",
+      live: null,
+      featured: false,
+      context: "product",
+      category: "backend"
+    },
+    {
+      id: "furnizsh",
+      title: "furniZsh",
+      description: "A neon terminal in one command — Ghostty + zsh + Starship with four themes and 24 commands. Distributed via Homebrew, npm, and Scoop with a provenance-attested release pipeline.",
+      image: null,
+      technologies: ["Shell", "Bash", "GitHub Actions", "Homebrew"],
+      github: "https://github.com/Wosmos/furnizsh",
+      live: null,
+      featured: false,
+      context: "product",
+      category: "backend"
+    },
+    {
+      id: "resumeright",
+      title: "ResumeRight",
+      description: "AI-powered resume optimization tool with ATS compatibility checks, keyword analysis, and improvement suggestions.",
+      image: "/projectsThumbnails/ResumeRight.png",
+      technologies: ["Next.js", "TypeScript", "Firebase", "Google AI"],
+      github: "https://github.com/Wosmos/AI-Resume-checker",
+      live: "https://ai-resume-checker-peach.vercel.app/",
+      featured: false,
+      context: "product",
+      category: "ai",
+      status: "IN DEVELOPMENT"
+    },
+    {
+      id: "scrappo",
+      title: "Scrappo",
+      description: "Dual-mode web scraper with scheduled jobs, email reporting, and multi-format exports (CSV, PDF, Excel).",
+      image: "/projectsThumbnails/scrappo.png",
+      technologies: ["Python", "FastAPI", "Trafilatura"],
+      github: "https://github.com/Wosmos/Scrappo",
+      live: "https://scrappo.vercel.app",
+      featured: false,
+      context: "product",
+      category: "backend"
     },
     {
       id: "nextsoft",
       title: "NextSoft",
       description: "Modern, responsive brand website with smooth animations, blog section, and contact form.",
-      image: "/projectsThumbnails/travelSiteLandingPage.png",
+      image: null,
       technologies: ["Next.js", "TypeScript", "Tailwind"],
       github: "https://github.com/Wosmos/NextSoft-Brand-Website",
       live: null,
       featured: false,
+      context: "freelance",
       category: "web"
     },
     {
@@ -251,6 +275,7 @@ export const siteData = {
       github: "https://github.com/Wosmos/wizmo",
       live: "https://wizmo.netlify.app/",
       featured: false,
+      context: "product",
       category: "ai"
     },
     {
@@ -262,6 +287,7 @@ export const siteData = {
       github: null,
       live: "https://darling-queijadas-e8f108.netlify.app/",
       featured: false,
+      context: "learning",
       category: "web"
     },
     {
@@ -273,6 +299,7 @@ export const siteData = {
       github: "https://github.com/Wosmos/django-blogs",
       live: null,
       featured: false,
+      context: "learning",
       category: "backend"
     },
     {
@@ -284,6 +311,7 @@ export const siteData = {
       github: "https://github.com/Wosmos/mini-apps",
       live: "https://wosmos.github.io/mini-apps/main.html",
       featured: false,
+      context: "learning",
       category: "web"
     }
   ],

@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# wosmos.vercel.app — Personal Portfolio
 
-## Getting Started
+My portfolio site. A single-page, animated portfolio built with the Next.js App
+Router and React 19, deployed on Vercel.
 
-First, run the development server:
+**Live:** https://wosmos.vercel.app
+
+![Portfolio](public/logo.png)
+
+## Stack
+
+- **Framework:** Next.js 16 (App Router) + React 19 + TypeScript
+- **Styling:** Tailwind CSS v4
+- **Animation:** GSAP + Framer Motion
+- **Contact:** Resend (server route with HTML escaping, honeypot, and rate limiting)
+- **Analytics:** Vercel Analytics + Speed Insights
+- **OG images:** dynamic `next/og` route for real social-share previews
+
+## Run locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
+npm run build      # production build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Set `RESEND_API_KEY` in `.env.local` for the contact form to send mail.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+  app/
+    layout.tsx            # metadata, fonts, metadataBase
+    page.tsx              # section composition
+    opengraph-image.tsx   # dynamic 1200x630 social card
+    api/contact/route.ts  # hardened contact endpoint
+  components/
+    sections/             # Hero, About, Experience, Projects, Blog, Contact
+    layout/               # Dock, Footer
+    ui/                   # shared UI
+  data/
+    siteData.ts           # single source of truth for displayed content
+```
 
-## Learn More
+## Notes on a few decisions
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Content lives in one place.** `src/data/siteData.ts` holds projects,
+  experience, and copy so the page and metadata stay consistent.
+- **The contact route is treated as untrusted input.** User fields are
+  HTML-escaped before they touch the email body, a honeypot field drops bots,
+  and a per-IP in-memory limiter brakes abuse.
+- **Social cards are generated, not static.** `opengraph-image.tsx` renders a
+  proper 1200x630 card at request time so shared links never preview blank.

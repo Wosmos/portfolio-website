@@ -21,6 +21,7 @@ const Contact = () => {
       email: formData.get('email') as string,
       subject: formData.get('subject') as string,
       message: formData.get('message') as string,
+      website: formData.get('website') as string, // honeypot — real users leave empty
     };
 
     try {
@@ -65,10 +66,10 @@ const Contact = () => {
 
                 <div className="relative z-10">
                     <div className="text-center mb-12">
-                        <h2 className="text-4xl md:text-5xl font-bold mb-4 cosmic-glow">Let&apos;s Build Something</h2>
+                        <h2 className="text-4xl md:text-5xl font-bold mb-4 cosmic-glow">Let&apos;s Work Together</h2>
                         <p className="text-gray-300 text-lg max-w-2xl mx-auto">
-                            Ready to bring your ideas to life? Whether it&apos;s a cutting-edge web application, mobile app, or AI integration, 
-                            I&apos;m here to help transform your vision into reality.
+                            Open to software engineering roles and freelance projects. If you&apos;re
+                            hiring, or have something you want built, I&apos;d like to hear about it.
                         </p>
                     </div>
 
@@ -142,23 +143,32 @@ const Contact = () => {
 
                         {/* Contact Form */}
                         <form ref={formRef} className="space-y-6" onSubmit={handleSubmit}>
+                            {/* Honeypot: hidden from users, catches bots that fill every field. */}
+                            <input
+                                type="text"
+                                name="website"
+                                tabIndex={-1}
+                                autoComplete="off"
+                                aria-hidden="true"
+                                className="hidden"
+                            />
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">Name</label>
-                                    <input type="text" name="name" required className="w-full bg-black/30 border border-white/10 rounded-lg p-4 focus:outline-none focus:border-indigo-500 transition-colors text-white placeholder-gray-500" placeholder="John Doe" />
+                                    <label htmlFor="contact-name" className="block text-sm font-medium text-gray-300 mb-2">Name</label>
+                                    <input id="contact-name" type="text" name="name" required maxLength={100} className="w-full bg-black/30 border border-white/10 rounded-lg p-4 focus:outline-none focus:border-indigo-500 transition-colors text-white placeholder-gray-500" placeholder="John Doe" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
-                                    <input type="email" name="email" required className="w-full bg-black/30 border border-white/10 rounded-lg p-4 focus:outline-none focus:border-indigo-500 transition-colors text-white placeholder-gray-500" placeholder="john@example.com" />
+                                    <label htmlFor="contact-email" className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                                    <input id="contact-email" type="email" name="email" required maxLength={254} className="w-full bg-black/30 border border-white/10 rounded-lg p-4 focus:outline-none focus:border-indigo-500 transition-colors text-white placeholder-gray-500" placeholder="john@example.com" />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Subject</label>
-                                <input type="text" name="subject" required className="w-full bg-black/30 border border-white/10 rounded-lg p-4 focus:outline-none focus:border-indigo-500 transition-colors text-white placeholder-gray-500" placeholder="Project Discussion" />
+                                <label htmlFor="contact-subject" className="block text-sm font-medium text-gray-300 mb-2">Subject</label>
+                                <input id="contact-subject" type="text" name="subject" required maxLength={150} className="w-full bg-black/30 border border-white/10 rounded-lg p-4 focus:outline-none focus:border-indigo-500 transition-colors text-white placeholder-gray-500" placeholder="Project Discussion" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Message</label>
-                                <textarea name="message" rows={5} required className="w-full bg-black/30 border border-white/10 rounded-lg p-4 focus:outline-none focus:border-indigo-500 transition-colors text-white placeholder-gray-500 resize-none" placeholder="Tell me about your project..."></textarea>
+                                <label htmlFor="contact-message" className="block text-sm font-medium text-gray-300 mb-2">Message</label>
+                                <textarea id="contact-message" name="message" rows={5} required maxLength={5000} className="w-full bg-black/30 border border-white/10 rounded-lg p-4 focus:outline-none focus:border-indigo-500 transition-colors text-white placeholder-gray-500 resize-none" placeholder="Tell me about your project..."></textarea>
                             </div>
                             {/* Error Message */}
                             {status === 'error' && (

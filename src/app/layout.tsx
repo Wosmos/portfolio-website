@@ -31,6 +31,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://wosmos.vercel.app"),
   title: "Wasif Malik | Software Engineer",
   description: "Wasif Malik — Software Engineer building production web applications and systems-level software end-to-end: concurrent Go backends, modern Next.js frontends, and security-first architecture.",
   icons: {

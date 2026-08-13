@@ -84,9 +84,9 @@ const About = () => {
                     <div className="w-12 h-12 bg-gradient-to-r from-gray-700 to-gray-900 rounded-lg flex items-center justify-center mx-auto mb-4">
                         <Github className="w-6 h-6 text-white" />
                     </div>
-                    <div className="text-4xl font-bold text-white mb-2" style={{ fontFamily: 'var(--font-display)' }}>{siteData.about.stats.repositories}</div>
-                    <div className="text-gray-400 text-sm">REPOSITORIES</div>
-                    <div className="text-xs text-cyan-400 mt-2 font-mono">ACTIVE_CONTRIBUTOR</div>
+                    <div className="text-4xl font-bold text-white mb-2" style={{ fontFamily: 'var(--font-display)' }}>{siteData.about.stats.projectsShipped}</div>
+                    <div className="text-gray-400 text-sm">LIVE PROJECTS</div>
+                    <div className="text-xs text-cyan-400 mt-2 font-mono">SHIPPED_TO_PROD</div>
                 </div>
 
                 {/* Current Focus */}
@@ -96,10 +96,10 @@ const About = () => {
                     </div>
                     <h4 className="text-lg font-bold mb-2" style={{ fontFamily: 'var(--font-display)' }}>LEARNING</h4>
                     <p className="text-gray-400 text-sm mb-3">{siteData.about.currentFocus.topic}</p>
-                    <div className="w-full bg-gray-800 rounded-full h-2 mb-2">
-                        <div className="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full" style={{ width: `${siteData.about.currentFocus.progress}%` }}></div>
-                    </div>
-                    <div className="text-xs text-orange-400 font-mono">{siteData.about.currentFocus.progress}% COMPLETE</div>
+                    <span className="inline-flex items-center gap-1.5 text-xs text-orange-400 font-mono">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span>
+                        IN PROGRESS
+                    </span>
                 </div>
 
                 {/* Skills Showcase */}

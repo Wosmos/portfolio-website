@@ -5,19 +5,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { projects as staticProjects, type Project } from "@/data/portfolio";
+import { finePointer, whenQuiet, worthWebgl } from "@/lib/device";
 import { pad2 } from "@/lib/text";
 import type { PlanetStripApi } from "@/lib/three/types";
-
-interface SaveDataConnection { saveData?: boolean; effectiveType?: string }
-function worthLoading(): boolean {
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
-  if (!matchMedia("(pointer: fine)").matches) return false;
-  const nav: Navigator & { connection?: SaveDataConnection; deviceMemory?: number } = navigator;
-  if (nav.connection?.saveData) return false;
-  if (nav.connection?.effectiveType && /2g/.test(nav.connection.effectiveType)) return false;
-  if (typeof nav.deviceMemory === "number" && nav.deviceMemory <= 2) return false;
-  return (nav.hardwareConcurrency ?? 8) > 2;
-}
 
 // `projects` comes from the server page (the database); the static records are the fallback.
 export default function PlanetStrip({ projects = staticProjects }: { projects?: readonly Project[] }) {
@@ -33,9 +23,10 @@ export default function PlanetStrip({ projects = staticProjects }: { projects?: 
     // The strip is decorative and three.js is ~700 kB, so it is skipped where that cost is not worth
     // paying: coarse pointers, data saver, low core counts, and reduced-motion. The numbered links
     // below it stay, so nothing is lost but the render.
-    if (!worthLoading()) { el.classList.add("is-off"); return; }
-    // let the page paint and settle first, and never race the project planets
-    const idle = window.setTimeout(() => void boot(el), 900);
+    if (!worthWebgl() || !finePointer()) { el.classList.add("is-off"); return; }
+    // A fixed 900 ms fired while the page was still downloading on a slow link. Waiting for the load
+    // to finish and the main thread to go quiet puts it after the content instead of alongside it.
+    const stopWaiting = whenQuiet(() => void boot(el), 4000);
     async function boot(target: HTMLCanvasElement): Promise<void> {
       try {
         const { createPlanetStrip } = await import("@/lib/three/planet-view");
@@ -50,7 +41,7 @@ export default function PlanetStrip({ projects = staticProjects }: { projects?: 
         target.classList.add("is-off");
       }
     }
-    return () => { cancelled = true; clearTimeout(idle); strip?.dispose(); };
+    return () => { cancelled = true; stopWaiting(); strip?.dispose(); };
   }, [router, projects]);
 
   const hovered = projects[hover];

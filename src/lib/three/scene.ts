@@ -1332,6 +1332,8 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
   let moonHot: MoonRef | null = null, moonFocus: MoonRef | null = null;
   const isMoon = (r: MoonRef | null, i: number, k: number): boolean => r !== null && r.b === i && r.k === k;
   let active = false, dragging = false, dragMoved = false, dragX = 0, dragY = 0, lastDragX = 0, lastDragY = 0;
+  // how far a press may travel and still count as a tap; a finger is never as still as a mouse
+  let dragSlop = 6;
   let w = 1, h = 1;
   const flight: Flight = { active: false, stopped: false, t: 0, dur: 2.2, kind: "out", from: new THREE.Vector3(), to: new THREE.Vector3(), lookFrom: new THREE.Vector3(), lookTo: new THREE.Vector3(), onDone: null };
   const inspect = { yaw: 0, pitch: 0 };
@@ -1362,7 +1364,8 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
     el.tabIndex = -1;
     el.addEventListener("pointerenter", () => { domHot = i; });
     el.addEventListener("pointerleave", () => { domHot = domHot === i ? -1 : domHot; });
-    el.addEventListener("click", (e) => { e.stopPropagation(); if (active && focusIdx < 0 && !sunFocus && !flight.active) onSelect?.(p); });
+    // the label is a target from any state; the deck decides whether that means fly, re-aim or refuse
+    el.addEventListener("click", (e) => { e.stopPropagation(); if (active) onSelect?.(p); });
     labelsEl.appendChild(el);
 
     // Moon labels are the planet's own machinery, one class quieter: same `.lab` markup, no tagline,
@@ -1430,14 +1433,22 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
     setNdc(e);
     if (dragging) {
       const dx = e.clientX - dragX, dy = e.clientY - dragY;
-      if (Math.hypot(e.clientX - lastDragX, e.clientY - lastDragY) > 6) dragMoved = true;
+      if (Math.hypot(e.clientX - lastDragX, e.clientY - lastDragY) > dragSlop) dragMoved = true;
       if (focusIdx >= 0) { inspect.yaw += dx * 0.006; inspect.pitch = Math.min(1.2, Math.max(-1.2, inspect.pitch + dy * 0.004)); }
       else { view.theta -= dx * 0.0045; view.vel = -dx * 0.0045; view.phiOff = Math.min(0.5, Math.max(-0.2, view.phiOff + dy * 0.002)); }
       dragX = e.clientX; dragY = e.clientY;
     }
   };
   const onStageLeave = () => { ndc.set(-10, -10); rayHot = -1; sunHot = false; };
-  const onCanvasDown = (e: PointerEvent) => { if (!active || sunFocus || flight.active) return; if (focusIdx >= 0 && !(bodies[focusIdx].cut.target > 0)) return; dragging = true; dragMoved = false; dragX = lastDragX = e.clientX; dragY = lastDragY = e.clientY; view.vel = 0; canvas.classList.add("is-dragging"); };
+  // a touch screen has no hover, so the press itself has to aim: setNdc first and the next frame's
+  // raycast lights whatever is under the finger, whether or not this press turns into a drag
+  const onCanvasDown = (e: PointerEvent) => {
+    setNdc(e);
+    if (!active || sunFocus || flight.active) return;
+    if (focusIdx >= 0 && !(bodies[focusIdx].cut.target > 0)) return;
+    dragging = true; dragMoved = false; dragSlop = e.pointerType === "mouse" ? 6 : 14;
+    dragX = lastDragX = e.clientX; dragY = lastDragY = e.clientY; view.vel = 0; canvas.classList.add("is-dragging");
+  };
   const onWindowUp = () => { dragging = false; canvas.classList.remove("is-dragging"); };
   stage.addEventListener("pointermove", onStageMove);
   stage.addEventListener("pointerleave", onStageLeave);
@@ -1486,16 +1497,18 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
     return best;
   }
   const onCanvasClick = (e: MouseEvent) => {
-    if (dragMoved || !active || flight.active) return;
+    if (dragMoved || !active) return;
     setNdc(e);
     // a moon is reachable while a planet is focused, which is the only time it is big enough to read
-    const mh = pickMoon();
+    const mh = flight.active ? null : pickMoon();
     if (mh) { moonFocus = isMoon(moonFocus, mh.b, mh.k) ? null : mh; return; }
     moonFocus = null;
-    if (focusIdx >= 0 || sunFocus) return;
     const hit = pickAt();
-    if (hit?.index !== undefined) onSelect?.(bodies[hit.index].p);
-    else if (hit?.sun) onSunSelect?.();
+    // A planet is a target in every state. Mid-flight it re-aims the ship, while holding at another
+    // body it starts a new hop; only a tap on the body we are already parked at is a no-op. The deck
+    // is what answers — with a reroute, or with a refusal you can see.
+    if (hit?.index !== undefined) { if (flight.active || hit.index !== focusIdx) onSelect?.(bodies[hit.index].p); return; }
+    if (hit?.sun && (flight.active || !sunFocus)) onSunSelect?.();
   };
   canvas.addEventListener("click", onCanvasClick);
 
@@ -1680,9 +1693,13 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
 
     raycaster.setFromCamera(ndc, camera);
     rayHot = -1; sunHot = false;
-    moonHot = active && !dragging && !flight.active ? pickMoon() : null;
+    // A finger that is down but has not travelled is still aiming, not dragging, so it keeps the hover
+    // — that press highlight is the only "what am I about to tap" a touch screen gets. The hover also
+    // runs during a flight, so a planet still shows as reachable while the ship is moving.
+    const aiming = active && (!dragging || !dragMoved);
+    moonHot = aiming && !flight.active ? pickMoon() : null;
     // a moon under the pointer takes the hover: it is in front of the planet, so it is what you meant
-    if (orbiting && active && !dragging && moonHot === null) {
+    if (aiming && moonHot === null && !sunFocus) {
       const hit = pickAt();
       if (hit?.index !== undefined) rayHot = hit.index;
       else if (hit?.sun) sunHot = true;
@@ -1751,7 +1768,9 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
       const show = orbiting && active && scr.z < 1 ? 1 : 0;
       const dcam = b.pos.distanceTo(camPos);
       const depth = i === hotIdx ? 1 : 1 - 0.5 * clamp01((dcam - view.radius * 0.95) / (view.radius * 0.5));
-      b.el.style.opacity = String((1 - b.mix) * show * (1 - Math.max(warp, tunnel)) * depth);
+      const labA = (1 - b.mix) * show * (1 - Math.max(warp, tunnel)) * depth;
+      b.el.style.opacity = String(labA);
+      b.el.classList.toggle("is-off", labA < 0.06);
 
       b.el.classList.toggle("is-hot", i === hotIdx);
       if (b.moons.length > 0) updateMoons(b, i, dt, labX, labY);

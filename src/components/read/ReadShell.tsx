@@ -6,6 +6,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Stars from "@/components/Stars";
+import { whenQuiet } from "@/lib/device";
 import { runMotion } from "@/lib/motion";
 import { getAudio } from "@/lib/sound-client";
 
@@ -15,12 +16,15 @@ export default function ReadShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const audio = getAudio();
-    void audio.load();                       // the short interface cuts only, a few KB
-    // the ambient bed is ~1 MB, so it is fetched on the first real interaction, never on load
+    // The interface cuts are ~160 kB. Fetching them during hydration put them in a queue with the
+    // content on a slow link, and nothing can play before the visitor has touched the page anyway.
+    const warm = (): void => { void audio.load(); };
+    const stopWarming = whenQuiet(warm, 6000);
+    // The ambient bed is ~1 MB, so it waits for an actual gesture. A scroll used to count, which meant
+    // the first flick on a phone pulled a megabyte down alongside everything else still loading.
     const begin = (): void => { audio.resume(); void audio.startAmbient(); };
     addEventListener("pointerdown", begin, { once: true });
     addEventListener("keydown", begin, { once: true });
-    addEventListener("scroll", begin, { once: true, passive: true });
     // click + deliberate-hover ticks: the pointer must have moved onto the element and stayed 500 ms
     const onClick = (e: MouseEvent): void => { if (e.target instanceof Element && e.target.closest("a, button")) audio.click(); };
     let lastMove = 0, dwell = 0, dwellEl: Element | null = null;
@@ -38,7 +42,8 @@ export default function ReadShell({ children }: { children: ReactNode }) {
     document.addEventListener("pointerover", onOver, true);
     document.addEventListener("pointerout", onOut, true);
     return () => {
-      removeEventListener("pointerdown", begin); removeEventListener("keydown", begin); removeEventListener("scroll", begin);
+      stopWarming();
+      removeEventListener("pointerdown", begin); removeEventListener("keydown", begin);
       document.removeEventListener("click", onClick, true); removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerover", onOver, true); document.removeEventListener("pointerout", onOut, true);
       clearTimeout(dwell);
@@ -63,6 +68,8 @@ export default function ReadShell({ children }: { children: ReactNode }) {
       <div className="scan" aria-hidden="true" />
       {children}
       <div className="grain" aria-hidden="true" />
+      {/* the entrance reveal, lifted by CSS; the curtain below is only for outgoing navigation */}
+      <div className="veil" aria-hidden="true" />
       <div ref={curtain} className="curtain" aria-hidden="true" />
     </div>
   );

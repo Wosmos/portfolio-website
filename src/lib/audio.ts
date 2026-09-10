@@ -54,6 +54,7 @@ export function createAudio({ muted = false, base = "/v3/audio/", ambientGain = 
   const listeners = new Set<(muted: boolean) => void>();
   const loops = new Map<Slot, Voice>();
   let ambientNode: Voice | null = null;
+  let ambientWanted = false;
   let loading: Promise<void> | null = null;
   let manifest: Manifest | null = null;
 
@@ -110,6 +111,10 @@ export function createAudio({ muted = false, base = "/v3/audio/", ambientGain = 
   }
   async function startAmbient(): Promise<void> {
     if (ambientNode) return;
+    // A megabyte of bed nobody can hear is a megabyte of someone's data plan. Remember the intent and
+    // honour it from `setMuted` instead, so unmuting still starts it.
+    ambientWanted = true;
+    if (isMuted) return;
     await fetchSlot("ambient");                 // fetched here, not with the interface cuts
     if (ambientNode || !buffers.has("ambient") || !ctx) return;
     const n = play("ambient", { gain: 0.0001 });
@@ -135,6 +140,7 @@ export function createAudio({ muted = false, base = "/v3/audio/", ambientGain = 
     isMuted = v;
     if (master && ctx) master.gain.linearRampToValueAtTime(v ? 0 : 1, ctx.currentTime + 0.15);
     listeners.forEach((fn) => fn(v));
+    if (!v && ambientWanted && !ambientNode) void startAmbient();   // asked for while muted; start it now
   }
   return {
     load, startAmbient, startLoop, setLevel, setMuted,

@@ -2,7 +2,9 @@
    cipher glyphs live in app/globals.css. Ported from the prototype's read.css. */
 .read { --col: 1160px; }
 .page { position: relative; z-index: 1; max-width: calc(var(--col) + 2 * var(--pad)); margin: 0 auto; padding: 0 var(--pad) 80px; }
-.rv { opacity: 0; transform: translateY(12px); transition: opacity .6s ease, transform .6s var(--ease); }
+/* Visible by default. The motion pass hides only what is still below the fold when it runs, so the
+   text is readable without JS and never blinks out after the reader can already see it. No transition
+   here on purpose: GSAP tweens the reveal, and a CSS one would also animate the initial hide. */
 .rv.is-in { opacity: 1; transform: none; }
 /* spotlight cards (pointer-tracked gradient) */
 .card, .proj__card, .proof .sf { --mx: 50%; --my: 50%; }

@@ -11,6 +11,7 @@
 import { useEffect } from "react";
 import { projects as staticProjects } from "@/data/portfolio";
 import { ev } from "@/lib/analytics";
+import { finePointer, whenQuiet, worthWebgl } from "@/lib/device";
 import { getAudio } from "@/lib/sound-client";
 import { hex } from "@/lib/text";
 import { moonUrl } from "@/lib/three/types";
@@ -22,11 +23,29 @@ const LANG_DESC: Readonly<Record<string, string>> = {
   HTML: "markup", CSS: "styling", Ruby: "homebrew formula", SQL: "schema + queries", Other: "everything else",
 };
 
+// how many card planets a coarse-pointer device is asked to render at once
+const MOBILE_LIVE_PLANETS = 2;
+
 // `projects` comes from the server page (the database); the static records are the fallback.
 export default function PlanetCanvases({ cutaway = false, projects = staticProjects }: { cutaway?: boolean; projects?: readonly ProjectFull[] }) {
   useEffect(() => {
     const canvases = Array.from(document.querySelectorAll<HTMLCanvasElement>("canvas[data-planet]"));
     if (!canvases.length) return;
+
+    // The chunk is ~170 kB over the wire and ~600 kB to parse, and each view compiles shaders. Where
+    // that cannot be afforded the CSS leaves a lit disc in the canvas, which is what it looked like
+    // before the shader ran anyway.
+    if (!worthWebgl()) { for (const c of canvases) c.classList.add("is-off"); return; }
+
+    // A phone's viewport is a fraction of a desktop's, so the desktop head start is most of the page
+    // ahead; and eight live WebGL contexts is more than a phone should be asked to hold at once. The
+    // live set is always a leading run, so each planet keeps the index its look is derived from.
+    const fine = finePointer();
+    const cap = fine || cutaway ? canvases.length : MOBILE_LIVE_PLANETS;
+    const live = canvases.slice(0, cap);
+    for (const c of canvases.slice(cap)) c.classList.add("is-off");
+    const liveIds = new Set(live.map((c) => c.dataset.planet));
+    const mountable = liveIds.size === projects.length ? projects : projects.filter((p) => liveIds.has(p.id));
 
     let dispose: (() => void) | undefined;
     let cancelled = false, started = false;
@@ -55,7 +74,7 @@ export default function PlanetCanvases({ cutaway = false, projects = staticProje
           moonName.hidden = m === null;
         };
 
-        const mounted = mountPlanets(projects, {
+        const mounted = mountPlanets(mountable, {
           cutaway,
           onCut: (on) => {
             if (label) label.textContent = on ? "close it" : "cut it open";
@@ -109,13 +128,20 @@ export default function PlanetCanvases({ cutaway = false, projects = staticProje
       }
     }
 
-    // a wide margin so the chunk is in flight before the first canvas is on screen
+    // A margin wide enough that the chunk is in flight before the first canvas is on screen, but on a
+    // short viewport 700 px was two screens of head start and put the fetch in the same queue as the
+    // content.
     const io = new IntersectionObserver((entries) => {
       if (entries.some((e) => e.isIntersecting)) { io.disconnect(); void start(); }
-    }, { rootMargin: "700px" });
-    for (const c of canvases) io.observe(c);
+    }, { rootMargin: fine ? "700px" : "250px" });
+    const arm = (): void => { if (!cancelled) for (const c of live) io.observe(c); };
+    // The project page's planet is what that page is about and can be cut open, so it is armed at once.
+    // The cards' planets are decoration: they wait for the load to finish and the thread to go quiet,
+    // rather than putting 170 kB of WebGL in the same queue as the text somebody came to read.
+    let stopWaiting: (() => void) | undefined;
+    if (cutaway) arm(); else stopWaiting = whenQuiet(arm, 4000);
 
-    return () => { cancelled = true; io.disconnect(); for (const off of offs) off(); dispose?.(); };
+    return () => { cancelled = true; stopWaiting?.(); io.disconnect(); for (const off of offs) off(); dispose?.(); };
   }, [cutaway, projects]);
 
   return null;

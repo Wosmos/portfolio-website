@@ -229,6 +229,40 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   function lamp(id: string, state: "" | "on" | "warn" | "bad"): void {
     const el = $(`#lamp-${id}`); el.classList.remove("on", "warn", "bad"); if (state) el.classList.add(state);
   }
+  /** A tap the ship will not honour: the bracket and the reticle blink amber so it never reads as dead. */
+  let refuseTimer = 0;
+  function refuse(): void {
+    deck.classList.remove("is-refuse"); void deck.offsetWidth;   // restart the blink on a second tap
+    deck.classList.add("is-refuse"); audio.tick();
+    clear(refuseTimer); refuseTimer = timer(() => deck.classList.remove("is-refuse"), 460);
+  }
+
+  // ── the phone cockpit: a rail that is always up and a labelled sheet that pulls over the glass ──
+  const grip = $<HTMLButtonElement>("#grip"), gripSt = $("#grip-st"), rotate = $("#rotate");
+  const sheetOpen = (): boolean => deck.classList.contains("is-sheet");
+  function setSheet(on: boolean): void {
+    deck.classList.toggle("is-sheet", on);
+    grip.setAttribute("aria-expanded", String(on));
+  }
+  const closeSheet = (): void => setSheet(false);
+  listen(grip, "click", () => setSheet(!sheetOpen()));
+
+  // one line, once a session, dismissible: a phone on its side is the closest thing to a canopy
+  const ROTATE_KEY = "wsf-rotate";
+  const landscape = (): boolean => matchMedia("(orientation: landscape)").matches;
+  function dismissRotate(): void {
+    if (rotate.hidden) return;
+    rotate.hidden = true; storageSet("session", ROTATE_KEY, "1");
+  }
+  function offerRotate(): void {
+    let seen = true;
+    try { seen = sessionStorage.getItem(ROTATE_KEY) === "1"; } catch { seen = true; }
+    if (seen || landscape() || !matchMedia("(max-width: 900px)").matches) return;
+    rotate.hidden = false;
+    timer(dismissRotate, 9000);
+  }
+  listen($("#rotate-x"), "click", dismissRotate);
+  listen(window, "resize", () => { if (landscape()) dismissRotate(); });
 
   // ── uplink ────────────────────────────────────────────
   function connect(log: (line: string, cls?: string) => void): Promise<boolean> {
@@ -276,6 +310,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (!ok || disposed) return;
     setThrottle(throttle);
     stirred();
+    timer(offerRotate, 2600);
     const hour = new Date().getHours();
     if (hour < 5) timer(() => findEgg("midnight", "me"), 4000);
     // deep link from the reading site: /ship?to=<project id> jumps there once the deck is up
@@ -348,11 +383,14 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     const h = system.heading();
     // a hovered or focused moon takes the "where" line, because it is the smaller, more specific answer
     const moon = h.moons.find((m) => m.focused) ?? h.moons.find((m) => m.hot);
-    $("#tl-state").textContent = h.flying
-      ? "in flight"
+    // in flight the line names the destination, so the name is on screen the whole way there
+    const where = h.flying
+      ? current ? `inbound · ${current.title.toLowerCase()}` : coreOpen ? "inbound · the sun" : "in flight"
       : moon
         ? `${moon.name.toLowerCase()} · ${moon.path ? `/${moon.path}` : "moon"}`
         : current ? `holding · ${current.title.toLowerCase()}` : coreOpen ? "holding · core" : "orbiting";
+    $("#tl-state").textContent = where;
+    gripSt.textContent = where;
     const link = $("#tl-link"); link.textContent = live.on ? `live · ${live.rtt}ms` : "static"; link.classList.toggle("on", live.on);
     $("#tl-push").textContent = lastPush ? `${lastPush.repo} · ${relTime(lastPush.at)}` : "…";
     $("#tl-clock").textContent = clockLocal ? `${clock()} local` : `${clock(person.tz)} pkt`;
@@ -414,6 +452,10 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   interface DashBox { x: number; y: number; w: number; h: number }
   interface DashLayout {
     w: number; h: number; pad: number;
+    /** Small: unlabelled tape, no ATT caption, and the two gauges lie down as bars a thumb can drag. */
+    compact: boolean;
+    /** Pixel size of the velocity figure — the only text that changes with the box. */
+    velSize: number;
     tape: DashBox;
     ball: { cx: number; cy: number; r: number };
     vel: { cx: number; top: number; mid: number; foot: number };
@@ -431,8 +473,52 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (dashCanvas.height !== bh) dashCanvas.height = bh;
   }
 
+  /**
+   * The phone rail: one 26px heading band with the state read out at its right end, then a single row
+   * of [attitude · velocity · a wide throttle slider · an energy pad]. The throttle is horizontal here
+   * because a 14px-tall vertical gauge is not a thing a thumb can set.
+   */
+  function dashRail(w: number, h: number): DashLayout {
+    const pad = 6, tapeH = 26, rowY = tapeH + 2, rowH = Math.max(20, h - rowY - 2);
+    const r = Math.min(14, rowH / 2 - 1);
+    const nrgW = Math.min(80, Math.max(52, w * 0.2));
+    const thrX = pad + r * 2 + 84;
+    const barY = rowY + Math.max(4, (rowH - 14) / 2);
+    return {
+      w, h, pad, compact: true, velSize: 15,
+      tape: { x: pad, y: 0, w: w - pad * 2, h: tapeH },
+      ball: { cx: pad + r, cy: rowY + rowH / 2, r },
+      vel: { cx: pad + r * 2 + 42, top: rowY + 1, mid: rowY + 11, foot: rowY + rowH },
+      thr: { x: thrX, y: barY, w: Math.max(40, w - pad - nrgW - 10 - thrX), h: 14 },
+      nrg: { x: w - pad - nrgW, y: barY, w: nrgW, h: 14 },
+      read: w - pad - nrgW,
+    };
+  }
+  /**
+   * The landscape flank: too narrow for a row of instruments, tall enough for a stack. Band, then
+   * attitude beside velocity, then the two gauges as full-width bars at the foot.
+   */
+  function dashStack(w: number, h: number): DashLayout {
+    const pad = 6, tapeH = 26, barH = 14, barW = w - pad * 2;
+    const nrgY = h - barH - 2, thrY = nrgY - barH - 6;
+    const rowY = tapeH + 3, rowB = thrY - 6;
+    const r = Math.max(11, Math.min(20, (rowB - rowY) / 2 - 2));
+    return {
+      w, h, pad, compact: true, velSize: 18,
+      tape: { x: pad, y: 0, w: barW, h: tapeH },
+      ball: { cx: pad + r, cy: (rowY + rowB) / 2, r },
+      vel: { cx: (pad + r * 2 + 6 + w - pad) / 2, top: rowY + 2, mid: rowY + 14, foot: rowB - 11 },
+      thr: { x: pad, y: thrY, w: barW, h: barH },
+      nrg: { x: pad, y: nrgY, w: barW, h: barH },
+      read: pad,
+    };
+  }
+
   function dashLayout(): DashLayout {
-    const w = dashW || 640, h = dashH || 150, pad = Math.max(6, Math.round(h * 0.07));
+    const w = dashW || 640, h = dashH || 150;
+    if (h < 96) return dashRail(w, h);
+    if (w < 420) return dashStack(w, h);
+    const pad = Math.max(6, Math.round(h * 0.07));
     const tapeH = Math.min(40, Math.max(26, h * 0.3));       // the top band
     const bandY = tapeH + pad * 0.4, bandH = h - bandY - pad * 0.6;
     const caption = 11;                                       // room under the ball and gauges for a label
@@ -442,7 +528,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     const thrX = read - 52 - gw;
     const gapL = pad + 4 + r * 2 + 10;
     return {
-      w, h, pad,
+      w, h, pad, compact: false, velSize: Math.round(Math.min(24, h * 0.22)),
       tape: { x: pad, y: 0, w: w - pad * 2, h: tapeH },
       ball: { cx: pad + 4 + r, cy: bandY + 2 + r, r },
       vel: { cx: gapL + (thrX - 10 - gapL) / 2, top: bandY + 1, mid: bandY + bandH * 0.3, foot: bandY + bandH - 11 },
@@ -472,12 +558,21 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
       const major = val % 30 === 0;
       g.globalAlpha = Math.max(0, Math.min(1, (reach - Math.abs(x - cx)) / 26));
       g.strokeStyle = major ? "rgba(0,229,255,.75)" : "rgba(242,245,255,.28)"; g.lineWidth = 1;
-      g.beginPath(); g.moveTo(x, 5); g.lineTo(x, major ? 15 : 10); g.stroke();
-      if (major) { g.fillStyle = "rgba(242,245,255,.72)"; g.textAlign = "center"; g.fillText(String(val).padStart(3, "0"), x, 17); }
+      g.beginPath(); g.moveTo(x, L.compact ? 3 : 5); g.lineTo(x, (major ? 15 : 10) - (L.compact ? 3 : 0)); g.stroke();
+      // in the rail the band's one text line belongs to HDG and the state, so the ticks go unlabelled
+      if (major && !L.compact) { g.fillStyle = "rgba(242,245,255,.72)"; g.textAlign = "center"; g.fillText(String(val).padStart(3, "0"), x, 17); }
       g.globalAlpha = 1;
     }
     g.fillStyle = "#00e5ff"; g.beginPath(); g.moveTo(cx, 0); g.lineTo(cx - 4, 5); g.lineTo(cx + 4, 5); g.closePath(); g.fill();
-    g.fillStyle = "rgba(0,229,255,.9)"; g.textAlign = "center"; g.fillText(`HDG ${String(Math.round(deg)).padStart(3, "0")}°`, cx, L.tape.h - 12);
+    const hdg = `HDG ${String(Math.round(deg)).padStart(3, "0")}°`;
+    const state = h.flying ? `ETA ${Math.max(0, (1 - h.flightT) * h.flightDur).toFixed(1)}s` : current ? "holding" : coreOpen ? "at core" : "orbit";
+    g.fillStyle = "rgba(0,229,255,.9)";
+    if (L.compact) {
+      // the band's bottom line carries what the tall panel says under the velocity block
+      g.textAlign = "left"; g.fillText(hdg, L.tape.x, L.tape.h - 11);
+      g.fillStyle = h.flying ? "#00e5ff" : "rgba(242,245,255,.45)"; g.textAlign = "right";
+      g.fillText(state, L.tape.x + L.tape.w, L.tape.h - 11);
+    } else { g.textAlign = "center"; g.fillText(hdg, cx, L.tape.h - 12); }
 
     // artificial horizon: pitch from phi, roll from the camera's z
     const { cx: hx, cy: hy, r: hr } = L.ball;
@@ -487,7 +582,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     g.fillStyle = "rgba(255,181,71,.10)"; g.fillRect(-hr * 3, 0, hr * 6, hr * 6);
     g.strokeStyle = "rgba(0,229,255,.8)"; g.lineWidth = 1; g.beginPath(); g.moveTo(-hr * 3, 0); g.lineTo(hr * 3, 0); g.stroke();
     g.strokeStyle = "rgba(242,245,255,.35)";
-    for (const k of [-2, -1, 1, 2]) { const yy = k * hr * 0.36; g.beginPath(); g.moveTo(-hr * 0.4, yy); g.lineTo(hr * 0.4, yy); g.stroke(); }
+    if (!L.compact) for (const k of [-2, -1, 1, 2]) { const yy = k * hr * 0.36; g.beginPath(); g.moveTo(-hr * 0.4, yy); g.lineTo(hr * 0.4, yy); g.stroke(); }
     g.restore();
     g.strokeStyle = "rgba(0,229,255,.35)"; g.beginPath(); g.arc(hx, hy, hr, 0, Math.PI * 2); g.stroke();
     g.strokeStyle = "#00e5ff"; g.lineWidth = 1.5;
@@ -496,16 +591,16 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     g.moveTo(hx + hr * 0.14, hy); g.lineTo(hx + hr * 0.42, hy);
     g.moveTo(hx, hy - 3); g.lineTo(hx, hy + 3);
     g.stroke();
-    g.fillStyle = "rgba(242,245,255,.45)"; g.textAlign = "center"; g.fillText("ATT", hx, hy + hr + 1);
+    if (!L.compact) { g.fillStyle = "rgba(242,245,255,.45)"; g.textAlign = "center"; g.fillText("ATT", hx, hy + hr + 1); }
 
     // velocity, in the gap the ball and the gauges leave between them
     const vel = h.flying ? h.speed * 9.6 : 0;
     g.fillStyle = "rgba(242,245,255,.45)"; g.textAlign = "center"; g.fillText("VEL au/s", L.vel.cx, L.vel.top);
     g.fillStyle = h.flying ? "#00e5ff" : "rgba(242,245,255,.8)";
-    g.font = `700 ${Math.round(Math.min(24, L.h * 0.22))}px ${MONO}`;
+    g.font = `700 ${L.velSize}px ${MONO}`;
     g.fillText(vel.toFixed(1), L.vel.cx, L.vel.mid);
     g.font = `10px ${MONO}`; g.fillStyle = "rgba(242,245,255,.45)";
-    g.fillText(h.flying ? `ETA ${Math.max(0, (1 - h.flightT) * h.flightDur).toFixed(1)}s` : (current ? "holding" : coreOpen ? "at core" : "orbit"), L.vel.cx, L.vel.foot);
+    if (!L.compact) g.fillText(state, L.vel.cx, L.vel.foot);
 
     // throttle and energy
     const drawGauge = (box: DashBox, v: number, col: string, label: string, detents: readonly number[]): void => {
@@ -515,8 +610,26 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
       for (const d of detents) { const yy = box.y + box.h * (1 - d); g.beginPath(); g.moveTo(box.x - 3, yy); g.lineTo(box.x + box.w + 3, yy); g.stroke(); }
       g.fillStyle = "rgba(242,245,255,.45)"; g.textAlign = "center"; g.fillText(label, box.x + box.w / 2, box.y + box.h + 1);
     };
+    // sideways, with the caption and the value inside the bar: the rail has no room above or below one
+    const drawGaugeH = (box: DashBox, v: number, col: string, label: string, pct: number, detents: readonly number[]): void => {
+      g.fillStyle = "rgba(242,245,255,.08)"; g.fillRect(box.x, box.y, box.w, box.h);
+      g.fillStyle = col; g.fillRect(box.x, box.y, box.w * v, box.h);
+      g.strokeStyle = "rgba(242,245,255,.28)"; g.lineWidth = 1;
+      for (const d of detents) { const xx = box.x + box.w * d; g.beginPath(); g.moveTo(xx, box.y); g.lineTo(xx, box.y + box.h); g.stroke(); }
+      g.strokeStyle = "rgba(242,245,255,.18)"; g.strokeRect(box.x + 0.5, box.y + 0.5, box.w - 1, box.h - 1);
+      g.font = `8px ${MONO}`; g.fillStyle = "rgba(242,245,255,.85)";
+      g.textAlign = "left"; g.fillText(label, box.x + 4, box.y + 4);
+      g.textAlign = "right"; g.fillText(`${Math.round(pct)} %`, box.x + box.w - 4, box.y + 4);
+      g.font = `10px ${MONO}`;
+    };
+    const nrgCol = energy < 0.2 ? "#ff4d5e" : energy < 0.5 ? "#ffb547" : "rgba(0,229,255,.75)";
+    if (L.compact) {
+      drawGaugeH(L.thr, (throttle + 0.6) / 1.6, "rgba(0,229,255,.6)", "THR", throttle * 100, [0.375, 0.7]);
+      drawGaugeH(L.nrg, energy, nrgCol, "NRG", energy * 100, [0.25, 0.5, 0.75]);
+      return;
+    }
     drawGauge(L.thr, (throttle + 0.6) / 1.6, "#00e5ff", "THR", [0.375, 0.7, 1]);
-    drawGauge(L.nrg, energy, energy < 0.2 ? "#ff4d5e" : energy < 0.5 ? "#ffb547" : "rgba(0,229,255,.75)", "NRG", [0.25, 0.5, 0.75]);
+    drawGauge(L.nrg, energy, nrgCol, "NRG", [0.25, 0.5, 0.75]);
     g.textAlign = "left"; g.fillStyle = "rgba(242,245,255,.7)";
     g.fillText(`${Math.round(throttle * 100)} %`, L.read, L.thr.y);
     g.fillText(`${Math.round(energy * 100)} %`, L.read, L.thr.y + 13);
@@ -524,18 +637,28 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   }
 
   // ── target lock reticle (follows the hovered / current planet) ──
-  function drawLock(): void {
+  // the bracket is recomputed here from the scene's last camera, so a raw copy chatters by a frame;
+  // easing it makes it settle, and lets it stay on the destination for the whole flight
+  const lockAt = { x: 0, y: 0, px: 60, on: false };
+  function drawLock(dt: number): void {
     if (!system) return;
     const h = system.heading();
-    const idx = h.hot >= 0 ? h.hot : current ? projects.indexOf(current) : -1;
+    const held = current ? projects.indexOf(current) : -1;
+    // mid-flight the bracket is the destination marker: the one thing that says where we are going
+    const idx = h.flying ? held : h.hot >= 0 ? h.hot : held;
     const b = h.bodies[idx];
-    if (idx < 0 || h.flying || !b) { lockEl.classList.remove("is-on"); return; }
+    const off = (): void => { lockEl.classList.remove("is-on"); lockAt.on = false; };
+    if (idx < 0 || !b) { off(); return; }
     const p = system.project({ x: b.x, y: b.y, z: b.z });
-    if (p.z > 1) { lockEl.classList.remove("is-on"); return; }
+    if (p.z > 1) { off(); return; }
     const dist = Math.hypot(h.pos.x - b.x, h.pos.y - b.y, h.pos.z - b.z);
     const px = clamp((b.size * 900) / (2 * Math.tan(21 * Math.PI / 180) * dist) * 2.6, 44, 220);
-    lockEl.style.width = lockEl.style.height = `${px}px`; lockEl.style.left = `${p.x}px`; lockEl.style.top = `${p.y}px`;
-    $(".lock__t", lockEl).textContent = `${projects[idx].title} · ${dist.toFixed(1)} au`;
+    const k = lockAt.on ? 1 - Math.exp(-dt * 14) : 1;
+    lockAt.x += (p.x - lockAt.x) * k; lockAt.y += (p.y - lockAt.y) * k; lockAt.px += (px - lockAt.px) * k;
+    lockAt.on = true;
+    lockEl.style.width = lockEl.style.height = `${lockAt.px.toFixed(1)}px`;
+    lockEl.style.left = `${lockAt.x.toFixed(1)}px`; lockEl.style.top = `${lockAt.y.toFixed(1)}px`;
+    $(".lock__t", lockEl).textContent = `${h.flying ? "→ " : ""}${projects[idx].title} · ${dist.toFixed(1)} au`;
     lockEl.classList.add("is-on");
   }
 
@@ -593,9 +716,21 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   }
 
   // ── flights + readout ─────────────────────────────────
+  /**
+   * One tap, one commitment. A tap mid-flight re-aims the ship rather than being dropped on the floor;
+   * a tap on the body we are already inbound to, or already parked at, blinks the bracket and says so.
+   * Nothing here is ever silent — that silence is what made the planets feel dead on a phone.
+   */
   function select(p: Project): void {
-    if (!system || system.isFlying()) return;
-    if (energy < 0.08) { showToast("out of energy · head toward the sun to recharge", 3000); audio.tick(); return; }
+    if (!system) return;
+    const flying = system.isFlying();
+    if (current?.id === p.id) {
+      refuse(); showToast(flying ? `already inbound · ${p.title.toLowerCase()}` : `already holding · ${p.title.toLowerCase()}`, 1800);
+      return;
+    }
+    if (energy < 0.08) { refuse(); showToast("out of energy · head toward the sun to recharge", 3000); return; }
+    if (flying) { abortTour(); showToast(`rerouting · ${p.title.toLowerCase()}`, 1800); }
+    closeSheet();
     current = p; coreOpen = false; closePanel(); closeHud(false); markCurrent(); deck.classList.add("is-flying");
     ev("deck_flight", { id: p.id });
     system.flyTo(p.id, () => {
@@ -605,7 +740,11 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     });
   }
   function selectSun(): void {
-    if (!system || system.isFlying()) return;
+    if (!system) return;
+    const flying = system.isFlying();
+    if (coreOpen) { refuse(); showToast(flying ? "already inbound · the sun" : "already holding · the sun", 1800); return; }
+    if (flying) { abortTour(); showToast("rerouting · the sun", 1800); }
+    closeSheet();
     current = null; coreOpen = true; closePanel(); closeHud(false); markCurrent(); deck.classList.add("is-flying");
     sunVisits++;
     if (sunVisits >= 3) findEgg("sunstare", "space");
@@ -642,8 +781,11 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
       meta: `<span>project ${pad2(i + 1)} of ${pad2(projects.length)}</span><span>${p.category}</span><span>built ${p.year ?? "—"}</span><span class="${p.live ? "on" : ""}">${p.live ? "live now" : p.status ?? "source only"}</span>`,
       title: p.title, tag: p.tagline, desc: p.description,
       mods: `<span class="hud__k">what it is built with</span>` + p.stack.map((s, k) => `<div class="mod"><span>${pad2(k + 1)}</span><b>${s}</b><i style="--w:${70 + ((k * 37) % 30)}%"></i></div>`).join(""),
-      demo: p.live ? `<span class="hud__k">try it</span><a href="${p.live}" target="_blank" rel="noopener">${liveHost} ↗</a>` : `<span class="hud__k">try it</span><span style="color:var(--fg-3)">not deployed publicly · the source is on github</span>`,
-      links: `<a href="${p.github}" target="_blank" rel="noopener">see the code on github ↗</a>${p.live ? `<a href="${p.live}" target="_blank" rel="noopener">open the live site ↗</a>` : ""}`,
+      // a private repository has no link to give: its url 404s for anyone but me
+      demo: p.live
+        ? `<span class="hud__k">try it</span><a href="${p.live}" target="_blank" rel="noopener">${liveHost} ↗</a>`
+        : `<span class="hud__k">try it</span><span style="color:var(--fg-3)">${p.sourcePrivate ? "not deployed publicly · the source is private" : "not deployed publicly · the source is on github"}</span>`,
+      links: `${p.sourcePrivate ? "" : `<a href="${p.github}" target="_blank" rel="noopener">see the code on github ↗</a>`}${p.live ? `<a href="${p.live}" target="_blank" rel="noopener">open the live site ↗</a>` : ""}`,
       range: `project ${pad2(i + 1)} of ${pad2(projects.length)} · ${ORBIT_AU[i] ?? "—"} au out`, comp: compositionHtml(p) });
   }
   function openCore(): void {
@@ -667,7 +809,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     }
   }
   function step(dir: 1 | -1): void {
-    if (!system || system.isFlying()) return;
+    if (!system) return;
     const i = current ? projects.indexOf(current) : -1;
     select(projects[(i + dir + projects.length) % projects.length]);
   }
@@ -755,6 +897,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   };
   function openPanel(name: PanelName): void {
     if (panelOpen === name) { closePanel(); return; }
+    closeSheet();   // the switch that opened this lives in the sheet; keep the glass free to read on
     ev("deck_panel", { panel: name });
     panelOpen = name; $("#panel-title").textContent = PANEL_TITLES[name]; $("#panel-body").innerHTML = PANELS[name]();
     for (const k of $$(".sw[data-panel]")) k.classList.toggle("is-on", k.dataset.panel === name);
@@ -952,23 +1095,25 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     const c = dashCanvas; let mode: DashDrag = null, lastX = 0;
     // pointer positions are in CSS pixels, the space dashLayout() works in
     const pt = (e: PointerEvent): { x: number; y: number } => { const r = c.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
-    const near = (box: DashBox, x: number, y: number): boolean =>
-      x > box.x - 8 && x < box.x + box.w + 8 && y > box.y - 6 && y < box.y + box.h + 8;
-    const thrFromY = (y: number): number => {
+    // the rail's regions are half the size of the panel's, so the slop around them doubles there
+    const near = (box: DashBox, x: number, y: number, s: number): boolean =>
+      x > box.x - s && x < box.x + box.w + s && y > box.y - s && y < box.y + box.h + s;
+    const thrFrom = (x: number, y: number): number => {
       const L = dashLayout();
-      return clamp((1 - (y - L.thr.y) / L.thr.h) * 1.6 - 0.6, -0.6, 1);
+      const u = L.compact ? (x - L.thr.x) / L.thr.w : 1 - (y - L.thr.y) / L.thr.h;
+      return clamp(u * 1.6 - 0.6, -0.6, 1);
     };
     listen(c, "pointerdown", (e) => {
-      const { x, y } = pt(e), L = dashLayout();
+      const { x, y } = pt(e), L = dashLayout(), s = L.compact ? 13 : 8;
       if (y < L.tape.h) { mode = "tape"; lastX = x; c.setPointerCapture(e.pointerId); }
-      else if (Math.hypot(x - L.ball.cx, y - L.ball.cy) < L.ball.r + 6) { system?.level(); showToast("view levelled", 1200); audio.tick(); }
-      else if (near(L.thr, x, y)) { mode = "thr"; setThrottle(thrFromY(y)); c.setPointerCapture(e.pointerId); }
-      else if (near(L.nrg, x, y)) recharge();
+      else if (Math.hypot(x - L.ball.cx, y - L.ball.cy) < L.ball.r + s) { system?.level(); showToast("view levelled", 1200); audio.tick(); }
+      else if (near(L.thr, x, y, s)) { mode = "thr"; setThrottle(thrFrom(x, y)); c.setPointerCapture(e.pointerId); }
+      else if (near(L.nrg, x, y, s)) recharge();
     });
     listen(c, "pointermove", (e) => {
       if (!mode) return; const { x, y } = pt(e);
       if (mode === "tape") { system?.nudge((x - lastX) / 3.6 * Math.PI / 180); lastX = x; }
-      if (mode === "thr") setThrottle(thrFromY(y));
+      if (mode === "thr") setThrottle(thrFrom(x, y));
     });
     listen(window, "pointerup", () => { mode = null; });
   }
@@ -982,7 +1127,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (kIdx === KONAMI.length) { kIdx = 0; hyper(); findEgg("konami", "random"); return; }
     const k = e.key.toLowerCase();
     if (e.key === "/") { e.preventDefault(); showCmd(); findEgg("cmdline", "random"); return; }
-    if (e.key === "Escape") { if (panelOpen) { closePanel(); return; } abortTour(); if (system?.focusedId()) closeHud(true); }
+    if (e.key === "Escape") { if (panelOpen) { closePanel(); return; } if (sheetOpen()) { closeSheet(); return; } abortTour(); if (system?.focusedId()) closeHud(true); }
     if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1);
     if (k === "x") toggleCutaway();
     if (/^[1-8]$/.test(e.key)) { const p = projects[Number(e.key) - 1]; if (p) select(p); }
@@ -999,7 +1144,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   });
   // A wheel over a panel, the readout or the dashboard scrolls that thing. Only the open view and the
   // zoom rocker move the ship, and nothing moves it while a panel or the command line is up.
-  const COCKPIT = ".dash, .hud, .panel, .cmd, .toast, .deck__id, .callout-labels, .beacon";
+  const COCKPIT = ".dash, .hud, .panel, .cmd, .toast, .deck__id, .callout-labels, .beacon, .rotate";
   listen(window, "wheel", (e) => {
     if (!system || panelOpen !== null || !cmd.hidden) return;
     const el = e.target instanceof Element ? e.target : null;
@@ -1076,7 +1221,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
       rafId = window.requestAnimationFrame(loop);
       const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
       fps.frames++; if (now - fps.last > 1000) { fps.value = fps.frames; fps.frames = 0; fps.last = now; }
-      tickEnergy(dt); drawRadar(); drawDash(); drawLock(); drawCallouts();
+      tickEnergy(dt); drawRadar(); drawDash(); drawLock(dt); drawCallouts();
     };
     loop(performance.now());
     scheduleBeacon();
@@ -1097,6 +1242,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     gsap.killTweensOf([boot, deck, hud, panel, beacon]);
     for (const ws of sockets) { try { ws.close(); } catch { /* already closed */ } } sockets.clear();
     system?.dispose(); system = null;
+    deck.classList.remove("is-sheet", "is-refuse", "is-flying");
     labelsEl?.remove(); labelsEl = null;
     clearCallouts();
     audio.setMuted(true); // AudioApi has no dispose; silence the orphaned context so nothing plays over the next route

@@ -74,19 +74,22 @@ export default function ShipDeck({ initialTarget, lastPush = null, projects, orb
           <div className="frame__vignette" />
         </div>
 
-        {/* instrument screens in the hood */}
+        {/* instrument screens in the hood. On a phone the same screens split in two: the rail stays on
+            the thumb line and the sheet pulls up over the glass, so the wrappers are display:contents
+            on a desktop and real grid boxes below 900px. */}
         <div className="dash">
+          <button id="grip" className="grip" type="button" aria-expanded="false" aria-controls="sheet">
+            <i className="grip__bar" aria-hidden="true" />
+            <span className="grip__k">console</span>
+            <b id="grip-st">orbiting</b>
+            <i className="grip__v" aria-hidden="true" />
+          </button>
+
+          <div id="sheet" className="sheet">
           <div className="screen screen--left">
             <span className="screen__k">projects · <i id="tgt-count" /></span>
             <ol id="targets" className="targets" />
             <button className="tgt tgt--sun" type="button" data-sun><span className="tgt__n">★</span><span className="tgt__name">about me<small>the sun</small></span></button>
-          </div>
-
-          <div className="screen screen--mid">
-            <canvas id="dash" width="640" height="150" aria-hidden="true" />
-            <div className="lamps" aria-hidden="true">
-              <i id="lamp-link" className="lamp" data-l="uplink" /><i id="lamp-belt" className="lamp" data-l="belt" /><i id="lamp-lock" className="lamp" data-l="lock" /><i id="lamp-hyper" className="lamp" data-l="hyper" /><i id="lamp-fuel" className="lamp" data-l="fuel" />
-            </div>
           </div>
 
           {/* control console: the switch bank + the zoom rocker, set into the dashboard */}
@@ -121,6 +124,17 @@ export default function ShipDeck({ initialTarget, lastPush = null, projects, orb
               <div className="tele__row" data-act="clock" title="My time or yours"><span>my time</span><b id="tl-clock">—</b></div>
             </div>
           </div>
+          </div>
+
+          {/* the rail: what a pilot needs without opening anything — attitude, heading, velocity, throttle, energy */}
+          <div className="rail">
+            <div className="screen screen--mid">
+              <canvas id="dash" width="640" height="150" aria-hidden="true" />
+              <div className="lamps" aria-hidden="true">
+                <i id="lamp-link" className="lamp" data-l="uplink" /><i id="lamp-belt" className="lamp" data-l="belt" /><i id="lamp-lock" className="lamp" data-l="lock" /><i id="lamp-hyper" className="lamp" data-l="hyper" /><i id="lamp-fuel" className="lamp" data-l="fuel" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* top: ship id + wordmark */}
@@ -135,6 +149,12 @@ export default function ShipDeck({ initialTarget, lastPush = null, projects, orb
         <div id="callout-labels" className="callout-labels" aria-hidden="true" />
 
         <span className="hint">each planet is a project · click one to fly · drag to look · zoom from the console rocker</span>
+
+        {/* one quiet line, once a session: a phone on its side is the closest thing to a canopy */}
+        <div id="rotate" className="rotate" hidden>
+          <span>turn the phone · wider canopy</span>
+          <button id="rotate-x" type="button" aria-label="dismiss">×</button>
+        </div>
 
         {/* readout */}
         <aside id="hud" className="hud sf" aria-label="Readout" aria-hidden="true">

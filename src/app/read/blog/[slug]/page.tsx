@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { SITE_URL } from "@/data/portfolio";
 import { getPerson, getPosts } from "@/lib/content";
 import { renderMarkdown } from "@/lib/markdown";
-import { clampDescription } from "@/lib/seo";
+import { clampDescription, OG_SIZE } from "@/lib/seo";
 import { pad2 } from "@/lib/text";
 import PostMeta from "@/components/read/PostMeta";
 
@@ -30,8 +30,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       type: "article",
       ...(post.publishedAt ? { publishedTime: post.publishedAt } : {}),
       ...(post.tags.length ? { tags: [...post.tags] } : {}),
+      // naming `openGraph` replaces the parent's whole object, so the card has to be named here — the
+      // post's own cover when it has one, the root brand card otherwise
+      images: [{ url: post.coverImage || "/opengraph-image", ...OG_SIZE, alt: post.title }],
     },
-    twitter: { card: "summary_large_image", title: post.title, description },
+    twitter: { card: "summary_large_image", title: post.title, description, images: [post.coverImage || "/opengraph-image"] },
   };
 }
 

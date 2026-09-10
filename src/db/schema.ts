@@ -104,6 +104,8 @@ export const projects = pgTable("projects", {
   moons: jsonb("moons").$type<MoonConfigJson[]>().default([]).notNull(),
   /** Re-detect moons from the repository tree on the next refresh, replacing the untouched ones. */
   moonsAuto: boolean("moons_auto").default(true).notNull(),
+  /** A private repository: the link would 404 for a visitor, so the page says so instead of offering it. */
+  sourcePrivate: boolean("source_private").default(false).notNull(),
   /** When false the dashboard's own value wins over whatever GitHub reports. */
   useLiveLangs: boolean("use_live_langs").default(true).notNull(),
   useLiveMeta: boolean("use_live_meta").default(true).notNull(),

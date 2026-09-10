@@ -14,6 +14,8 @@ export type ProjectId = "zcrypt" | "learnity" | "furnizsh" | "netlink" | "docxo"
 export interface Project {
   /** The URL segment. The eight static records use `ProjectId`; a project added in the admin may use any slug. */
   id: string; title: string; year: number | null; weight: number; tagline: string; description: string;
+  /** The repository is private, so no source link is offered — it would 404. */
+  sourcePrivate?: boolean;
   stack: readonly string[]; context: string; category: string; status?: string;
   github: string; live: string | null; langs: readonly LangShare[]; planet: PlanetConfig;
 }
@@ -78,7 +80,7 @@ export const projects: readonly Project[] = [
       ring: { ca: 0xa78bfa, cb: 0xf3e8ff, inner: 1.3, outer: 2.5, tilt: 0.44 } },
   },
   {
-    id: "learnity", title: "Learnity", year: 2025, weight: 0.85,
+    id: "learnity", sourcePrivate: true, title: "Learnity", year: 2025, weight: 0.85,
     tagline: "tutoring platform with a gamification engine",
     description:
       "Connects students with verified tutors — custom gamification engine (XP, streaks, progression), real-time HD video via GetStream, and role-based access control. Final Year Project, shipped solo.",
@@ -123,7 +125,7 @@ export const projects: readonly Project[] = [
     planet: { type: "gas", size: 0.95, c0: 0x8b5e3c, c1: 0xe8d3a3, c2: 0xb9925a, c3: 0xf6ebd0, rim: 0xffd9a0 },
   },
   {
-    id: "devtoolshq", title: "DevToolsHQ", year: null, weight: 0.55,
+    id: "devtoolshq", sourcePrivate: true, title: "DevToolsHQ", year: null, weight: 0.55,
     tagline: "developer utilities dashboard",
     description: "Unified dashboard of developer utility tools — formatters, testers, generators — optimized for DX.",
     stack: ["Next.js", "TypeScript", "Firebase"],
@@ -248,8 +250,8 @@ export const highlights: Readonly<Record<string, Highlight>> = {
 // Testimonials. NOTHING here is real yet — both entries are SAMPLES so the section can be designed;
 // they render with a visible "sample" tag until replaced with real quotes (name, role, link) or removed.
 export const testimonials: readonly Testimonial[] = [
-  { placeholder: true, quote: "Sample quote. Replace with a real one from a lead, client or teammate: what was built, how it went, what you would say to the next person hiring him.", name: "Name Surname", role: "Engineering lead", company: "Company", link: null },
-  { placeholder: true, quote: "Second sample. Two or three real testimonials are plenty; delete the rest. Keep them short enough to read in one breath.", name: "Name Surname", role: "Client", company: "Company", link: null },
+  // Empty on purpose. The section hides itself when there are none, and an invented quote on a page a
+  // hiring manager reads is worse than no quotes at all. Real ones go in through the admin.
 ];
 
 // The four the reading site leads with (the résumé's selected projects + furniZsh); the rest live on /read/projects.html.

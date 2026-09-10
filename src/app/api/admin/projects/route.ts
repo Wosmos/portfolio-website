@@ -230,6 +230,7 @@ const parse = (sunRadius: number): Parse<typeof t.projects> => (input, base) =>
     orbit: f.of("orbit", base?.orbit, positive),
     moons: f.of("moons", base?.moons ?? [], readMoons),
     moonsAuto: f.bool("moonsAuto", base?.moonsAuto ?? true),
+    sourcePrivate: f.bool("sourcePrivate", base?.sourcePrivate ?? false),
     useLiveLangs: f.bool("useLiveLangs", base?.useLiveLangs ?? true),
     useLiveMeta: f.bool("useLiveMeta", base?.useLiveMeta ?? true),
     useLiveReadme: f.bool("useLiveReadme", base?.useLiveReadme ?? true),

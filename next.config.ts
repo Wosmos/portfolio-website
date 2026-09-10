@@ -11,7 +11,7 @@ const csp = [
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https://fggnxvf87yifjcf8.public.blob.vercel-storage.com",
   "media-src 'self'",
-  "connect-src 'self' https://fggnxvf87yifjcf8.public.blob.vercel-storage.com https://api.github.com https://api.resend.com https://va.vercel-scripts.com https://vitals.vercel-insights.com wss: ws:",
+  "connect-src 'self' https://fggnxvf87yifjcf8.public.blob.vercel-storage.com https://api.github.com https://api.resend.com https://va.vercel-scripts.com https://vitals.vercel-insights.com",
   "worker-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",

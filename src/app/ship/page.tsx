@@ -33,6 +33,7 @@ export default async function ShipPage() {
     id: p.id, title: p.title, tagline: p.tagline, description: p.description, stack: p.stack,
     category: p.category, context: p.context, status: p.status, year: p.year, weight: p.weight,
     github: p.github, live: p.live, langs: p.langs, planet: p.planet, moons: p.moons,
+    sourcePrivate: p.sourcePrivate,
   }));
   const orbits = projects.map((p) => p.orbit);
 

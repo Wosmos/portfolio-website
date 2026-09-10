@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SITE_URL } from "@/data/portfolio";
 import { getPosts } from "@/lib/content";
+import { OG_SIZE } from "@/lib/seo";
 import { pad2 } from "@/lib/text";
 import PostMeta from "@/components/read/PostMeta";
 
@@ -17,7 +18,10 @@ export async function generateMetadata(): Promise<Metadata> {
     title: "Blog",
     description: DESCRIPTION,
     alternates: { canonical: "/read/blog" },
-    openGraph: { url: "/read/blog", title: "Blog", description: DESCRIPTION, type: "website" },
+    // naming `openGraph` replaces the parent's whole object, so the root brand card is repeated here —
+    // see the same note in src/app/read/page.tsx
+    openGraph: { url: "/read/blog", title: "Blog", description: DESCRIPTION, type: "website", images: [{ url: "/opengraph-image", ...OG_SIZE, alt: "Blog" }] },
+    twitter: { card: "summary_large_image", title: "Blog", description: DESCRIPTION, images: ["/opengraph-image"] },
     ...(posts.length ? {} : { robots: { index: false, follow: true } }),
   };
 }

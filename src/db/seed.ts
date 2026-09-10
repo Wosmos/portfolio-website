@@ -52,6 +52,7 @@ async function main(): Promise<void> {
       category: p.category, context: p.context, status: p.status ?? "", year: p.year, weight: p.weight,
       github: p.github, live: p.live ?? "", langs: p.langs.map(([n, v]) => [n, v] as [string, number]),
       planet, orbit: DEFAULT_ORBITS[i] ?? 17 + i * 12,
+      sourcePrivate: p.sourcePrivate ?? false,
       featured: featured.includes(p.id), visible: true, sortOrder: i, updatedAt: new Date(),
     };
     const found = await db.select({ id: t.projects.id }).from(t.projects).where(eq(t.projects.slug, p.id)).limit(1);

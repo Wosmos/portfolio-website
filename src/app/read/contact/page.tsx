@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getPerson } from "@/lib/content";
+import { OG_SIZE } from "@/lib/seo";
 import ContactForm from "@/components/read/ContactForm";
 
 export const revalidate = 3600;
@@ -11,7 +12,10 @@ export async function generateMetadata(): Promise<Metadata> {
     title: "Contact",
     description,
     alternates: { canonical: "/read/contact" },
-    openGraph: { type: "website", url: "/read/contact", title: "Contact", description },
+    // naming `openGraph` replaces the parent's whole object, so the root brand card is repeated here —
+    // see the same note in src/app/read/page.tsx
+    openGraph: { type: "website", url: "/read/contact", title: "Contact", description, images: [{ url: "/opengraph-image", ...OG_SIZE, alt: "Contact" }] },
+    twitter: { card: "summary_large_image", title: "Contact", description, images: ["/opengraph-image"] },
   };
 }
 

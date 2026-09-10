@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SITE_URL } from "@/data/portfolio";
 import { getEducation, getExperience, getFeatured, getPerson, getProjects, getSkills, getTestimonials } from "@/lib/content";
 import { getLastPush } from "@/lib/github";
-import { absoluteUrl, clampDescription, SITE_NAME } from "@/lib/seo";
+import { absoluteUrl, clampDescription, OG_SIZE, SITE_NAME } from "@/lib/seo";
 import { ago, monthsBetween, pad2, spanLabel, ym } from "@/lib/text";
 import ContactForm from "@/components/read/ContactForm";
 import LocalTime from "@/components/read/LocalTime";
@@ -25,7 +25,11 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { absolute: title },   // the name is already in it; the template would say it twice
     description,
     alternates: { canonical: "/read", types: { "text/plain": "/llms.txt" } },
-    openGraph: { type: "website", url: "/read", title, description },
+    // Naming `openGraph` here replaces the parent's whole object, so the root brand card has to be
+    // repeated — without it a shared /read link has no image at all. Twitter's tags do not fall back
+    // to Open Graph when the layout already declared a `twitter` object, so it is named too.
+    openGraph: { type: "website", url: "/read", title, description, images: [{ url: "/opengraph-image", ...OG_SIZE, alt: title }] },
+    twitter: { card: "summary_large_image", title, description, images: ["/opengraph-image"] },
   };
 }
 

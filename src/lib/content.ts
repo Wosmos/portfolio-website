@@ -84,6 +84,8 @@ export interface ContentProject extends Project {
   moons: readonly MoonConfigJson[];
   /** True while re-detection is allowed to replace the moons it produced itself. */
   moonsAuto: boolean;
+  /** A private repository: no source link is offered, because it would 404. */
+  sourcePrivate: boolean;
   /** False means the dashboard's stored value wins over whatever GitHub reports. */
   useLiveLangs: boolean; useLiveMeta: boolean; useLiveReadme: boolean;
 }
@@ -117,6 +119,7 @@ function fallbackProjects(): ContentProject[] {
       tech: h?.tech ?? [], extraLinks: h?.extraLinks ?? [], coverImage: "", featured: staticFeatured.includes(p.id),
       // the static records carry no moons — only a repository tree can produce them
       moons: [], moonsAuto: true,
+      sourcePrivate: p.sourcePrivate ?? false,
       useLiveLangs: true, useLiveMeta: true, useLiveReadme: true,
     };
   });
@@ -137,6 +140,7 @@ export const getProjects = cached("projects", async (): Promise<readonly Content
         orbit: r.orbit, heading: r.heading, bullets: r.bullets, tech: r.tech,
         extraLinks: r.extraLinks.map(([l, u]) => [l, u] as const), coverImage: r.coverImage, featured: r.featured,
         moons: r.moons, moonsAuto: r.moonsAuto,
+        sourcePrivate: r.sourcePrivate,
         useLiveLangs: r.useLiveLangs, useLiveMeta: r.useLiveMeta, useLiveReadme: r.useLiveReadme,
       }];
     });

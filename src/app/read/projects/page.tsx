@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SITE_URL } from "@/data/portfolio";
 import { getProjects } from "@/lib/content";
+import { OG_SIZE } from "@/lib/seo";
 import { pad2 } from "@/lib/text";
 import PlanetCanvases from "@/components/read/PlanetCanvases";
 import ProjectCard from "@/components/read/ProjectCard";
@@ -14,7 +15,10 @@ export const metadata: Metadata = {
   title: "Projects",
   description: DESCRIPTION,
   alternates: { canonical: "/read/projects" },
-  openGraph: { type: "website", url: "/read/projects", title: "Projects", description: DESCRIPTION },
+  // naming `openGraph` replaces the parent's whole object, so the root brand card is repeated here —
+  // see the same note in src/app/read/page.tsx
+  openGraph: { type: "website", url: "/read/projects", title: "Projects", description: DESCRIPTION, images: [{ url: "/opengraph-image", ...OG_SIZE, alt: "Projects" }] },
+  twitter: { card: "summary_large_image", title: "Projects", description: DESCRIPTION, images: ["/opengraph-image"] },
 };
 
 export default async function ProjectsPage() {

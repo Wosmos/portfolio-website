@@ -82,6 +82,9 @@ function readEvents(v: unknown): EventIn[] {
 const isAdminPath = (path: string): boolean => path.includes("/admin");
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  // a beacon is a few hundred bytes; anything this large is someone probing the endpoint
+  const raw = await request.text().catch(() => "");
+  if (raw.length > 24_000) return new NextResponse(null, { status: 413 });
   // Mechanism one for not counting myself: the admin login drops this cookie, and it outlives the
   // session because I read the public site signed out far more often than signed in.
   if (request.cookies.get(NO_TRACK_COOKIE)?.value === "1") return new NextResponse(null, { status: 204 });

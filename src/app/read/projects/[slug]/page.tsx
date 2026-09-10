@@ -38,7 +38,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 function links(p: ContentProject, h: Highlight | undefined): (readonly [string, string])[] {
   return [
-    ["source on github", p.github] as const,
+    // a private repository's url 404s for a visitor, so it is not offered as a link at all
+    ...(p.sourcePrivate ? [] : [["source on github", p.github] as const]),
     ...(p.live ? [["open live", p.live] as const] : []),
     ...(h?.extraLinks ?? []).map(([n, u]) => [n.toLowerCase(), u] as const),
   ];
@@ -168,7 +169,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
                 <div className="facts">
                   <div><span>status</span><b className={p.live ? "on" : undefined}>{p.live ? "live" : p.status ?? "source only"}</b></div>
                   <div><span>category</span><b>{p.category} · {p.context}</b></div>
-                  <div><span>repository</span><b><a href={p.github} target="_blank" rel="noopener">{repoSlug(p)} ↗</a></b></div>
+                  <div><span>repository</span><b>{base.sourcePrivate ? `${repoSlug(p)} · private` : <a href={p.github} target="_blank" rel="noopener">{repoSlug(p)} ↗</a>}</b></div>
                   <div><span>created</span><b>{created ?? "—"}</b></div>
                   <div><span>last push</span><b>{p.meta ? ago(p.meta.pushed) : "private repo"}</b></div>
                   <div><span>stars</span><b>{p.meta ? p.meta.stars : "—"}</b></div>

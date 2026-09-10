@@ -4,6 +4,7 @@ import NavLinks from "./NavLinks";
 import SoundToggle from "./SoundToggle";
 import FlyLink from "./FlyLink";
 import { WMark, Wordmark } from "@/components/Mark";
+import ResumeLink from "./ResumeLink";
 
 export default function SiteHeader() {
   return (
@@ -14,7 +15,7 @@ export default function SiteHeader() {
       </Link>
       <NavLinks />
       <div className="top__tools">
-        <a className="sf pill" href={person.cv} target="_blank" rel="noopener" title="Résumé PDF"><span className="sf__in">résumé ↓</span></a>
+        <ResumeLink href={person.cv} from="header"><span className="sf__in">résumé ↓</span></ResumeLink>
         <SoundToggle />
         <FlyLink className="sf pill is-mg" title="Switch to the flight deck"><span className="sf__in">fly ↗</span></FlyLink>
       </div>

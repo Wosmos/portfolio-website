@@ -33,8 +33,8 @@ export default function ShipDeck({ initialTarget, lastPush = null }: ShipDeckPro
 
       {/* boot */}
       <section id="boot" className="boot" aria-label="Start">
-        <WMark className="boot__w" width={248} height={160} />
-        <Wordmark className="boot__mark" width={180} height={28} />
+        <WMark className="boot__w" height={160} />
+        <Wordmark className="boot__mark" height={28} />
         <p className="boot__role">software engineer</p>
         <pre id="boot-log" className="boot__log" aria-live="polite" />
         <button id="start" className="sf sf--cta boot__btn" type="button"><span className="sf__in">press start</span></button>
@@ -77,9 +77,9 @@ export default function ShipDeck({ initialTarget, lastPush = null }: ShipDeckPro
         {/* instrument screens in the hood */}
         <div className="dash">
           <div className="screen screen--left">
-            <span className="screen__k">targets · <i id="tgt-count" /></span>
+            <span className="screen__k">projects · <i id="tgt-count" /></span>
             <ol id="targets" className="targets" />
-            <button className="tgt tgt--sun" type="button" data-sun><span className="tgt__n">★</span><span className="tgt__name">the sun<small>pilot · core</small></span></button>
+            <button className="tgt tgt--sun" type="button" data-sun><span className="tgt__n">★</span><span className="tgt__name">about me<small>the sun</small></span></button>
           </div>
 
           <div className="screen screen--mid">
@@ -92,19 +92,19 @@ export default function ShipDeck({ initialTarget, lastPush = null }: ShipDeckPro
           <div className="screen screen--right">
             <canvas id="radar" width="200" height="200" />
             <div className="tele">
-              <div className="tele__row" data-act="state" title="disengage"><span>state</span><b id="tl-state">orbiting</b></div>
-              <div className="tele__row" data-act="range" title="au / km"><span>range</span><b id="tl-range">—</b></div>
-              <div className="tele__row"><span>eta</span><b id="tl-eta">—</b></div>
-              <div className="tele__row" data-act="uplink" title="re-ping"><span>uplink</span><b id="tl-link">static</b></div>
-              <div className="tele__row" data-act="push" title="open on github"><span>last push</span><b id="tl-push">…</b></div>
-              <div className="tele__row" data-act="clock" title="pkt / local"><span>clock</span><b id="tl-clock">—</b></div>
+              <div className="tele__row" data-act="state" title="Back to the whole system"><span>where</span><b id="tl-state">orbiting</b></div>
+              <div className="tele__row" data-act="range" title="Switch between au and million km"><span>distance</span><b id="tl-range">—</b></div>
+              <div className="tele__row"><span>arriving in</span><b id="tl-eta">—</b></div>
+              <div className="tele__row" data-act="uplink" title="Ping the live connection again"><span>connection</span><b id="tl-link">static</b></div>
+              <div className="tele__row" data-act="push" title="Open the repository on GitHub"><span>last commit</span><b id="tl-push">…</b></div>
+              <div className="tele__row" data-act="clock" title="My time or yours"><span>my time</span><b id="tl-clock">—</b></div>
             </div>
           </div>
         </div>
 
         {/* top: ship id + wordmark */}
-        <div className="deck__id"><WMark className="deck__w" width={34} height={22} /><div><b>WSF-01 · flight deck</b><span>pilot · wasif malik · software engineer</span></div></div>
-        <Wordmark className="deck__mark" width={84} height={13} />
+        <div className="deck__id"><WMark className="deck__w" height={22} /><div><b>WSF-01 · flight deck</b><span>pilot · wasif malik · software engineer</span></div></div>
+        <Wordmark className="deck__mark" height={13} />
         <a className="switch switch--deck" href="/read" data-door="read" title="The same content as a plain site">read →</a>
 
         {/* reticle + lock */}
@@ -115,20 +115,20 @@ export default function ShipDeck({ initialTarget, lastPush = null }: ShipDeckPro
 
         {/* console keys */}
         <div className="keys">
-          <button className="key" type="button" data-panel="pilot"><b>P</b> pilot</button>
-          <button className="key" type="button" data-panel="log"><b>M</b> log</button>
-          <button className="key" type="button" data-panel="comms"><b>C</b> comms</button>
-          <button className="key" type="button" data-tour><b>T</b> tour</button>
-          <button className="key" type="button" data-cmd><b>/</b> cmd</button>
-          <button id="snd" className="key" type="button" aria-pressed="true"><b>S</b> snd</button>
-          <button id="gyro" className="key key--gyro" type="button" hidden><b>◎</b> tilt</button>
+          <button className="key" type="button" data-panel="pilot"><b>P</b> about</button>
+          <button className="key" type="button" data-panel="log"><b>M</b> experience</button>
+          <button className="key" type="button" data-panel="comms"><b>C</b> contact</button>
+          <button className="key" type="button" data-tour><b>T</b> tour all 8</button>
+          <button className="key" type="button" data-cmd><b>/</b> commands</button>
+          <button id="snd" className="key" type="button" aria-pressed="true"><b>S</b> sound</button>
+          <button id="gyro" className="key key--gyro" type="button" hidden><b>◎</b> tilt view</button>
         </div>
-        <span className="hint">drag · look &nbsp; wheel · throttle &nbsp; click a planet · jump &nbsp; every gauge is live: tap it</span>
+        <span className="hint">each planet is a project i built · click one to fly to it · drag to look around · scroll to move in and out · every gauge does something, tap it</span>
 
         {/* readout */}
         <aside id="hud" className="hud sf" aria-label="Readout" aria-hidden="true">
           <div className="sf__in">
-            <div className="hud__bar"><span className="hud__sys"><WMark className="logo--hud" width={18} height={12} /> target // <b className="hud__idx">01 / 08</b></span><button className="hud__close" type="button">disengage · esc</button></div>
+            <div className="hud__bar"><span className="hud__sys"><WMark className="logo--hud" height={12} /> project <b className="hud__idx">01 / 08</b></span><button className="hud__close" type="button">back to the system · esc</button></div>
             <div className="hud__body">
               <div className="hud__meta" />
               <h2 className="hud__title" />
@@ -139,14 +139,14 @@ export default function ShipDeck({ initialTarget, lastPush = null }: ShipDeckPro
               <div className="hud__demo sf sf--thin"><div className="sf__in" /></div>
               <div className="hud__links" />
             </div>
-            <div className="hud__nav"><button className="hud__prev" type="button">← prev</button><button className="hud__cut" type="button" data-cut><b>X</b> cutaway</button><span className="hud__range" /><button className="hud__next" type="button">next →</button></div>
+            <div className="hud__nav"><button className="hud__prev" type="button">← prev</button><button className="hud__cut" type="button" data-cut><b>X</b> cut it open</button><span className="hud__range" /><button className="hud__next" type="button">next →</button></div>
           </div>
         </aside>
 
         {/* panels */}
         <aside id="panel" className="panel sf" aria-hidden="true">
           <div className="sf__in">
-            <div className="hud__bar"><span className="hud__sys"><WMark className="logo--hud" width={18} height={12} /> <b id="panel-title">pilot</b></span><button className="panel__close" type="button">close · esc</button></div>
+            <div className="hud__bar"><span className="hud__sys"><WMark className="logo--hud" height={12} /> <b id="panel-title">pilot</b></span><button className="panel__close" type="button">close · esc</button></div>
             <div id="panel-body" className="panel__body" />
           </div>
         </aside>

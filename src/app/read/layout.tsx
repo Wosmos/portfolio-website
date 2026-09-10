@@ -3,6 +3,7 @@ import ReadShell from "@/components/read/ReadShell";
 import SiteHeader from "@/components/read/SiteHeader";
 import SiteFooter from "@/components/read/SiteFooter";
 import "@/styles/read.css";
+import ReadDepth from "@/components/read/ReadDepth";
 
 export default function ReadLayout({ children }: { children: ReactNode }) {
   return (
@@ -10,6 +11,7 @@ export default function ReadLayout({ children }: { children: ReactNode }) {
       <div className="page">
         <SiteHeader />
         {children}
+        <ReadDepth />
         <SiteFooter />
       </div>
     </ReadShell>

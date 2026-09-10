@@ -80,18 +80,17 @@ export function runMotion({ curtain, audio }: MotionDeps): () => void {
     const xp = document.querySelector<HTMLElement>(".xp");
     if (xp && !reduced) {
       gsap.fromTo(xp, { "--draw": 0 }, { "--draw": 1, ease: "none", scrollTrigger: { trigger: xp, start: "top 62%", end: "bottom 62%", scrub: 0.3 } });
-      $$(".xp__i").forEach((it) => ScrollTrigger.create({ trigger: it, start: "top 62%", onEnter: () => { it.classList.add("is-lit"); audio.tick(); }, onLeaveBack: () => it.classList.remove("is-lit") }));
+      // a station lights as it is reached and stays lit, so the timeline fills in as you read down
+      $$(".xp__i").forEach((it) => ScrollTrigger.create({
+        trigger: it, start: "top 85%",
+        onEnter: () => { it.classList.add("is-lit"); audio.tick(); },
+        onLeaveBack: () => it.classList.remove("is-lit"),
+      }));
     } else $$(".xp__i").forEach((it) => it.classList.add("is-lit"));
     const toks = $$(".tok span");
     if (toks.length && !reduced) ScrollTrigger.create({ trigger: ".skills__matrix", start: "top 85%", once: true, onEnter: () => toks.forEach((el, i) => cipher(el, el.textContent ?? "", { dur: 0.5, stagger: 0.02, delay: Math.min(1.6, i * 0.035) })) });
-    // spotlight (pointer-tracked gradient) + magnetic buttons
-    if (finePointer() && !reduced) {
-      $$(".proj__card, .card, .proof .sf").forEach((card) => card.addEventListener("pointermove", (e) => { const r = card.getBoundingClientRect(); card.style.setProperty("--mx", `${((e.clientX - r.left) / r.width) * 100}%`); card.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`); }));
-      $$(".sf--btn").forEach((b) => {
-        b.addEventListener("pointermove", (e) => { const r = b.getBoundingClientRect(); gsap.to(b, { x: (e.clientX - r.left - r.width / 2) * 0.18, y: (e.clientY - r.top - r.height / 2) * 0.3, duration: 0.4, ease: "power2.out" }); });
-        b.addEventListener("pointerleave", () => gsap.to(b, { x: 0, y: 0, duration: 0.6, ease: "elastic.out(1, 0.4)" }));
-      });
-    }
+    // spotlight: a pointer-tracked gradient on cards (no magnetic buttons — they read as dated)
+    if (finePointer() && !reduced) $$(".proj__card, .card, .proof .sf").forEach((card) => card.addEventListener("pointermove", (e) => { const r = card.getBoundingClientRect(); card.style.setProperty("--mx", `${((e.clientX - r.left) / r.width) * 100}%`); card.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`); }));
     ScrollTrigger.refresh();
   });
   // internal navigation: sweep the curtain in before the route changes (the router does the rest)

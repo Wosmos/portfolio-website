@@ -10,6 +10,7 @@ import PlanetStrip from "@/components/read/PlanetStrip";
 import ProjectCard, { Chips } from "@/components/read/ProjectCard";
 import SkillsMatrix from "@/components/read/SkillsMatrix";
 import FlyLink from "@/components/read/FlyLink";
+import ResumeLink from "@/components/read/ResumeLink";
 
 export const revalidate = 3600;
 
@@ -67,7 +68,7 @@ export default async function ReadHome() {
           <p className="hero__p">{person.summary}</p>
           <div className="hero__row">
             <Link className="sf sf--btn" href="/read/contact"><span className="sf__in">get in touch</span></Link>
-            <a className="sf sf--btn" href={person.cv} target="_blank" rel="noopener"><span className="sf__in">résumé pdf ↓</span></a>
+            <ResumeLink className="sf sf--btn" href={person.cv} from="hero"><span className="sf__in">résumé pdf ↓</span></ResumeLink>
             <FlyLink className="sf sf--btn is-mg"><span className="sf__in">fly the flight deck ↗</span></FlyLink>
           </div>
           <div className="hero__meta">

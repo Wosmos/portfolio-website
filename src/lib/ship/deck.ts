@@ -4,6 +4,7 @@
 // unmount the deck (including StrictMode's double effect run) without leaking.
 
 import { gsap } from "gsap";
+import { ev } from "@/lib/analytics";
 import { person, projects, experience, skills, LANG_COLORS, type Project } from "@/data/portfolio";
 import { createAudio, MUTE_KEY, storedMuted } from "@/lib/audio";
 import type { FlightEventInfo, FlightEventName, SystemApi, SystemOptions } from "@/lib/three/types";
@@ -29,7 +30,7 @@ export function qa<T extends Element>(sel: string, root: ParentNode = document):
 
 // ── local types ─────────────────────────────────────────
 type PanelName = "pilot" | "log" | "comms" | "diag" | "bbox" | "next";
-const PANEL_TITLES: Record<PanelName, string> = { pilot: "pilot", log: "mission log", comms: "comms", diag: "diagnostics", bbox: "black box", next: "next mission" };
+const PANEL_TITLES: Record<PanelName, string> = { pilot: "about me", log: "experience", comms: "contact", diag: "diagnostics", bbox: "flight log", next: "what i am building" };
 const isPanelName = (s: string | undefined): s is PanelName => s !== undefined && s in PANEL_TITLES;
 
 interface Live { on: boolean; rtt: number | null }
@@ -212,7 +213,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   // ── boot ──────────────────────────────────────────────
   const log = (line: string, cls?: string): void => { const s = document.createElement("span"); s.textContent = line + "\n"; if (cls) s.className = cls; bootLog.appendChild(s); };
   async function start(): Promise<void> {
-    if (started || disposed) return; started = true;
+    if (started || disposed) return; started = true; ev("deck_start");
     audio.resume(); audio.click(); void audio.startAmbient(); void audio.startLoop("belt");
     startBtn.disabled = true;
     const lines = ["> WSF-01 flight deck", "> loading system … 8 bodies, 1 star, 1 belt", "> pilot · wasif malik · software engineer", "> go · systems · next.js"];
@@ -432,8 +433,9 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   // ── flights + readout ─────────────────────────────────
   function select(p: Project): void {
     if (!system || system.isFlying()) return;
-    if (energy < 0.08) { showToast("energy low · drift toward the sun to recharge", 3000); audio.tick(); return; }
+    if (energy < 0.08) { showToast("out of energy · head toward the sun to recharge", 3000); audio.tick(); return; }
     current = p; coreOpen = false; closePanel(); closeHud(false); markCurrent(); deck.classList.add("is-flying");
+    ev("deck_flight", { id: p.id });
     system.flyTo(p.id, () => { deck.classList.remove("is-flying"); openHud(p); });
   }
   function selectSun(): void {
@@ -469,21 +471,21 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     const i = projects.indexOf(p);
     const liveHost = p.live ? p.live.replace(/^https?:\/\//, "").replace(/\/$/, "") : "";
     fillHud({ idx: `${pad2(i + 1)} / ${pad2(projects.length)}`,
-      meta: `<span>orbit ${pad2(i + 1)}</span><span>class · ${p.context}</span><span>epoch · ${p.year ?? "—"}</span><span class="${p.live ? "on" : ""}">status · ${p.live ? "live" : p.status ?? "source only"}</span>`,
+      meta: `<span>project ${pad2(i + 1)} of ${pad2(projects.length)}</span><span>${p.category}</span><span>built ${p.year ?? "—"}</span><span class="${p.live ? "on" : ""}">${p.live ? "live now" : p.status ?? "source only"}</span>`,
       title: p.title, tag: p.tagline, desc: p.description,
-      mods: `<span class="hud__k">systems aboard</span>` + p.stack.map((s, k) => `<div class="mod"><span>${pad2(k + 1)}</span><b>${s}</b><i style="--w:${70 + ((k * 37) % 30)}%"></i></div>`).join(""),
-      demo: p.live ? `<span class="hud__k">uplink</span><a href="${p.live}" target="_blank" rel="noopener">${liveHost} ↗</a>` : `<span class="hud__k">uplink</span><span style="color:var(--fg-3)">no public deployment · demo capture pending</span>`,
-      links: `<a href="${p.github}" target="_blank" rel="noopener">source on github ↗</a>${p.live ? `<a href="${p.live}" target="_blank" rel="noopener">open live ↗</a>` : ""}`,
-      range: `orbit radius · ${ORBIT_AU[i] ?? "—"} au`, comp: compositionHtml(p) });
+      mods: `<span class="hud__k">what it is built with</span>` + p.stack.map((s, k) => `<div class="mod"><span>${pad2(k + 1)}</span><b>${s}</b><i style="--w:${70 + ((k * 37) % 30)}%"></i></div>`).join(""),
+      demo: p.live ? `<span class="hud__k">try it</span><a href="${p.live}" target="_blank" rel="noopener">${liveHost} ↗</a>` : `<span class="hud__k">try it</span><span style="color:var(--fg-3)">not deployed publicly · the source is on github</span>`,
+      links: `<a href="${p.github}" target="_blank" rel="noopener">see the code on github ↗</a>${p.live ? `<a href="${p.live}" target="_blank" rel="noopener">open the live site ↗</a>` : ""}`,
+      range: `project ${pad2(i + 1)} of ${pad2(projects.length)} · ${ORBIT_AU[i] ?? "—"} au out`, comp: compositionHtml(p) });
   }
   function openCore(): void {
     audio.chord();
-    fillHud({ idx: "core", meta: `<span>class · g-type</span><span class="on">status · available for hire</span><span>${person.location}</span>`,
-      title: person.name, tag: "the star this system orbits", desc: `${person.positioning} Every planet out here is something I shipped.`,
-      mods: `<span class="hud__k">core systems</span>` + skills.map((g, k) => `<div class="mod"><span>${pad2(k + 1)}</span><b>${g.group} · ${g.items.join(", ")}</b><i style="--w:${82 + ((k * 11) % 18)}%"></i></div>`).join(""),
-      demo: `<span class="hud__k">uplink</span><a href="mailto:${person.email}">${person.email}</a>`,
+    fillHud({ idx: "me", meta: `<span>about me</span><span class="on">open to work · remote</span><span>${person.location}</span>`,
+      title: person.name, tag: "software engineer · the star at the centre of this system", desc: `${person.positioning} Every planet out here is something I shipped.`,
+      mods: `<span class="hud__k">what i work with</span>` + skills.map((g, k) => `<div class="mod"><span>${pad2(k + 1)}</span><b>${g.group} · ${g.items.join(", ")}</b><i style="--w:${82 + ((k * 11) % 18)}%"></i></div>`).join(""),
+      demo: `<span class="hud__k">get in touch</span><a href="mailto:${person.email}">${person.email}</a>`,
       links: `<a href="${person.cv}" target="_blank" rel="noopener">resume ↓</a><a href="${person.github}" target="_blank" rel="noopener">github ↗</a><a href="${person.linkedin}" target="_blank" rel="noopener">linkedin ↗</a>`,
-      range: "you found the core" });
+      range: "you found me" });
     $(".hud__title", hud).textContent = "";
   }
   function closeHud(flyBack = true): void {
@@ -506,7 +508,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     const on = !system.cutawayOpen(current.id);
     system.cutaway(current.id, on);
     $(".hud__cut", hud).classList.toggle("is-on", on);
-    showToast(on ? `cutaway · ${current.title} · ${current.langs.length} layers · drag to inspect` : "cutaway closed", 1800);
+    showToast(on ? `${current.title} opened up · ${current.langs.length} layers · drag to look around` : "closed", 1800);
     if (on) audio.chord(); else audio.click();
   }
   listen($(".hud__cut", hud), "click", toggleCutaway);
@@ -517,13 +519,13 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   // ── panels: pilot · log · comms · diagnostics · black box · next mission ──
   const PANELS: Record<PanelName, () => string> = {
     pilot: () => `<div class="pilot"><div><p class="pilot__bio">I build the whole thing — schema, Go services, Next.js clients, deploy. Security-first: a zero-knowledge cloud platform, a concurrent WebSocket system across web and mobile, and client products spanning e-commerce, POS, HRMS and real estate.</p>
-      <div class="pilot__meta"><span>callsign · <b>wosmo</b></span><span>base · <b>${person.location}</b></span><span>status · <b style="color:var(--cy)">available for hire</b></span><span>logged · <b>${dur(experience.reduce((a, x) => a + months(x), 0))}</b> across ${experience.length} stations</span></div></div>
+      <div class="pilot__meta"><span>goes by · <b>wosmo</b></span><span>base · <b>${person.location}</b></span><span>status · <b style="color:var(--cy)">available for hire</b></span><span>experience · <b>${dur(experience.reduce((a, x) => a + months(x), 0))}</b> across ${experience.length} jobs</span></div></div>
     <div>${skills.map((g) => `<div class="skills__g"><span class="hud__k" style="margin:0">${g.group}</span><ul>${g.items.map((i) => `<li class="sf sf--chip"><span class="sf__in">${i}</span></li>`).join("")}</ul></div>`).join("")}</div></div>`,
     log: () => `<div class="log">${experience.map((x, i) => `<div class="mission sf sf--thin"><div class="sf__in">
-      <div class="mission__top"><span>mission ${pad2(experience.length - i)}</span><span>${fmt(x.start)} → ${fmt(x.end)}</span><span>${dur(months(x))}</span><span class="mission__st ${x.end ? "" : "on"}">${x.end ? "complete" : "active"}</span></div>
+      <div class="mission__top"><span>job ${pad2(experience.length - i)}</span><span>${fmt(x.start)} → ${fmt(x.end)}</span><span>${dur(months(x))}</span><span class="mission__st ${x.end ? "" : "on"}">${x.end ? "complete" : "active"}</span></div>
       <h3 class="mission__co">${x.company}</h3><span class="mission__role">${x.title}</span><p class="mission__note">${x.note}</p>
       <ul class="mission__sys">${x.stack.map((s) => `<li class="sf sf--chip"><span class="sf__in">${s}</span></li>`).join("")}</ul></div></div>`).join("")}</div>`,
-    comms: () => `<div class="comms"><span class="hud__k">open channel · replies within a day</span>
+    comms: () => `<div class="comms"><span class="hud__k">email me · i reply within a day</span>
       <div class="comms__mail"><span>${person.email}</span><button type="button" data-copy>copy</button></div>
       <div class="comms__links"><a href="${person.github}" target="_blank" rel="noopener">github ↗</a><a href="${person.linkedin}" target="_blank" rel="noopener">linkedin ↗</a><a href="${person.hashnode}" target="_blank" rel="noopener">hashnode ↗</a><a href="${person.cv}" target="_blank" rel="noopener">resume ↓</a><a href="https://www.npmjs.com/package/${person.npmCard}" target="_blank" rel="noopener">npx ${person.npmCard} ↗</a></div></div>`,
     diag: () => {
@@ -536,12 +538,13 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     },
     bbox: () => blackBox.length
       ? `<div class="bbox">${[...blackBox].reverse().map((f) => `<div><span>${esc(f.at)}</span><span>${esc(f.from)} → ${esc(f.to)}</span><span>${esc(f.dur)}s</span></div>`).join("")}</div>`
-      : `<p style="color:var(--fg-3)">no flights recorded this session.</p>`,
-    next: () => `<div class="comms"><span class="hud__k">orbit 09 · under construction</span><p class="pilot__bio">This site. A v3 rewrite of wosmos.vercel.app in Next 16 + React Three Fiber — the solar system you're flying through, the flight deck you're sitting in, the real WebSocket presence layer the door promises. You're looking at the prototype.</p>
+      : `<p style="color:var(--fg-3)">no trips yet this visit.</p>`,
+    next: () => `<div class="comms"><span class="hud__k">project 09 · being built right now</span><p class="pilot__bio">This site. A v3 rewrite of wosmos.vercel.app in Next 16 + React Three Fiber — the solar system you're flying through, the flight deck you're sitting in, the real WebSocket presence layer the door promises. You're looking at the prototype.</p>
       <div class="comms__links"><a href="https://github.com/Wosmos/portfolio-website" target="_blank" rel="noopener">github · portfolio-website ↗</a></div></div>`,
   };
   function openPanel(name: PanelName): void {
     if (panelOpen === name) { closePanel(); return; }
+    ev("deck_panel", { panel: name });
     panelOpen = name; $("#panel-title").textContent = PANEL_TITLES[name]; $("#panel-body").innerHTML = PANELS[name]();
     for (const k of $$(".key[data-panel]")) k.classList.toggle("is-on", k.dataset.panel === name);
     panel.setAttribute("aria-hidden", "false"); panel.classList.add("is-on"); audio.arrive();
@@ -564,21 +567,21 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   // ── tour ──────────────────────────────────────────────
   function tour(): void {
     if (!system || tourTimer) { abortTour(); return; }
-    showToast("auto tour engaged · esc to abort", 3000); let i = -1;
+    showToast("guided tour · visiting all eight · esc to stop", 3000); let i = -1;
     const hop = (): void => {
       i++;
       const p = projects[i];
-      if (!p) { tourTimer = 0; closeHud(true); showToast("tour complete"); return; }
+      if (!p) { tourTimer = 0; closeHud(true); showToast("that is all eight"); return; }
       current = p; coreOpen = false; markCurrent(); closeHud(false); deck.classList.add("is-flying");
       system?.flyTo(p.id, () => { deck.classList.remove("is-flying"); openHud(p); tourTimer = timer(hop, 4200); });
     };
     tourTimer = -1; hop();
   }
-  function abortTour(): void { if (tourTimer) { if (tourTimer > 0) clear(tourTimer); tourTimer = 0; showToast("tour aborted"); } }
+  function abortTour(): void { if (tourTimer) { if (tourTimer > 0) clear(tourTimer); tourTimer = 0; showToast("tour stopped"); } }
 
   // ── command line ──────────────────────────────────────
   const COMMANDS: Record<string, (arg: string) => string> = {
-    help: () => "jump <name|n> · cutaway · status · whoami · tour · scan · log · diag · bbox · next · sun · home · clear · exit",
+    help: () => "jump <name|n>  fly to a project · open  cut the planet open · list  every project · me  about me\ntour  visit all eight · experience · contact · status · diag · log · home · clear · exit",
     status: () => {
       if (!system) return "systems offline";
       const h = system.heading();
@@ -618,16 +621,16 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     const y = 120 + Math.random() * (innerHeight * 0.45);
     anim(gsap.fromTo(beacon, { left: -40, top: y }, { left: innerWidth + 40, duration: 26, ease: "none", onComplete: () => { beacon.hidden = true; scheduleBeacon(); } }));
   }
-  listen(beacon, "click", () => { gsap.killTweensOf(beacon); beacon.hidden = true; audio.chord(); openPanel("next"); showToast("beacon recovered · orbit 09 decoded", 3200); scheduleBeacon(); });
+  listen(beacon, "click", () => { gsap.killTweensOf(beacon); beacon.hidden = true; audio.chord(); openPanel("next"); showToast("beacon picked up · project 09 decoded", 3200); ev("easter_egg", { egg: "beacon" }); scheduleBeacon(); });
 
   // ── hyperdrive ────────────────────────────────────────
   function hyper(): void {
-    if (hyperOn) return; hyperOn = true; system?.setHyper(true); showToast("hyperdrive · orbital period ÷ 9", 4000); audio.chord();
+    if (hyperOn) return; hyperOn = true; system?.setHyper(true); showToast("hyperdrive · the planets speed up ×9", 4000); ev("easter_egg", { egg: "hyperdrive" }); audio.chord();
     timer(() => { system?.setHyper(false); hyperOn = false; }, 10_000);
   }
 
   // ── sound toggle ──────────────────────────────────────
-  const renderSnd = (): void => { snd.setAttribute("aria-pressed", String(!audio.muted)); snd.innerHTML = `<b>S</b> snd · ${audio.muted ? "off" : "on"}`; };
+  const renderSnd = (): void => { snd.setAttribute("aria-pressed", String(!audio.muted)); snd.innerHTML = `<b>S</b> sound · ${audio.muted ? "off" : "on"}`; };
   listen(snd, "click", () => { audio.setMuted(!audio.muted); storageSet("local", MUTE_KEY, audio.muted ? "1" : "0"); renderSnd(); });
   renderSnd();
 
@@ -646,10 +649,10 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (gyroOn) { stopGyro(); system?.setTilt(0, 0); gyroBtn.classList.remove("is-on"); return; }
     try {
       const ctor = orientationStatic();
-      if (ctor?.requestPermission) { const r = await ctor.requestPermission(); if (r !== "granted") { showToast("tilt permission denied"); return; } }
+      if (ctor?.requestPermission) { const r = await ctor.requestPermission(); if (r !== "granted") { showToast("tilt needs motion permission"); return; } }
     } catch { /* permission API absent or blocked — try listening anyway */ }
     if (disposed) return;
-    window.addEventListener("deviceorientation", onOrient); gyroOn = true; gyroBtn.classList.add("is-on"); showToast("tilt engaged · move the phone");
+    window.addEventListener("deviceorientation", onOrient); gyroOn = true; gyroBtn.classList.add("is-on"); showToast("tilt on · move the phone to look around");
   }
   if ("DeviceOrientationEvent" in window && !finePointer) { gyroBtn.hidden = false; listen(gyroBtn, "click", () => { void enableGyro(); }); }
   // desktop: a hint of the same parallax from the pointer
@@ -661,8 +664,8 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     lastPing = performance.now(); showToast("re-pinging uplink…", 1400);
     void connect(() => {}).then((ok) => { if (!disposed) showToast(ok ? `uplink · ${live.rtt} ms` : "uplink · no answer", 1600); });
   }
-  function recharge(): void { throttle = 1; system?.setThrottle(1); showToast("recharge · throttle to the core", 2000); }
-  function toBelt(): void { throttle = 0.42; system?.setThrottle(throttle); showToast("holding at the belt", 1600); }
+  function recharge(): void { throttle = 1; system?.setThrottle(1); showToast("recharging · flying toward the sun", 2000); }
+  function toBelt(): void { throttle = 0.42; system?.setThrottle(throttle); showToast("holding at the asteroid belt", 1600); }
   listen($("#lamp-link"), "click", reping);
   listen($("#lamp-belt"), "click", toBelt);
   listen($("#lamp-lock"), "click", () => {
@@ -671,13 +674,13 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (h.hot >= 0 && hot) { select(hot); return; }
     if (h.sunHot) { selectSun(); return; }
     if (current) { closeHud(true); return; }
-    showToast("hover a planet to lock", 1400);
+    showToast("point at a planet first", 1400);
   });
   listen($("#lamp-hyper"), "click", () => hyper());
   listen($("#lamp-fuel"), "click", recharge);
   for (const row of $$(".tele__row[data-act]")) listen(row, "click", () => {
     const act = row.dataset.act;
-    if (act === "state") { if (system?.focusedId()) closeHud(true); else showToast("orbiting · nothing to disengage", 1400); }
+    if (act === "state") { if (system?.focusedId()) closeHud(true); else showToast("already back in orbit", 1400); }
     if (act === "range") { rangeKm = !rangeKm; renderTele(); }
     if (act === "uplink") reping();
     if (act === "push") window.open(lastPush ? `https://github.com/Wosmos/${encodeURIComponent(lastPush.repo)}` : person.github, "_blank", "noopener");
@@ -691,7 +694,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     listen(c, "pointerdown", (e) => {
       const { x, y } = pt(e), W = c.width, H = c.height;
       if (y < 40) { mode = "tape"; lastX = x; c.setPointerCapture(e.pointerId); }
-      else if (Math.hypot(x - W * 0.27, y - H * 0.66) < 44) { system?.level(); showToast("attitude levelled", 1200); audio.tick(); }
+      else if (Math.hypot(x - W * 0.27, y - H * 0.66) < 44) { system?.level(); showToast("view levelled", 1200); audio.tick(); }
       else if (x > W * 0.74 - 8 && x < W * 0.74 + 18 && y > H * 0.4) { mode = "thr"; throttle = thrFromY(y); system?.setThrottle(throttle); c.setPointerCapture(e.pointerId); }
       else if (x > W * 0.74 + 38 && x < W * 0.74 + 64 && y > H * 0.4) recharge();
     });
@@ -724,7 +727,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   // long-press the sun → solar flare
   listen(orbitCanvas, "pointerdown", () => {
     const onSun = system?.pick()?.sun === true; clear(pressTimer);
-    if (onSun) pressTimer = timer(() => { system?.flare(); audio.chord(); showToast("solar flare", 1800); }, 650);
+    if (onSun) pressTimer = timer(() => { system?.flare(); audio.chord(); showToast("solar flare", 1800); ev("easter_egg", { egg: "flare" }); }, 650);
   });
   listen(window, "pointerup", () => clear(pressTimer));
   listen(document, "pointerenter", (e) => { if (started && finePointer && e.target instanceof Element && e.target.closest("a, button, .lab")) audio.tick(); }, true);

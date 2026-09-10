@@ -7,6 +7,7 @@ import { projects } from "@/data/portfolio";
 import { getAudio } from "@/lib/sound-client";
 import { hex } from "@/lib/text";
 import type { PlanetViewApi } from "@/lib/three/types";
+import { ev } from "@/lib/analytics";
 
 const LANG_DESC: Readonly<Record<string, string>> = {
   TypeScript: "app + api code", JavaScript: "scripts", Go: "backend services", Rust: "native / wasm",
@@ -36,7 +37,7 @@ export default function PlanetCanvases({ cutaway = false }: { cutaway?: boolean 
             if (label) label.textContent = on ? "close it" : "cut it open";
             if (callouts) callouts.hidden = !on;
             if (hint) hint.hidden = on;
-            if (on) audio.chord();
+            if (on) { audio.chord(); ev("cutaway", { id: document.querySelector<HTMLCanvasElement>("canvas[data-planet]")?.dataset.planet ?? "", where: "read" }); }
           },
         });
         dispose = () => mounted.dispose();

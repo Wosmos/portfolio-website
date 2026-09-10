@@ -5,6 +5,7 @@
 import { useRef, useState } from "react";
 import { gsap } from "gsap";
 import { getAudio } from "@/lib/sound-client";
+import { ev } from "@/lib/analytics";
 
 type Status = { text: string; kind: "" | "ok" | "bad" };
 const FIELDS = ["name", "email", "subject", "message"] as const;
@@ -40,9 +41,9 @@ export default function ContactForm() {
       const j: { success?: boolean; error?: string } = await r.json().catch(() => ({}));
       if (r.ok && j.success) {
         setStatus({ text: "sent · i will reply from my inbox", kind: "ok" });
-        el.reset(); setCount(0); getAudio().arrive();
+        el.reset(); setCount(0); getAudio().arrive(); ev("contact_submit", { ok: true });
       } else {
-        setStatus({ text: j.error ?? `could not send (${r.status})`, kind: "bad" }); shake(); setSending(false);
+        setStatus({ text: j.error ?? `could not send (${r.status})`, kind: "bad" }); shake(); setSending(false); ev("contact_submit", { ok: false });
       }
     } catch {
       setStatus({ text: "no connection to the mail endpoint", kind: "bad" }); shake(); setSending(false);

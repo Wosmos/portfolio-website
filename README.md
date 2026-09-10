@@ -39,6 +39,24 @@ README (rendered by a small markdown subset that drops badges, tables, code fenc
 Every call degrades to the static records in `src/data/portfolio.ts`, so a rate limit or a private
 repository never breaks a page.
 
+## Analytics
+
+Vercel Web Analytics gives page views, referrers, countries and devices; Speed Insights gives Core
+Web Vitals. `src/lib/analytics.ts` adds the events the dashboard cannot infer, all of them anonymous
+— no names, no message text, no addresses, only the shape of the visit:
+
+| Event | Answers |
+|---|---|
+| `door` | do people read or fly, and which project they jumped to |
+| `read_depth` | how far down a page they actually got (25 / 50 / 75 / 100) |
+| `project_open`, `cutaway`, `planet_drag` | which projects get opened and explored |
+| `resume` | résumé downloads, and from where |
+| `contact_submit` | whether the form completes or fails |
+| `deck_start`, `deck_flight`, `deck_panel`, `easter_egg` | what people do inside the flight deck |
+
+Enable Web Analytics and Speed Insights once per project in the Vercel dashboard; the scripts 404 in
+local production, which is expected.
+
 ## Environment
 
 ```bash

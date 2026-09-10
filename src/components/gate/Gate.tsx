@@ -5,6 +5,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getAudio, rememberDoor, storedDoor, type Door } from "@/lib/sound-client";
+import { ev } from "@/lib/analytics";
 
 const HREF: Record<Door, string> = { read: "/read", fly: "/ship" };
 
@@ -23,6 +24,7 @@ export default function Gate() {
     if (leaving.current) return;
     leaving.current = true;
     rememberDoor(door);
+    ev("door", { door });
     const audio = getAudio();
     audio.resume(); audio.click();
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;

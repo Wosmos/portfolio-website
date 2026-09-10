@@ -18,8 +18,8 @@ export default function GatePage() {
       <div className="gate__glow" aria-hidden="true" />
       <div className="grain" aria-hidden="true" />
       <main className="gate">
-        <WMark className="gate__w" width={248} height={160} />
-        <Wordmark className="gate__mark" width={180} height={28} />
+        <WMark className="gate__w" height={160} />
+        <Wordmark className="gate__mark" height={28} />
         <h1 className="gate__role">software engineer</h1>
         <p className="gate__line">{person.name} · Go, systems, Next.js. Same work, two ways in. Pick one; you can switch any time.</p>
         <Gate />

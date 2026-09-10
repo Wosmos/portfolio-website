@@ -10,8 +10,8 @@ const ShipDeck = dynamic(() => import("./ShipDeck"), {
   ssr: false,
   loading: () => (
     <section className="boot" aria-label="Loading the flight deck">
-      <WMark className="boot__w" width={248} height={160} />
-      <Wordmark className="boot__mark" width={180} height={28} />
+      <WMark className="boot__w" height={160} />
+      <Wordmark className="boot__mark" height={28} />
       <p className="boot__role">software engineer</p>
     </section>
   ),

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Project — Wasif Malik</title>
+  <meta name="theme-color" content="#050508">
+  <link rel="icon" href="../assets/wosmo-w.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./read.css">
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/"
+    } }
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/ScrollTrigger.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/SplitText.min.js"></script>
+</head>
+<body>
+  <main class="page">
+    <article class="pj" id="pj" style="margin-top:0"></article>
+  </main>
+
+  <script type="module">
+    import { boot, projects, highlights, planets, audio, repoMeta, readmeHtml, ghReason, ago, $, $$, esc, pad2, host, chips, compositionHtml, langsOf, CV } from "./read.js";
+
+    const id = new URLSearchParams(location.search).get("id");
+    const i = projects.findIndex((p) => p.id === id);
+    const p = projects[i];
+    const el = $("#pj");
+
+    if (!p) {
+      el.innerHTML = `<a class="back" href="./projects.html">← all projects</a><h1><span class="name">No such project</span></h1><p class="pj__desc">Pick one from the list.</p>
+        <ul class="pj__b">${projects.map((q) => `<li><a href="./project.html?id=${q.id}">${esc(q.title)}</a> — ${esc(q.tagline)}</li>`).join("")}</ul>`;
+    } else {
+      document.title = `${p.title} — Wasif Malik`;
+      const h = highlights[p.id];
+      const prev = projects[(i - 1 + projects.length) % projects.length], next = projects[(i + 1) % projects.length];
+      const links = [["source on github", p.github], p.live ? ["open live", p.live] : null, ...(h?.extraLinks || []).map(([n, u]) => [n.toLowerCase(), u])].filter(Boolean);
+      const top = langsOf(p)[0];
+      el.innerHTML = `
+        <a class="back" href="./projects.html">← all projects</a>
+        <div class="pj__hero">
+          <div class="pj__text">
+            <p class="k">planet ${pad2(i + 1)} of ${pad2(projects.length)} · ${esc(p.category)} · ${esc(p.context)}</p>
+            <h1 style="margin-top:12px"><span class="name">${esc(p.title)}</span></h1>
+            <p class="pj__tag">${esc(h?.heading || p.tagline)}</p>
+            <div class="pj__meta">
+              <span class="${p.live ? "on" : ""}">${p.live ? `● live · ${esc(host(p.live))}` : p.status ?? "source only"}</span>
+              <span id="pj-since">${p.year ? `since ${p.year}` : ""}</span>
+              <span id="pj-push"></span>
+              <span id="pj-stars"></span>
+            </div>
+            <p class="pj__desc">${esc(p.description)}</p>
+            <div class="pj__actions">
+              ${links.map(([n, u], k) => `<a class="sf sf--btn ${k === 0 ? "" : "sf--ghost"}" href="${u}" target="_blank" rel="noopener"><span class="sf__in">${esc(n)} ↗</span></a>`).join("")}
+              <a class="sf sf--btn is-mg" href="../ship/?to=${p.id}" data-door="fly"><span class="sf__in">fly there ↗</span></a>
+            </div>
+          </div>
+          <div class="pj__planet">
+            <div class="pj__stage"><canvas class="planet" data-planet="${p.id}" aria-label="${esc(p.title)} planet"></canvas>
+              <span class="pj__stagek k">planet ${pad2(i + 1)} · drag to turn</span>
+              <span class="planet__hint" id="planet-hint">click the planet to see what it is made of</span>
+              <button class="sf sf--btn pj__cut" id="cutbtn" type="button"><span class="sf__in">cut it open</span></button>
+            </div>
+            <div class="callouts callouts--grid" id="callouts" hidden></div>
+          </div>
+        </div>
+
+        <section class="pj__about">
+          <div class="sec__h"><h2 data-n="01">About</h2><i></i><small id="about-src">from the readme on github</small></div>
+          <div class="about">
+            <div class="about__body prose" id="about-body">${h ? `<ul>${h.bullets.map((b) => `<li>${esc(b)}</li>`).join("")}</ul>` : `<p>${esc(p.description)}</p>`}</div>
+            <aside class="about__facts">
+              <div class="sf sf--thin card"><div class="sf__in">
+                <span class="k" data-cipher>facts</span>
+                <div class="facts">
+                  <div><span>status</span><b class="${p.live ? "on" : ""}">${p.live ? "live" : p.status ?? "source only"}</b></div>
+                  <div><span>category</span><b>${esc(p.category)} · ${esc(p.context)}</b></div>
+                  <div><span>repository</span><b><a href="${p.github}" target="_blank" rel="noopener">${esc(p.github.split("/").pop())} ↗</a></b></div>
+                  <div><span>created</span><b id="f-created">${p.year ?? "—"}</b></div>
+                  <div><span>last push</span><b id="f-pushed">…</b></div>
+                  <div><span>stars</span><b id="f-stars">…</b></div>
+                  <div><span>top language</span><b>${top ? `${esc(top.n)} · ${top.v.toFixed(1)}%` : "—"}</b></div>
+                </div>
+              </div></div>
+            </aside>
+          </div>
+        </section>
+
+        <section>
+          <div class="sec__h"><h2 data-n="02">Built with</h2><i></i><small>github language bytes · same numbers as the planet's layers</small></div>
+          <div class="built">
+            <div class="sf sf--thin card"><div class="sf__in"><span class="k" data-cipher>composition</span>${compositionHtml(p)}</div></div>
+            <div class="sf sf--thin card"><div class="sf__in"><span class="k" data-cipher>stack</span><div class="chips">${chips(h?.tech || p.stack)}</div></div></div>
+          </div>
+        </section>
+
+        <nav class="pj__nav" aria-label="Other projects"><a href="./project.html?id=${prev.id}">← ${esc(prev.title)}</a><a href="./project.html?id=${next.id}">${esc(next.title)} →</a></nav>`;
+      // live from github: readme → about, repo meta → facts (private repos keep the résumé copy)
+      repoMeta(p).then((m) => { if (!m) { $("#f-pushed").textContent = ghReason(); $("#f-stars").textContent = "—"; return; }
+        $("#f-created").textContent = new Date(m.created).getFullYear(); $("#pj-since").textContent = `since ${new Date(m.created).getFullYear()}`;
+        $("#f-pushed").textContent = ago(m.pushed); $("#pj-push").textContent = `pushed ${ago(m.pushed)}`; $("#f-stars").textContent = String(m.stars); if (m.stars) $("#pj-stars").textContent = `★ ${m.stars}`; });
+      readmeHtml(p).then((html) => { if (!html) { $("#about-src").textContent = (h ? "from the résumé · " : "") + ghReason(); return; }
+        const body = $("#about-body"); body.innerHTML = (h ? `<ul class="about__hl">${h.bullets.map((b) => `<li>${esc(b)}</li>`).join("")}</ul>` : "") + html; });
+      el.querySelector("[data-door]").addEventListener("click", () => { try { localStorage.setItem("v3-door", "fly"); } catch {} });
+      // the planet: click / button toggles the cutaway; the callouts list mirrors the deck's leader-line cards
+      const ready = planets({ cutaway: true, onCut: (on) => { $("#cutbtn .sf__in").textContent = on ? "close it" : "cut it open"; $("#callouts").hidden = !on; $("#planet-hint").hidden = on; if (on) audio.chord(); } }).then((views) => views.whenReady?.(0));
+      $("#cutbtn").addEventListener("click", () => ready.then((v) => v?.toggleCut()));
+      ready.then((view) => {
+        if (!view) return;
+        const LANG_DESC = { TypeScript: "app + api code", JavaScript: "scripts", Go: "backend services", Rust: "native / wasm", Python: "services + tooling", Shell: "cli + install scripts", PowerShell: "windows installer", HTML: "markup", CSS: "styling", Ruby: "homebrew formula", SQL: "schema + queries", Other: "everything else" };
+        $("#callouts").innerHTML = view.layers.map((L, k) => `<button type="button" data-k="${k}" style="--c:#${L.color.toString(16).padStart(6, "0")}"><b>${esc(L.name)}</b><i>${L.pct.toFixed(1)}%</i><small>${LANG_DESC[L.name] ?? ""}</small></button>`).join("");
+        $$("#callouts button").forEach((b) => { b.addEventListener("pointerenter", () => { view.highlightLayer(+b.dataset.k); b.classList.add("is-on"); }); b.addEventListener("pointerleave", () => { view.highlightLayer(-1); b.classList.remove("is-on"); }); });
+      });
+      addEventListener("keydown", (e) => { if (e.key === "ArrowLeft") location.assign(`./project.html?id=${prev.id}`); if (e.key === "ArrowRight") location.assign(`./project.html?id=${next.id}`); });
+    }
+    boot("projects");
+  </script>
+</body>
+</html>

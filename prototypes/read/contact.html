@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Contact — Wasif Malik</title>
+  <meta name="theme-color" content="#050508">
+  <link rel="icon" href="../assets/wosmo-w.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./read.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/ScrollTrigger.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/SplitText.min.js"></script>
+</head>
+<body>
+  <main class="page">
+    <section class="hero pj" style="margin-top:0;grid-template-columns:1fr">
+      <div>
+        <p class="k"><i class="live"></i>open to remote roles · replies within a day</p>
+        <h1 style="margin-top:12px"><span class="name">Get in touch</span></h1>
+      </div>
+    </section>
+    <section class="contact" style="margin-top:36px">
+      <div>
+        <p class="contact__lead hero__p" style="margin-top:0">Roles, contracts, or a question about one of the projects. The form lands in my inbox; reply-to is your address.</p>
+        <div class="contact__alt rv" id="alt"></div>
+      </div>
+      <div id="form" class="rv"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { boot, person, $, esc, contactForm } from "./read.js";
+    contactForm($("#form"));
+    $("#alt").innerHTML = `<a href="mailto:${person.email}"><span>email</span><span>${person.email}</span></a><a href="tel:${person.phone.replace(/\s/g, "")}"><span>phone</span><span>${esc(person.phone)}</span></a><a href="${person.linkedin}" target="_blank" rel="noopener"><span>linkedin</span><span>↗</span></a><a href="${person.github}" target="_blank" rel="noopener"><span>github</span><span>Wosmos ↗</span></a>`;
+    boot("contact");
+  </script>
+</body>
+</html>

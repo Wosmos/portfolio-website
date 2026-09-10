@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>WOSMO · flight deck</title>
+  <meta name="theme-color" content="#050508">
+  <link rel="icon" href="../assets/wosmo-w.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./ship.css">
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/"
+    } }
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
+</head>
+<body>
+
+  <div id="cosmos" class="cosmos" aria-hidden="true"><canvas id="orbit-canvas"></canvas></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- boot -->
+  <section id="boot" class="boot" aria-label="Start">
+    <img class="boot__w" src="../assets/wosmo-w.svg" alt="">
+    <img class="boot__mark" src="../assets/wosmo-full.svg" alt="wosmo">
+    <p class="boot__role">software engineer</p>
+    <pre id="boot-log" class="boot__log" aria-live="polite"></pre>
+    <button id="start" class="sf sf--cta boot__btn" type="button"><span class="sf__in">press start</span></button>
+    <a class="switch" href="../read/" data-door="read">prefer to read? · résumé site →</a>
+  </section>
+
+  <!-- cockpit -->
+  <div id="deck" class="deck" aria-hidden="true">
+    <!-- physical frame: layered so it can parallax on tilt -->
+    <div class="frame" aria-hidden="true">
+      <svg class="frame__svg" viewBox="0 0 1440 900" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="strut" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#06070b"/><stop offset=".35" stop-color="#1a1e28"/><stop offset=".5" stop-color="#262b38"/><stop offset=".65" stop-color="#1a1e28"/><stop offset="1" stop-color="#06070b"/></linearGradient>
+          <linearGradient id="hood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0c0f16"/><stop offset=".55" stop-color="#151925"/><stop offset="1" stop-color="#090b10"/></linearGradient>
+          <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9fd8ff" stop-opacity=".07"/><stop offset=".3" stop-color="#9fd8ff" stop-opacity="0"/><stop offset=".75" stop-color="#9fd8ff" stop-opacity="0"/><stop offset="1" stop-color="#9fd8ff" stop-opacity=".05"/></linearGradient>
+        </defs>
+        <!-- windshield tint -->
+        <rect x="0" y="0" width="1440" height="900" fill="url(#glass)"/>
+        <!-- A-pillars, slim, converging toward the vanishing point above the horizon -->
+        <polygon points="0,0 54,0 118,900 0,900" fill="url(#strut)"/>
+        <polygon points="1440,0 1386,0 1322,900 1440,900" fill="url(#strut)"/>
+        <polyline points="54,0 118,900" fill="none" stroke="#00e5ff" stroke-opacity=".28" stroke-width="1.2"/>
+        <polyline points="1386,0 1322,900" fill="none" stroke="#00e5ff" stroke-opacity=".28" stroke-width="1.2"/>
+        <!-- overhead rail -->
+        <polygon points="54,0 1386,0 1374,16 66,16" fill="url(#hood)"/>
+        <line x1="66" y1="16" x2="1374" y2="16" stroke="#00e5ff" stroke-opacity=".2"/>
+        <!-- dashboard hood -->
+        <polygon points="118,900 1322,900 1336,748 104,748" fill="url(#hood)"/>
+        <polygon points="104,748 1336,748 1332,736 108,736" fill="#1d2230"/>
+        <line x1="108" y1="736" x2="1332" y2="736" stroke="#00e5ff" stroke-opacity=".35"/>
+        <!-- rivets -->
+        <g fill="#2a3040">
+          <circle cx="30" cy="120" r="2.5"/><circle cx="42" cy="360" r="2.5"/><circle cx="58" cy="600" r="2.5"/><circle cx="76" cy="840" r="2.5"/>
+          <circle cx="1410" cy="120" r="2.5"/><circle cx="1398" cy="360" r="2.5"/><circle cx="1382" cy="600" r="2.5"/><circle cx="1364" cy="840" r="2.5"/>
+        </g>
+      </svg>
+      <div class="frame__vignette"></div>
+    </div>
+
+    <!-- instrument screens in the hood -->
+    <div class="dash">
+      <div class="screen screen--left">
+        <span class="screen__k">targets · <i id="tgt-count"></i></span>
+        <ol id="targets" class="targets"></ol>
+        <button class="tgt tgt--sun" type="button" data-sun><span class="tgt__n">★</span><span class="tgt__name">the sun<small>pilot · core</small></span></button>
+      </div>
+
+      <div class="screen screen--mid">
+        <canvas id="dash" width="640" height="150" aria-hidden="true"></canvas>
+        <div class="lamps" aria-hidden="true">
+          <i id="lamp-link" class="lamp" data-l="uplink"></i><i id="lamp-belt" class="lamp" data-l="belt"></i><i id="lamp-lock" class="lamp" data-l="lock"></i><i id="lamp-hyper" class="lamp" data-l="hyper"></i><i id="lamp-fuel" class="lamp" data-l="fuel"></i>
+        </div>
+      </div>
+
+      <div class="screen screen--right">
+        <canvas id="radar" width="200" height="200"></canvas>
+        <div class="tele">
+          <div class="tele__row" data-act="state" title="disengage"><span>state</span><b id="tl-state">orbiting</b></div>
+          <div class="tele__row" data-act="range" title="au / km"><span>range</span><b id="tl-range">—</b></div>
+          <div class="tele__row"><span>eta</span><b id="tl-eta">—</b></div>
+          <div class="tele__row" data-act="uplink" title="re-ping"><span>uplink</span><b id="tl-link">static</b></div>
+          <div class="tele__row" data-act="push" title="open on github"><span>last push</span><b id="tl-push">…</b></div>
+          <div class="tele__row" data-act="clock" title="pkt / local"><span>clock</span><b id="tl-clock">—</b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- top: ship id + wordmark -->
+    <div class="deck__id"><img class="deck__w" src="../assets/wosmo-w.svg" alt=""><div><b>WSF-01 · flight deck</b><span>pilot · wasif malik · software engineer</span></div></div>
+    <img class="deck__mark" src="../assets/wosmo-full.svg" alt="wosmo">
+    <a class="switch switch--deck" href="../read/" data-door="read" title="The same content as a plain site">read →</a>
+
+    <!-- reticle + lock -->
+    <div class="reticle" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div id="lock" class="lock" aria-hidden="true"><i></i><i></i><i></i><i></i><span class="lock__t"></span></div>
+    <svg id="callouts" class="callouts" aria-hidden="true"></svg>
+    <div id="callout-labels" class="callout-labels" aria-hidden="true"></div>
+
+    <!-- console keys -->
+    <div class="keys">
+      <button class="key" type="button" data-panel="pilot"><b>P</b> pilot</button>
+      <button class="key" type="button" data-panel="log"><b>M</b> log</button>
+      <button class="key" type="button" data-panel="comms"><b>C</b> comms</button>
+      <button class="key" type="button" data-tour><b>T</b> tour</button>
+      <button class="key" type="button" data-cmd><b>/</b> cmd</button>
+      <button id="snd" class="key" type="button" aria-pressed="true"><b>S</b> snd</button>
+      <button id="gyro" class="key key--gyro" type="button" hidden><b>◎</b> tilt</button>
+    </div>
+    <span class="hint">drag · look &nbsp; wheel · throttle &nbsp; click a planet · jump &nbsp; every gauge is live: tap it</span>
+
+    <!-- readout -->
+    <aside id="hud" class="hud sf" aria-label="Readout" aria-hidden="true">
+      <div class="sf__in">
+        <div class="hud__bar"><span class="hud__sys"><img class="logo--hud" src="../assets/wosmo-w.svg" alt=""> target // <b class="hud__idx">01 / 08</b></span><button class="hud__close" type="button">disengage · esc</button></div>
+        <div class="hud__body">
+          <div class="hud__meta"></div>
+          <h2 class="hud__title"></h2>
+          <p class="hud__tag"></p>
+          <p class="hud__desc"></p>
+          <div class="hud__comp"></div>
+          <div class="hud__mods"></div>
+          <div class="hud__demo sf sf--thin"><div class="sf__in"></div></div>
+          <div class="hud__links"></div>
+        </div>
+        <div class="hud__nav"><button class="hud__prev" type="button">← prev</button><button class="hud__cut" type="button" data-cut><b>X</b> cutaway</button><span class="hud__range"></span><button class="hud__next" type="button">next →</button></div>
+      </div>
+    </aside>
+
+    <!-- panels -->
+    <aside id="panel" class="panel sf" aria-hidden="true">
+      <div class="sf__in">
+        <div class="hud__bar"><span class="hud__sys"><img class="logo--hud" src="../assets/wosmo-w.svg" alt=""> <b id="panel-title">pilot</b></span><button class="panel__close" type="button">close · esc</button></div>
+        <div id="panel-body" class="panel__body"></div>
+      </div>
+    </aside>
+
+    <!-- command line -->
+    <form id="cmd" class="cmd" hidden autocomplete="off"><span class="cmd__ps">wsf-01 ›</span><input id="cmd-in" type="text" spellcheck="false" aria-label="command"><pre id="cmd-out" class="cmd__out"></pre></form>
+
+    <!-- beacon (drifts by, rarely) -->
+    <button id="beacon" class="beacon" type="button" hidden aria-label="distress beacon"><i></i><span>· · · — — — · · ·</span></button>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <script type="module" src="./ship.js"></script>
+</body>
+</html>

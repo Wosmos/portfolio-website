@@ -41,3 +41,6 @@ _legacy/*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# prototype audio originals (cuts ship, sources do not)
+/prototypes/assets/audio/src/

@@ -1,0 +1,25 @@
+/* The Read / Fly gate. */
+.gate { position: relative; z-index: 1; min-height: 100dvh; display: grid; place-items: center; align-content: center; text-align: center; padding: clamp(24px, 5vh, 48px) clamp(16px, 4vw, 48px); }
+.gate__w { height: clamp(88px, 18vh, 160px); width: auto; filter: drop-shadow(0 0 30px rgba(255, 255, 255, .22)); }
+.gate__mark { height: clamp(20px, 3vh, 28px); width: auto; opacity: .9; margin-top: 24px; }
+.gate__role { margin: 12px 0 0; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: var(--fg-3); font-weight: 400; }
+.gate__line { margin: 22px 0 0; max-width: 52ch; color: var(--fg-2); font-size: 13px; line-height: 1.7; }
+.gate__glow { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(55% 45% at 50% 60%, rgba(0, 229, 255, .07), transparent 70%), radial-gradient(40% 30% at 20% 10%, rgba(255, 43, 214, .05), transparent 70%); }
+.doors { display: grid; grid-template-columns: repeat(2, minmax(0, 300px)); gap: clamp(14px, 2.4vw, 28px); margin-top: clamp(34px, 7vh, 64px); width: 100%; max-width: 660px; }
+.door { --c: 16px; display: block; text-align: left; width: 100%; --sf-bg: #0a1620; --sf-border: rgba(56, 200, 240, .55); transition: transform .35s var(--ease); }
+.door > .sf__in { display: grid; gap: 8px; padding: 22px 24px 20px; min-height: 172px; align-content: start; }
+.door__k { font-size: 10px; letter-spacing: .24em; text-transform: uppercase; color: var(--fg-3); display: flex; justify-content: space-between; }
+.door__k kbd { font: inherit; color: var(--fg-4); }
+.door__t { font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #38c8f0; transition: color .25s, text-shadow .25s; }
+.door__d { color: var(--fg-2); font-size: 12px; line-height: 1.65; }
+.door__m { margin-top: auto; padding-top: 6px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-4); }
+.door:hover, .door:focus-visible { transform: translateY(-3px); outline: none; --sf-border: rgba(56, 200, 240, .95); }
+.door:hover .door__t, .door:focus-visible .door__t { color: #fff; text-shadow: 0 0 18px rgba(56, 200, 240, .8); }
+.door--fly { --sf-border: rgba(255, 43, 214, .5); } .door--fly .door__t { color: #ff6ee3; }
+.door--fly:hover, .door--fly:focus-visible { --sf-border: rgba(255, 43, 214, .95); } .door--fly:hover .door__t, .door--fly:focus-visible .door__t { text-shadow: 0 0 18px rgba(255, 43, 214, .8); }
+.gate__foot { margin-top: clamp(22px, 5vh, 40px); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-4); }
+.gate__foot a { color: var(--fg-3); border-bottom: 1px solid var(--fg-4); } .gate__foot a:hover { color: var(--cy); border-color: var(--cy); }
+.sweep { position: fixed; inset: 0; z-index: 30; pointer-events: none; background: var(--bg); transform: translateY(101%); }
+.is-leaving .sweep { transition: transform .55s var(--ease); transform: translateY(0); }
+@media (max-width: 640px) { .doors { grid-template-columns: 1fr; max-width: 360px; } .door > .sf__in { min-height: 0; } }
+@media (prefers-reduced-motion: reduce) { .door { transition: none; } .is-leaving .sweep { transition: none; } }

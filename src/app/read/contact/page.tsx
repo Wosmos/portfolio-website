@@ -1,0 +1,37 @@
+import type { Metadata } from "next";
+import { person } from "@/data/portfolio";
+import ContactForm from "@/components/read/ContactForm";
+
+export const metadata: Metadata = {
+  title: "Contact",
+  description: `Get in touch with ${person.name} about roles, contracts, or one of the projects.`,
+  alternates: { canonical: "/read/contact" },
+  openGraph: { url: "/read/contact", title: "Contact", description: `Get in touch with ${person.name}.` },
+};
+
+const tel = person.phone.replace(/\s/g, "");
+
+export default function ContactPage() {
+  return (
+    <>
+      <section className="hero pj" style={{ marginTop: 0, gridTemplateColumns: "1fr" }}>
+        <div>
+          <p className="k"><i className="live" />open to remote roles · replies within a day</p>
+          <h1 style={{ marginTop: 12 }}><span className="name">Get in touch</span></h1>
+        </div>
+      </section>
+      <section className="contact" style={{ marginTop: 36 }}>
+        <div>
+          <p className="contact__lead hero__p" style={{ marginTop: 0 }}>Roles, contracts, or a question about one of the projects. The form lands in my inbox; reply-to is your address.</p>
+          <div className="contact__alt rv">
+            <a href={`mailto:${person.email}`}><span>email</span><span>{person.email}</span></a>
+            <a href={`tel:${tel}`}><span>phone</span><span>{person.phone}</span></a>
+            <a href={person.linkedin} target="_blank" rel="noopener"><span>linkedin</span><span>↗</span></a>
+            <a href={person.github} target="_blank" rel="noopener"><span>github</span><span>Wosmos ↗</span></a>
+          </div>
+        </div>
+        <div className="rv"><ContactForm /></div>
+      </section>
+    </>
+  );
+}

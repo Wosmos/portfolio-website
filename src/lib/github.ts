@@ -206,6 +206,10 @@ export interface MoonSource { id: string; github: string }
 export const MOON_SKIP: readonly string[] = [
   "node_modules", "dist", "build", "out", "target", "vendor", "public", "assets", "docs",
   ".github", "test", "tests", "__tests__", "scripts", "examples", "coverage", "tmp",
+  // build and tooling residue that a real repository still commits by accident
+  "__pycache__", "venv", ".venv", "env", "bin", "obj", "logs", "log", "temp", "cache",
+  "static", "media", "images", "img", "fonts", "styles", "screenshots", "site", "www",
+  "packaging", "brand", "extras", "config", "types", "typings", "migrations", "fixtures",
 ];
 const SKIPPED = new Set(MOON_SKIP);
 /** Dot-directories go too: tooling, never a module. */

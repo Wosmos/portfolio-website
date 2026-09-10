@@ -184,7 +184,7 @@ html.is-deck :focus-visible { outline: 1px solid var(--cy); outline-offset: 3px;
 .hud__close:hover, .panel__close:hover { color: var(--fg); }
 .hud__body, .panel__body { padding: 20px 18px; display: grid; grid-auto-rows: max-content; gap: 14px; align-content: start; overflow: auto; }
 .hud__meta { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-3); } .hud__meta .on { color: var(--cy); }
-.hud__title { margin: 0; font-size: 30px; font-weight: 500; letter-spacing: -.02em; line-height: 1.05; min-height: 1.05em; }
+.hud__title { margin: 0; font-family: var(--display); font-size: 26px; font-weight: 700; letter-spacing: 0; line-height: 1.1; min-height: 1.1em; }
 .hud__tag { margin: -8px 0 0; color: var(--cy); }
 .hud__desc { margin: 0; color: var(--fg-2); min-height: 4.6em; } .hud__desc::after { content: "▍"; color: var(--cy); animation: blink 1s steps(2) infinite; }
 .hud__mods { display: grid; gap: 6px; }

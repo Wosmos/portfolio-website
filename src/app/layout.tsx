@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono } from "next/font/google";
+import { JetBrains_Mono, Orbitron, Space_Grotesk } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import Tracker from "@/components/Tracker";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -8,6 +8,11 @@ import { clampDescription, SITE_NAME } from "@/lib/seo";
 import "./globals.css";
 
 const mono = JetBrains_Mono({ variable: "--font-mono", subsets: ["latin"], weight: ["400", "500", "700"], display: "swap" });
+// Three faces, each with one job. Orbitron is for short headings only — it is unreadable in a
+// paragraph — Space Grotesk carries the admin panel's prose, and the mono keeps every number, id and
+// path, where tabular figures matter.
+const display = Orbitron({ variable: "--font-display", subsets: ["latin"], weight: ["500", "700", "800"], display: "swap" });
+const ui = Space_Grotesk({ variable: "--font-ui", subsets: ["latin"], weight: ["400", "500", "700"], display: "swap" });
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#050508" };
 
@@ -44,7 +49,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={mono.variable}>
+    <html lang="en" className={`${mono.variable} ${display.variable} ${ui.variable}`}>
       <body>
         {children}
         <Tracker />

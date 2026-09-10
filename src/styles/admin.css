@@ -1,13 +1,63 @@
 /* Admin panel. Same tokens and chamfered shapes as the public site, laid out as a dense working tool:
    a fixed sidebar, one panel per resource, forms that look like the flight deck's instrument screens. */
-.adm { --side: 232px; min-height: 100dvh; display: grid; grid-template-columns: var(--side) minmax(0, 1fr); background: var(--bg); }
-.adm__side { position: sticky; top: 0; height: 100dvh; display: grid; grid-template-rows: auto 1fr auto; gap: 14px; padding: 20px 14px; border-right: 1px solid var(--line); background: linear-gradient(180deg, rgba(0,229,255,.04), transparent 40%); }
+/* The panel's own palette. It used to inherit the site's near-black surfaces, which made a card
+   indistinguishable from the page and every label a guess; these are lifted until a card reads as a
+   card and the smallest label clears 4.5:1. Same hues, more light. */
+.adm {
+  --side: 236px;
+  --adm-bg: #080b12;
+  --adm-card: #10151f;
+  --adm-card-2: #161c28;
+  --adm-line: rgba(159, 186, 214, .16);
+  --adm-line-2: rgba(159, 186, 214, .26);
+  --fg-2: rgba(242, 245, 255, .78);
+  --fg-3: rgba(242, 245, 255, .58);
+  --fg-4: rgba(242, 245, 255, .40);
+  --sf-bg: var(--adm-card);
+  --sf-border: rgba(0, 229, 255, .3);
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: var(--side) minmax(0, 1fr);
+  background: var(--adm-bg);
+  font-family: var(--ui);
+  position: relative;
+  isolation: isolate;
+}
+/* the drifting sky the public site has, as two tiled gradients rather than a canvas: no per-frame cost,
+   and it is the only thing in the panel that moves */
+.adm::before {
+  content: "";
+  position: fixed;
+  inset: -60px;
+  z-index: -1;
+  pointer-events: none;
+  opacity: .5;
+  background-image:
+    radial-gradient(1.4px 1.4px at 18% 24%, rgba(242,245,255,.85), transparent 60%),
+    radial-gradient(1.2px 1.2px at 62% 8%, rgba(0,229,255,.7), transparent 60%),
+    radial-gradient(1px 1px at 84% 38%, rgba(242,245,255,.6), transparent 60%),
+    radial-gradient(1.6px 1.6px at 32% 72%, rgba(255,43,214,.5), transparent 60%),
+    radial-gradient(1px 1px at 7% 88%, rgba(242,245,255,.55), transparent 60%),
+    radial-gradient(1.2px 1.2px at 92% 78%, rgba(242,245,255,.5), transparent 60%),
+    radial-gradient(60% 44% at 78% 6%, rgba(59, 7, 100, .30), transparent 70%),
+    radial-gradient(52% 40% at 12% 96%, rgba(11, 47, 110, .28), transparent 70%);
+  background-size: 620px 620px, 480px 480px, 700px 700px, 560px 560px, 520px 520px, 640px 640px, 100% 100%, 100% 100%;
+  animation: adm-drift 150s linear infinite;
+}
+@keyframes adm-drift {
+  to { background-position: 620px -420px, -480px 360px, 700px 500px, -560px -300px, 520px 420px, -640px 260px, 0 0, 0 0; }
+}
+@media (prefers-reduced-motion: reduce) { .adm::before { animation: none; } }
+/* numbers, ids and paths stay monospaced wherever they are compared */
+.adm input, .adm textarea, .adm select, .adm .num, .adm code, .adm .tag, .adm b { font-family: var(--mono); }
+.adm h1, .adm h2, .adm h3, .adm .panel__h, .adm__brand { font-family: var(--ui); }
+.adm__side { position: sticky; top: 0; height: 100dvh; display: grid; grid-template-rows: auto 1fr auto; gap: 14px; padding: 20px 13px; border-right: 1px solid var(--adm-line); background: linear-gradient(180deg, rgba(12,18,28,.96), rgba(8,11,18,.96)); backdrop-filter: blur(6px); }
 .adm__brand { display: flex; align-items: center; gap: 10px; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--fg-3); }
 .adm__brand b { color: var(--fg); font-weight: 500; }
 .adm__tabs { display: grid; gap: 2px; align-content: start; overflow-y: auto; }
 .adm__tab { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 11px; text-align: left; font-size: 12px; letter-spacing: .06em; color: var(--fg-3); position: relative; transition: color .18s, background .18s; clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px); }
-.adm__tab i { font-style: normal; width: 16px; text-align: center; opacity: .7; }
-.adm__tab:hover { color: var(--fg); background: rgba(0,229,255,.06); }
+.adm__tab i { font-style: normal; width: 18px; display: inline-flex; align-items: center; justify-content: center; opacity: .75; }
+.adm__tab:hover { color: var(--fg); background: rgba(0,229,255,.09); }
 .adm__tab.is-on { color: #fff; background: rgba(0,229,255,.12); box-shadow: inset 0 0 0 1px rgba(0,229,255,.4); }
 .adm__tab.is-on i { opacity: 1; color: var(--cy); }
 .adm__tab b { margin-left: auto; font-size: 10px; font-weight: 500; color: var(--cy); background: rgba(0,229,255,.14); padding: 1px 6px; }
@@ -23,7 +73,7 @@
 
 /* rows and cards */
 .adm__list { display: grid; gap: 10px; }
-.row { --sf-bg: rgba(6,12,18,.6); }
+.row { --sf-bg: var(--adm-card); --sf-border: var(--adm-line-2); }
 .row > .sf__in { display: grid; gap: 10px; padding: 14px 16px; }
 .row__top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .row__top h3 { font-size: 14px; font-weight: 700; }
@@ -73,9 +123,9 @@
 
 /* tables */
 .tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
-.tbl th { text-align: left; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--fg-3); font-weight: 400; padding: 0 10px 8px; border-bottom: 1px solid var(--line); }
-.tbl td { padding: 9px 10px; border-bottom: 1px solid rgba(242,245,255,.05); color: var(--fg-2); vertical-align: top; }
-.tbl tr:hover td { background: rgba(0,229,255,.03); }
+.tbl th { text-align: left; font-family: var(--ui); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--fg-3); font-weight: 500; padding: 9px 10px 8px; border-bottom: 1px solid var(--adm-line-2); background: var(--adm-card-2); }
+.tbl td { padding: 9px 10px; border-bottom: 1px solid rgba(159,186,214,.10); color: var(--fg-2); vertical-align: top; }
+.tbl tr:hover td { background: rgba(0,229,255,.06); }
 .tbl td b { color: var(--fg); font-weight: 500; }
 .tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
 .tbl--fixed { table-layout: fixed; } .tbl--fixed td { overflow: hidden; text-overflow: ellipsis; }
@@ -141,7 +191,12 @@
 .chip b { font-weight: 500; font-size: 10px; opacity: .7; font-variant-numeric: tabular-nums; }
 
 /* the table: sticky head, sortable heads, a selected row, one card per row on a phone */
-.tw { max-height: 62vh; overflow: auto; overscroll-behavior: contain; }
+.tw {
+  max-height: 62vh; overflow: auto; overscroll-behavior: contain;
+  background: var(--adm-card); box-shadow: inset 0 0 0 1px var(--adm-line);
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  padding: 4px 2px 2px;
+}
 .tbl--rows { min-width: 520px; }
 .tbl--rows thead th { position: sticky; top: 0; z-index: 2; background: #070b10; padding: 9px 10px; }
 .tbl--rows th button { display: inline-flex; align-items: center; gap: 5px; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; }
@@ -172,7 +227,7 @@
 .split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
 .split:has(> .dbox) { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); }
 .split > * { min-width: 0; }
-.dbox { position: sticky; top: 16px; }
+.dbox { position: sticky; top: 16px; --sf-bg: var(--adm-card-2); }
 .dbox > .sf__in { display: grid; gap: 12px; padding: 16px 18px; }
 .dbox__top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .dbox__top h3 { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--fg-3); font-weight: 400; margin-right: auto; }
@@ -220,7 +275,17 @@
 .sub { color: var(--fg-3); font-size: 11px; margin-left: 7px; }
 
 /* the planet editor: controls beside the live preview, which stays put while the knobs scroll */
-.pled { display: grid; grid-template-columns: minmax(0, 1fr) 184px; gap: 14px; align-items: start; }
+/* The preview is the thing being judged, so it gets a width worth judging at. Three sizes: beside the
+   knobs at card scale, beside them at stage scale, or across the whole modal with the knobs below. */
+.pled { display: grid; gap: 14px; align-items: start; }
+.pled--card { grid-template-columns: minmax(0, 1fr) 200px; }
+.pled--stage { grid-template-columns: minmax(0, 1fr) minmax(320px, 34%); }
+.pled--wide { grid-template-columns: minmax(0, 1fr); }
+.pled--wide .pled__view { order: -1; max-width: 560px; margin: 0 auto; width: 100%; }
+.pled__head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pled__head .panel__h { margin: 0 auto 0 0; }
+.pled__sizes { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+.pled__sizes > div { display: grid; gap: 4px; justify-items: center; }
 .pled__knobs { display: grid; gap: 8px; min-width: 0; align-content: start; }
 .pled__pick { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .pled__view { position: sticky; top: 0; display: grid; gap: 6px; }
@@ -275,9 +340,11 @@
 }
 
 @media (max-width: 900px) {
+  /* The sidebar became a drawer (see admin-dash.css), so these three rules from the old stacked layout
+     are what turned the groups into side-by-side columns with a sideways scrollbar. One column, always. */
   .adm { grid-template-columns: 1fr; }
-  .adm__side { position: static; height: auto; grid-template-rows: auto auto auto; border-right: 0; border-bottom: 1px solid var(--line); }
-  .adm__tabs { grid-auto-flow: column; grid-auto-columns: max-content; overflow-x: auto; }
+  .adm__tabs { grid-auto-flow: row; grid-auto-columns: auto; overflow-x: hidden; overflow-y: auto; }
+  .adm__tab { width: 100%; min-height: 42px; }
   .adm__tab b { display: none; }
   .fields--2, .fields--3 { grid-template-columns: 1fr; }
   .inbox { grid-template-columns: 1fr; } .inbox__list { max-height: 40vh; }
@@ -442,3 +509,9 @@
   .sld__stops .stop { min-height: 34px; display: inline-flex; align-items: center; }
   .scaleblk > .sf__in, .picker > .sf__in { padding: 14px; }
 }
+
+/* Inside the panel every chamfered surface is a card, not a tint of the page. */
+.adm .sf--thin { --sf-bg: var(--adm-card); --sf-border: var(--adm-line-2); }
+.adm .stat { --sf-bg: var(--adm-card-2); }
+.adm .panel__h { color: var(--fg-2); }
+.adm .adm__hint { color: var(--fg-3); }

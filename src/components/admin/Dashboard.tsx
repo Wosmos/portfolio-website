@@ -11,6 +11,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Skeleton, Toasts, useToast } from "./kit";
 import { invalidate } from "@/lib/admin-cache";
+import {
+  ChartPieSliceIcon, EnvelopeIcon, UsersThreeIcon, PlanetIcon, SunIcon, BriefcaseIcon, StackIcon,
+  GraduationCapIcon, QuotesIcon, SparkleIcon, PencilSimpleIcon, UserCircleIcon, QuestionIcon,
+  ArrowSquareOutIcon, ArrowsClockwiseIcon, PowerIcon, MagnifyingGlassIcon, ListIcon, XIcon,
+  type Icon,
+} from "@phosphor-icons/react";
 import { WMark } from "@/components/Mark";
 import "@/styles/admin-dash.css";
 
@@ -34,22 +40,22 @@ type TabId =
   | "profile" | "help";
 type Group = "insight" | "content" | "you";
 
-interface Tab { id: TabId; label: string; icon: string; group: Group; blurb: string; keys?: string }
+interface Tab { id: TabId; label: string; icon: Icon; group: Group; blurb: string; keys?: string }
 
 const TABS: readonly Tab[] = [
-  { id: "overview", label: "Overview", icon: "◧", group: "insight", blurb: "Traffic, attention, the path to a message, and where people come from." },
-  { id: "inbox", label: "Inbox", icon: "✉", group: "insight", blurb: "Every message the contact form has sent, with its state and a reply box." },
-  { id: "visitors", label: "Visitors", icon: "◎", group: "insight", blurb: "One row per profile, scored by how interested they looked. Your own visits are excluded." },
-  { id: "projects", label: "Projects", icon: "◍", group: "content", blurb: "Content, links, and each project's own planet." },
-  { id: "scene", label: "Solar system", icon: "☀", group: "content", blurb: "The sun, the orbits, the belt and the sky — everything that used to be hardcoded." },
-  { id: "experience", label: "Experience", icon: "▤", group: "content", blurb: "Jobs, dates and the bullets under each one." },
-  { id: "skills", label: "Skills", icon: "⬒", group: "content", blurb: "The groups the skills matrix renders." },
-  { id: "education", label: "Education", icon: "⌂", group: "content", blurb: "Degrees and grades." },
-  { id: "testimonials", label: "Testimonials", icon: "❝", group: "content", blurb: "Quotes. Anything marked as a sample is labelled as one on the site." },
-  { id: "facts", label: "Secrets", icon: "✦", group: "content", blurb: "The lines the flight deck whispers when a visitor finds one of its twenty hidden things." },
-  { id: "posts", label: "Blog", icon: "✎", group: "content", blurb: "Write, draft and publish." },
-  { id: "profile", label: "Profile", icon: "☺", group: "you", blurb: "Name, contact details, both descriptions and the résumé link." },
-  { id: "help", label: "How this works", icon: "?", group: "you", blurb: "Every panel, every control, and the numbers behind them — read off the code, not remembered." },
+  { id: "overview", label: "Overview", icon: ChartPieSliceIcon, group: "insight", blurb: "Traffic, attention, the path to a message, and where people come from." },
+  { id: "inbox", label: "Inbox", icon: EnvelopeIcon, group: "insight", blurb: "Every message the contact form has sent, with its state and a reply box." },
+  { id: "visitors", label: "Visitors", icon: UsersThreeIcon, group: "insight", blurb: "One row per profile, scored by how interested they looked. Your own visits are excluded." },
+  { id: "projects", label: "Projects", icon: PlanetIcon, group: "content", blurb: "Content, links, and each project's own planet." },
+  { id: "scene", label: "Solar system", icon: SunIcon, group: "content", blurb: "The sun, the orbits, the belt and the sky — everything that used to be hardcoded." },
+  { id: "experience", label: "Experience", icon: BriefcaseIcon, group: "content", blurb: "Jobs, dates and the bullets under each one." },
+  { id: "skills", label: "Skills", icon: StackIcon, group: "content", blurb: "The groups the skills matrix renders." },
+  { id: "education", label: "Education", icon: GraduationCapIcon, group: "content", blurb: "Degrees and grades." },
+  { id: "testimonials", label: "Testimonials", icon: QuotesIcon, group: "content", blurb: "Quotes. Anything marked as a sample is labelled as one on the site." },
+  { id: "facts", label: "Secrets", icon: SparkleIcon, group: "content", blurb: "The lines the flight deck whispers when a visitor finds one of its twenty hidden things." },
+  { id: "posts", label: "Blog", icon: PencilSimpleIcon, group: "content", blurb: "Write, draft and publish." },
+  { id: "profile", label: "Profile", icon: UserCircleIcon, group: "you", blurb: "Name, contact details, both descriptions and the résumé link." },
+  { id: "help", label: "How this works", icon: QuestionIcon, group: "you", blurb: "Every panel, every control, and the numbers behind them — read off the code, not remembered." },
 ];
 
 const GROUPS: readonly { id: Group; label: string }[] = [
@@ -109,7 +115,7 @@ function Palette({ onPick, onClose }: { onPick: (id: TabId) => void; onClose: ()
           <ul className="pal__list">
             {hits.map((t) => (
               <li key={t.id}>
-                <button type="button" onClick={() => onPick(t.id)}><i aria-hidden="true">{t.icon}</i><b>{t.label}</b><span>{t.blurb}</span></button>
+                <button type="button" onClick={() => onPick(t.id)}><i aria-hidden="true"><t.icon size={15} weight="duotone" /></i><b>{t.label}</b><span>{t.blurb}</span></button>
               </li>
             ))}
             {!hits.length && <li className="pal__none">nothing matches that.</li>}
@@ -189,30 +195,30 @@ function Shell() {
                   key={t.id} type="button" className={`adm__tab${t.id === tab ? " is-on" : ""}`}
                   onClick={() => go(t.id)} aria-current={t.id === tab ? "true" : undefined}
                 >
-                  <i aria-hidden="true">{t.icon}</i>{t.label}
+                  <i aria-hidden="true"><t.icon size={16} weight="duotone" /></i>{t.label}
                 </button>
               ))}
             </div>
           ))}
         </nav>
         <div className="adm__foot">
-          <button type="button" onClick={() => setPalette(true)}>⌘K jump to…</button>
-          <a href="/read" target="_blank" rel="noopener">↗ view the site</a>
-          <button type="button" onClick={() => void signOut()}>⏻ sign out</button>
+          <button type="button" onClick={() => setPalette(true)}><MagnifyingGlassIcon size={14} aria-hidden="true" />⌘K jump to…</button>
+          <a href="/read" target="_blank" rel="noopener"><ArrowSquareOutIcon size={14} aria-hidden="true" />view the site</a>
+          <button type="button" onClick={() => void signOut()}><PowerIcon size={14} aria-hidden="true" />sign out</button>
         </div>
       </aside>
 
       <main className="adm__main">
         <div className="adm__bar">
           <button className="adm__burger" type="button" aria-expanded={menu} aria-controls="adm-side" onClick={() => setMenu((v) => !v)}>
-            <i aria-hidden="true" /><i aria-hidden="true" /><i aria-hidden="true" /><span>menu</span>
+            {menu ? <XIcon size={15} aria-hidden="true" /> : <ListIcon size={15} aria-hidden="true" />}<span>menu</span>
           </button>
           <div className="adm__title">
             <h1>{active?.label}</h1>
             {active?.blurb && <p>{active.blurb}</p>}
           </div>
           <button className="btn btn--sm" type="button" onClick={() => void publish()} disabled={publishing} title="Drop the cached pages so the public site rebuilds now">
-            {publishing ? "publishing…" : "⟳ publish"}
+            {publishing ? "publishing…" : <><ArrowsClockwiseIcon size={13} aria-hidden="true" />publish</>}
           </button>
         </div>
         <div className="adm__body">

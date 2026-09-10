@@ -11,6 +11,7 @@
 // The other half of a project is GitHub's: the repository picker points a project at a repo without
 // typing a url, and the three live switches decide which side wins when both have something to say.
 
+import { ArrowDownIcon, ArrowUpIcon } from "@phosphor-icons/react";
 import dynamic from "next/dynamic";
 import { useId, useState } from "react";
 import { maxPlanetSize } from "@/lib/scale";
@@ -18,7 +19,7 @@ import {
   Area, Badge, Bone, Btn, Check, Chip, Chips, Count, Danger, Empty, Field, Fold, Lines, LiveNote, Modal,
   MoonRow, MOON_CAP, MOON_CAP_TIP, Num, Pager, Row as FieldRow, Search, Section, Select, Skeleton, Slider,
   Swatches, Table, Text, Toggle, Toolbar, Tooltip, applySort, detectMoons, newMoon, pageOf, readMoons,
-  useFold, useRepos, useResource, usePager, useSearch, useSort, useSunRadius, useToast, writeMoons,
+  FoldAll, useFold, usePref, useRepos, useResource, usePager, useSearch, useSort, useSunRadius, useToast, writeMoons,
   type AdminRepo, type Column, type Moon, type MoonTree, type WithId,
 } from "../kit";
 
@@ -226,10 +227,18 @@ const TIPS = {
   vein: "how bright the molten veins run.",
 } as const;
 
+/** Every fold inside the project modal, so one control can open or shut all of them. */
+const MODAL_FOLDS = ["proj.basics", "proj.copy", "proj.github", "proj.planet", "proj.moons", "planet.colours", "planet.surface", "planet.ring", "planet-sizes"] as const;
+
+/** How wide the preview stands. Remembered, because it is a working preference, not a per-project one. */
+const PREVIEW_SIZES = ["card", "stage", "wide"] as const;
+type PreviewSize = (typeof PREVIEW_SIZES)[number];
+
 function PlanetEditor({ planet, orbit, sunRadius, moons, onChange, onOrbit }: {
   planet: Planet; orbit: number; sunRadius: number; moons?: readonly Moon[];
   onChange: (p: Planet) => void; onOrbit: (v: number) => void;
 }) {
+  const [size, setSize] = usePref<PreviewSize>("preview.size", PREVIEW_SIZES, "stage");
   const set = <K extends keyof Planet>(k: K, v: Planet[K]): void => onChange({ ...planet, [k]: v });
   const knob = (k: Knob): number => planet[k] ?? KNOB[k];
   const ring = planet.ring ?? null;
@@ -242,7 +251,7 @@ function PlanetEditor({ planet, orbit, sunRadius, moons, onChange, onOrbit }: {
   const shown = (moons ?? []).filter((m) => m.visible).length;
 
   return (
-    <div className="pled">
+    <div className={`pled pled--${size}`}>
       <div className="pled__knobs">
         <div className="pled__pick">
           {PLANET_TYPES.map((t) => (
@@ -323,14 +332,28 @@ function PlanetEditor({ planet, orbit, sunRadius, moons, onChange, onOrbit }: {
         </Fold>
       </div>
       <div className="pled__view">
-        <p className="panel__h">live preview</p>
+        <div className="pled__head">
+          <p className="panel__h">live preview</p>
+          <div className="chips">
+            {PREVIEW_SIZES.map((s) => (
+              <Chip key={s} on={size === s} onClick={() => setSize(s)}>{s}</Chip>
+            ))}
+          </div>
+        </div>
         <PlanetPreview planet={planet} moons={moons} />
-        {shown > 0 && (
-          <p className="hint">
-            {shown} {shown === 1 ? "moon is" : "moons are"} passed to the preview. It draws them once the scene
-            gains moon rendering; until then the planet alone is what you see here.
-          </p>
-        )}
+        {shown > 0 && <p className="hint">{shown} {shown === 1 ? "moon" : "moons"}, drawn here as they are on the site.</p>}
+        {/* the same body at the three sizes it is actually seen at, because a size that reads on a
+            stage can be a smudge on a card. Folded away by default: each one is its own GL context. */}
+        <Fold id="planet-sizes" title="at every size" note="deck · card · strip">
+          <div className="pled__sizes">
+            {([["stage", 240], ["card", 132], ["strip", 68]] as const).map(([label, px]) => (
+              <div key={label} style={{ width: px }}>
+                <PlanetPreview planet={planet} moons={moons} />
+                <span className="k">{label}</span>
+              </div>
+            ))}
+          </div>
+        </Fold>
       </div>
     </div>
   );
@@ -435,7 +458,9 @@ function MoonsBlock({ slug, moons, auto, onMoons, onAuto, onWrite }: {
           </div>
           {moons.map((m, i) => (
             <MoonRow
-              key={`${m.path || m.name}-${i}`} moon={m}
+              // keyed by position only: a key carrying the name remounts the row on every keystroke,
+              // which is why a moon name could only be typed one letter at a time
+              key={i} moon={m}
               onChange={(next) => onMoons(moons.map((x, k) => (k === i ? next : x)))}
               onRemove={() => onMoons(moons.filter((_, k) => k !== i))}
             />
@@ -602,8 +627,10 @@ function EditProject({ row, github, sunRadius, onClose, onSave, onDelete, onMove
       actions={
         <>
           {dirty && <Badge tone="warn">unsaved</Badge>}
-          <Btn onClick={() => onMove(-1)} aria-label="move up">↑</Btn>
-          <Btn onClick={() => onMove(1)} aria-label="move down">↓</Btn>
+          {/* one control for every section in here, so the preview can have the whole modal */}
+          <FoldAll ids={MODAL_FOLDS} />
+          <Btn onClick={() => onMove(-1)} aria-label="move up"><ArrowUpIcon size={13} /></Btn>
+          <Btn onClick={() => onMove(1)} aria-label="move down"><ArrowDownIcon size={13} /></Btn>
         </>
       }
       foot={

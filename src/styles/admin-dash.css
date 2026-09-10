@@ -2,7 +2,7 @@
    shared kit (fields, rows, tables, toasts), so the two can be worked on independently.
    Tokens come from admin.css; nothing here redefines a colour that already has a name. */
 
-.adm { --adm-line: rgba(0,229,255,.16); }
+.adm__body { --sf-bg: var(--adm-card); }
 
 /* ── shell ─────────────────────────────────────────── */
 .adm__brand { display: flex; align-items: center; gap: 9px; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-3, rgba(242,245,255,.4)); }
@@ -23,7 +23,7 @@
 /* ── command palette ───────────────────────────────── */
 .pal { position: fixed; inset: 0; z-index: 60; display: grid; place-items: start center; padding-top: 12vh; }
 .pal__scrim { position: absolute; inset: 0; background: rgba(3,4,7,.72); backdrop-filter: blur(3px); border: 0; }
-.pal__box { position: relative; width: min(560px, calc(100vw - 32px)); --sf-bg: rgba(8,14,20,.97); }
+.pal__box { position: relative; width: min(560px, calc(100vw - 32px)); --sf-bg: #141a26; }
 .pal__box > .sf__in { padding: 10px; }
 .pal__in { width: 100%; padding: 12px 12px; font: inherit; font-size: 14px; color: var(--fg, #f2f5ff); background: rgba(0,229,255,.05); border: 1px solid rgba(0,229,255,.3); outline: none; }
 .pal__in:focus { border-color: var(--cy, #00e5ff); }
@@ -96,8 +96,6 @@
   .adm > .adm__main { width: 100%; padding: 16px; }
   .adm__scrim { display: block; position: fixed; inset: 0; z-index: 45; background: rgba(3,4,7,.6); border: 0; }
   .adm__burger { display: inline-flex; align-items: center; gap: 7px; padding: 8px 10px; font: inherit; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-2, rgba(242,245,255,.66)); background: rgba(0,229,255,.05); border: 1px solid rgba(0,229,255,.3); cursor: pointer; }
-  .adm__burger i { display: block; width: 13px; height: 1px; background: currentColor; }
-  .adm__burger i + i { margin-top: 3px; }
   .adm__bar { flex-wrap: wrap; }
   .adm__title { order: 3; flex: 1 0 100%; }
   .funnel > div { grid-template-columns: 11ch 1fr auto; }
@@ -107,3 +105,8 @@
 @media (prefers-reduced-motion: reduce) {
   .adm__side, .pulse i, .dtip::after { transition: none; animation: none; }
 }
+
+/* Phosphor icons sit on the text baseline and inherit its colour; these keep them from stretching. */
+.adm__tab i, .adm__foot a i, .adm__foot button i, .pal__list i { display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.adm__foot a, .adm__foot button { display: flex; align-items: center; gap: 8px; }
+.adm__bar .btn svg, .adm__burger svg { flex: none; }

@@ -40,14 +40,14 @@
 @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .4 } }
 section { margin-top: clamp(56px, 10vh, 110px); scroll-margin-top: 80px; }
 .sec__h { display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 18px; margin-bottom: 28px; }
-.sec__h h2 { font-size: clamp(20px, 2.4vw, 28px); letter-spacing: .06em; text-transform: uppercase; color: var(--fg); font-weight: 700; min-height: 1.2em; }
+.sec__h h2 { font-family: var(--display); font-size: clamp(19px, 2.2vw, 26px); letter-spacing: .04em; text-transform: uppercase; color: var(--fg); font-weight: 700; min-height: 1.2em; }
 .sec__h h2::before { content: attr(data-n); font-size: 11px; letter-spacing: .3em; color: var(--cy); margin-right: 14px; vertical-align: .5em; font-weight: 500; }
 .sec__h i { height: 1px; background: var(--line); align-self: center; }
 .sec__h small { color: var(--fg-3); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; }
 
 /* hero */
 .hero { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .8fr); gap: clamp(28px, 5vw, 72px); align-items: start; }
-.hero h1 { font-size: clamp(40px, 6.4vw, 84px); line-height: .98; font-weight: 700; letter-spacing: -.03em; perspective: 900px; }
+.hero h1 { font-family: var(--display); font-size: clamp(34px, 5.4vw, 70px); line-height: 1.02; font-weight: 800; letter-spacing: -.01em; perspective: 900px; }
 .hero h1 .name { display: block; }
 .hero h1 .sub { display: block; color: var(--fg-3); font-size: clamp(11px, 1vw, 13px); font-weight: 400; letter-spacing: .3em; text-transform: uppercase; margin-top: 18px; }
 .hero__p { margin-top: 26px; color: var(--fg-2); max-width: 66ch; font-size: 15px; }

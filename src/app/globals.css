@@ -6,6 +6,10 @@
   --neon: linear-gradient(90deg, var(--mg), var(--cy));
   --sf-bg: rgba(6, 12, 18, .78); --sf-border: rgba(0, 229, 255, .45);
   --mono: var(--font-mono), "JetBrains Mono", ui-monospace, Menlo, monospace;
+  /* short headings only — Orbitron is a signpost, not a paragraph */
+  --display: var(--font-display), "Orbitron", var(--mono);
+  /* the admin panel's prose and labels */
+  --ui: var(--font-ui), "Space Grotesk", system-ui, sans-serif;
   --ease: cubic-bezier(.77, 0, .175, 1);
   --pad: clamp(16px, 4vw, 48px);
   color-scheme: dark;

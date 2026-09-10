@@ -2,7 +2,7 @@
 // can pick a fitting one: space trivia, a note about the pilot, or something entirely unfiled.
 
 import { schema as t } from "@/db/client";
-import { build, createCrud, reject, type Parse } from "@/lib/admin-crud";
+import { FOLD, build, createCrud, reject, type Parse } from "@/lib/admin-crud";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +26,10 @@ const handlers = createCrud({
   id: t.eggFacts.id,
   order: t.eggFacts.sortOrder,
   sort: t.eggFacts.sortOrder,
+  keys: [{
+    parts: [{ column: t.eggFacts.text, value: (row) => row.text, compare: FOLD }],
+    message: () => "that line is already in the pool",
+  }],
   parse,
 });
 export const GET = handlers.GET;

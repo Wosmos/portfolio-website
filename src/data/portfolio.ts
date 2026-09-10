@@ -49,7 +49,9 @@ export const person: Person = {
   // Professional summary, verbatim from the résumé PDF.
   summary:
     "Software Engineer building production web applications and systems-level software end-to-end. Specialised in concurrent backends with Go, modern frontends with Next.js, and security-first architecture. Have shipped a zero-knowledge encrypted cloud platform across web, desktop, and terminal clients, a real-time chat system across web and mobile, and a range of client products spanning e-commerce, POS, HRMS, and real-estate. Comfortable owning every layer: schema design, backend services, client implementations, and deployment. Open to remote opportunities globally.",
-  cv: "/resume/Wasif_Malik_Resume_SoftwareEngineer.pdf",
+  // The résumé lives in Vercel Blob so it can be replaced from the admin without a deploy; this is the
+  // fallback the static records carry when the database is unreachable, so it points at the same file.
+  cv: "https://fggnxvf87yifjcf8.public.blob.vercel-storage.com/resume/wasif-malik-resume.pdf",
   github: "https://github.com/Wosmos",
   linkedin: "https://www.linkedin.com/in/wasif-malik-79205a1bb",
   hashnode: "https://hashnode.com/@Wosmo",

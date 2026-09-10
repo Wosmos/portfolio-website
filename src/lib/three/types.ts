@@ -27,7 +27,8 @@ export interface PlanetExtras {
   bands?: number; bandSharp?: number;
 }
 /** A moon's surface family. The gas branch of the planet shader has no small-body equivalent. */
-export type MoonType = Exclude<PlanetType, "gas">;
+/** Moons carry the same six surfaces as planets — a captured gas body is a real thing. */
+export type MoonType = PlanetType;
 
 /**
  * One moon — a repository's nested child folder (zcrypt's backend, frontend, mobile, core). Mirrors

@@ -6,6 +6,18 @@
 import RLSkeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import {
+  ArrowDownIcon, ArrowUpIcon, ArrowsDownUpIcon, CaretDoubleLeftIcon, CaretDoubleRightIcon, CaretDownIcon,
+  CaretLeftIcon, CaretRightIcon, CircleDashedIcon, DotOutlineIcon, MagnifyingGlassIcon, QuestionIcon, XIcon,
+} from "@phosphor-icons/react";
+
+/**
+ * True on the client, false on the server and through hydration — without an effect, so nothing sets
+ * state while an effect runs. What the tooltip's portal needs before it may reach for `document`.
+ */
+const noSub = (): (() => void) => () => undefined;
+const useMounted = (): boolean => useSyncExternalStore(noSub, () => true, () => false);
 
 // ── toasts ──
 interface Toast { id: number; text: string; bad?: boolean }
@@ -193,7 +205,8 @@ export function Chips({ value, onChange, placeholder = "add…" }: { value: read
   return (
     <div className="chipedit">
       {value.map((v, i) => (
-        <span key={`${v}-${i}`}>{v}<button type="button" aria-label={`remove ${v}`} onClick={() => onChange(value.filter((_, k) => k !== i))}>×</button></span>
+        // keyed by position, not by value: a key carrying the text remounts the row on every edit
+        <span key={i}>{v}<button type="button" aria-label={`remove ${v}`} onClick={() => onChange(value.filter((_, k) => k !== i))}><XIcon aria-hidden="true" /></button></span>
       ))}
       <input
         value={draft} placeholder={placeholder}
@@ -251,25 +264,71 @@ export function Danger({ label = "delete", armedLabel = "click again", onConfirm
 }
 
 // ── tooltips ──
+
+/** How far a bubble stands off its trigger, and how close it may come to the edge of the window. */
+const TIP_GAP = 8;
+const TIP_EDGE = 10;
+const TIP_WIDE = 280;
+
 /**
  * A focusable trigger with a bubble that is always in the accessibility tree (so `aria-describedby`
- * resolves) but only visible on hover or focus, and absolutely positioned so it shifts nothing.
+ * resolves) but only visible on hover or focus.
+ *
+ * The bubble lives in a portal on `document.body`, fixed-positioned: as an absolute child it was
+ * clipped by the first `overflow: hidden` ancestor (the modal body, a table's scroller) and a fixed
+ * offset pushed it off the left edge of the panel. Here it is measured against the window instead —
+ * centred on the trigger then clamped inside it, above unless there is more room below, and never
+ * over the control it describes.
  */
 export function Tooltip({ text, children }: { text: string; children?: ReactNode }) {
   const id = useId();
   const [open, setOpen] = useState(false);
+  const btn = useRef<HTMLButtonElement>(null);
+  const bub = useRef<HTMLSpanElement>(null);
+  const mounted = useMounted();
+
+  // The placement is written straight onto the node rather than held in state: it can only be worked
+  // out once the bubble has been laid out, and a setState from that effect is what the lint rule bans.
+  useEffect(() => {
+    const t = bub.current;
+    if (!t) return;
+    if (!open) { t.style.left = "-9999px"; t.style.top = "0px"; return; }
+    const place = (): void => {
+      const b = btn.current;
+      if (!b) return;
+      t.style.maxWidth = `${Math.min(TIP_WIDE, innerWidth - TIP_EDGE * 2)}px`;
+      const r = b.getBoundingClientRect();
+      const above = r.top - TIP_GAP - TIP_EDGE;
+      const below = innerHeight - r.bottom - TIP_GAP - TIP_EDGE;
+      const up = t.offsetHeight <= above || above >= below;
+      t.style.maxHeight = `${Math.max(48, Math.round(up ? above : below))}px`;
+      const h = t.offsetHeight;
+      const w = t.offsetWidth;
+      const top = up ? r.top - TIP_GAP - h : r.bottom + TIP_GAP;
+      const left = r.left + r.width / 2 - w / 2;
+      t.style.top = `${Math.round(Math.min(Math.max(TIP_EDGE, top), Math.max(TIP_EDGE, innerHeight - h - TIP_EDGE)))}px`;
+      t.style.left = `${Math.round(Math.min(Math.max(TIP_EDGE, left), Math.max(TIP_EDGE, innerWidth - w - TIP_EDGE)))}px`;
+    };
+    place();
+    // any ancestor scrolling moves the trigger, and only the capture phase hears a scroller's own scroll
+    addEventListener("scroll", place, true);
+    addEventListener("resize", place);
+    return () => { removeEventListener("scroll", place, true); removeEventListener("resize", place); };
+  }, [open]);
+
+  const bubble = <span role="tooltip" id={id} ref={bub} className={`tip__bub${open ? " is-on" : ""}`}>{text}</span>;
   return (
     <span className="tip">
       <button
-        type="button" className="tip__btn" aria-describedby={id} aria-label={children ? undefined : "what this does"}
+        type="button" className="tip__btn" ref={btn} aria-describedby={id} aria-label={children ? undefined : "what this does"}
         onPointerEnter={() => setOpen(true)} onPointerLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
         onClick={() => setOpen((v) => !v)}
         onKeyDown={(e) => { if (e.key === "Escape" && open) { e.stopPropagation(); setOpen(false); } }}
       >
-        {children ?? <i aria-hidden="true">?</i>}
+        {children ?? <QuestionIcon aria-hidden="true" />}
       </button>
-      <span role="tooltip" id={id} className={`tip__bub${open ? " is-on" : ""}`}>{text}</span>
+      {mounted ? createPortal(bubble, document.body) : bubble}
     </span>
   );
 }
@@ -294,10 +353,11 @@ export function Skeleton({ rows = 3, height = 58 }: { rows?: number; height?: nu
 export function Bone({ height, width, circle }: { height?: number | string; width?: number | string; circle?: boolean }) {
   return <SkeletonTheme {...THEME}><RLSkeleton height={height} width={width} circle={circle} className="bone" /></SkeletonTheme>;
 }
-export function Empty({ text, icon = "◌", action, onAction }: { text: string; icon?: string; action?: string; onAction?: () => void }) {
+export function Empty({ text, icon, action, onAction }: { text: string; icon?: ReactNode; action?: string; onAction?: () => void }) {
+  const mark = icon ?? <CircleDashedIcon aria-hidden="true" />;
   return (
     <div className="empty">
-      <i aria-hidden="true">{icon}</i>
+      <i aria-hidden="true">{mark}</i>
       <p>{text}</p>
       {action && onAction && <Btn kind="primary" onClick={onAction}>{action}</Btn>}
     </div>
@@ -325,7 +385,7 @@ export function Search({ value, onChange, placeholder = "search…", delay = 200
   };
   return (
     <div className="tbar__find">
-      <i aria-hidden="true">⌕</i>
+      <i aria-hidden="true"><MagnifyingGlassIcon /></i>
       <input
         type="search" value={draft} placeholder={placeholder} aria-label="search"
         onChange={(e) => push(e.target.value)}
@@ -518,7 +578,12 @@ export function Table<T>({ columns, rows, keyOf, selected, onSelect, sort, onSor
                 <th key={c.key} className={[c.num && "num", active && "is-sorted"].filter(Boolean).join(" ") || undefined} style={c.width ? { width: c.width } : undefined}
                   aria-sort={active ? (sort?.dir === "asc" ? "ascending" : "descending") : undefined}>
                   {c.value && onSort
-                    ? <button type="button" onClick={() => onSort(c.key)}>{c.label}<i aria-hidden="true">{active ? (sort?.dir === "asc" ? "↑" : "↓") : "↕"}</i></button>
+                    ? (
+                      <button type="button" onClick={() => onSort(c.key)}>
+                        {c.label}
+                        <i aria-hidden="true">{active ? (sort?.dir === "asc" ? <ArrowUpIcon /> : <ArrowDownIcon />) : <ArrowsDownUpIcon />}</i>
+                      </button>
+                    )
                     : c.label}
                 </th>
               );
@@ -537,7 +602,7 @@ export function Table<T>({ columns, rows, keyOf, selected, onSelect, sort, onSor
                 onClick={onSelect ? () => onSelect(row) : undefined}
                 onKeyDown={onSelect ? (e) => nav(e, i) : undefined}
               >
-                {onSelect && <td className="tbl__pin"><i aria-hidden="true">{on ? "▸" : "·"}</i></td>}
+                {onSelect && <td className="tbl__pin"><i aria-hidden="true">{on ? <CaretRightIcon /> : <DotOutlineIcon />}</i></td>}
                 {columns.map((c) => <td key={c.key} className={c.num ? "num" : undefined} data-label={c.label}>{c.cell(row)}</td>)}
                 {actions && <td className="tbl__acts" onClick={(e) => e.stopPropagation()}>{actions(row)}</td>}
               </tr>
@@ -575,11 +640,11 @@ export function Pager({ state, total, noun = "rows" }: { state: PagerState; tota
     <div className="pager">
       <p>{total === 0 ? `no ${noun}` : `${from}–${to} of ${total} ${noun}`}</p>
       <div className="pager__go">
-        <Btn onClick={() => setPage(1)} disabled={page <= 1} aria-label="first page">«</Btn>
-        <Btn onClick={() => setPage(page - 1)} disabled={page <= 1} aria-label="previous page">‹</Btn>
+        <Btn onClick={() => setPage(1)} disabled={page <= 1} aria-label="first page"><CaretDoubleLeftIcon aria-hidden="true" /></Btn>
+        <Btn onClick={() => setPage(page - 1)} disabled={page <= 1} aria-label="previous page"><CaretLeftIcon aria-hidden="true" /></Btn>
         <span>{page} / {pages}</span>
-        <Btn onClick={() => setPage(page + 1)} disabled={page >= pages} aria-label="next page">›</Btn>
-        <Btn onClick={() => setPage(pages)} disabled={page >= pages} aria-label="last page">»</Btn>
+        <Btn onClick={() => setPage(page + 1)} disabled={page >= pages} aria-label="next page"><CaretRightIcon aria-hidden="true" /></Btn>
+        <Btn onClick={() => setPage(pages)} disabled={page >= pages} aria-label="last page"><CaretDoubleRightIcon aria-hidden="true" /></Btn>
       </div>
       <label className="pager__per">
         per page
@@ -694,7 +759,7 @@ export function LiveNote({ on, value, tip }: { on: boolean; value: string; tip?:
   if (!value) return null;
   return (
     <p className={`live${on ? " is-on" : ""}`}>
-      <i aria-hidden="true">{on ? "▸" : "·"}</i>
+      <i aria-hidden="true">{on ? <CaretRightIcon /> : <DotOutlineIcon />}</i>
       <em>{on ? "github wins" : "github ignored"}</em>
       <span>{value}</span>
       {tip && <Tooltip text={tip} />}
@@ -837,6 +902,63 @@ export function useFold(id: string, initial = true): [boolean, (v: boolean) => v
 }
 
 /**
+ * Several folds at once. The snapshot is a string of flags rather than an array, because
+ * `useSyncExternalStore` compares by identity and a fresh array every read would never settle.
+ * Setting them writes each fold's own key, so "collapse all" is remembered the same way one fold is.
+ */
+export function useFoldGroup(ids: readonly string[], initial = true): { allOpen: boolean; anyOpen: boolean; setAll: (v: boolean) => void } {
+  const key = ids.join(" ");
+  const list = useMemo(() => key.split(" "), [key]);
+  const read = useCallback(() => list.map((id) => (readFold(id, initial) ? "1" : "0")).join(""), [list, initial]);
+  const fallback = useCallback(() => (initial ? "1" : "0").repeat(list.length), [list, initial]);
+  const flags = useSyncExternalStore(subFold, read, fallback);
+  const setAll = useCallback((v: boolean) => {
+    for (const id of list) {
+      try { localStorage.setItem(FOLD_KEY + id, v ? "1" : "0"); } catch { /* cosmetic only */ }
+    }
+    for (const fn of foldSubs) fn();
+  }, [list]);
+  return { allOpen: !flags.includes("0"), anyOpen: flags.includes("1"), setAll };
+}
+
+/** One button for a form's whole set of folds: shut them all to give something else the room. */
+export function FoldAll({ ids }: { ids: readonly string[] }) {
+  const { anyOpen, setAll } = useFoldGroup(ids);
+  return (
+    <Btn onClick={() => setAll(!anyOpen)} title="every section in this editor at once">
+      {anyOpen ? "collapse all" : "expand all"}
+    </Btn>
+  );
+}
+
+const PREF_KEY = "adm.pref.";
+const prefSubs = new Set<() => void>();
+const subPref = (fn: () => void): (() => void) => { prefSubs.add(fn); return () => { prefSubs.delete(fn); }; };
+
+/**
+ * A remembered choice out of a fixed list — the same storage trick as `useFold`, for the settings that
+ * are a word rather than a flag. Anything storage does not recognise falls back to `initial`.
+ */
+export function usePref<T extends string>(id: string, options: readonly T[], initial: T): [T, (v: T) => void] {
+  // The call sites write `options` inline, so its identity changes every render; its *contents* are
+  // what the answer depends on, and this string carries them.
+  const allowed = options.join("\u0001");
+  const read = useCallback((): T => {
+    try {
+      const raw = localStorage.getItem(PREF_KEY + id);
+      return options.find((o) => o === raw) ?? initial;
+    } catch { return initial; }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `allowed` stands in for `options`
+  }, [id, initial, allowed]);
+  const value = useSyncExternalStore(subPref, read, () => initial);
+  const set = useCallback((v: T) => {
+    try { localStorage.setItem(PREF_KEY + id, v); } catch { /* cosmetic only */ }
+    for (const fn of prefSubs) fn();
+  }, [id]);
+  return [value, set];
+}
+
+/**
  * `Section` that folds, and remembers whether it was folded. Give the least-used blocks `open={false}`
  * and a form of a hundred controls opens as a page of headings.
  */
@@ -857,7 +979,7 @@ export function Fold({ id, title, tip, note, actions, children, open: initial = 
     <section className={`fold${open ? " is-on" : ""}`}>
       <div className="fold__top">
         <button type="button" className="fold__t" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen(!open)}>
-          <i aria-hidden="true">{open ? "▾" : "▸"}</i>{title}
+          <i aria-hidden="true">{open ? <CaretDownIcon /> : <CaretRightIcon />}</i>{title}
         </button>
         {tip && <Tooltip text={tip} />}
         {note && !open && <span className="fold__note">{note}</span>}
@@ -894,7 +1016,15 @@ export function Swatches({ items }: { items: readonly RampStop[] }) {
 
 // ── moons ──
 
-export const MOON_TYPES = ["rocky", "ice", "muddy", "liquid", "lava"] as const;
+/**
+ * The surfaces a moon may have — the same six a planet offers, so the two lists match.
+ *
+ * `gas` is the odd one out: `MoonConfigJson["type"]` in src/db/schema.ts still lists five, so a gas
+ * moon is legal in the editor and in the shader (which branches on the same names as a planet) but the
+ * column's type and the POST validator have to learn it before it can round-trip. Until then it saves
+ * as a string the column simply has no name for.
+ */
+export const MOON_TYPES = ["gas", "rocky", "ice", "muddy", "liquid", "lava"] as const;
 export type MoonType = (typeof MOON_TYPES)[number];
 /** The stored shape of one moon — `MoonConfigJson` in src/db/schema.ts, mirrored for the client. */
 export interface Moon {
@@ -1037,7 +1167,7 @@ export function MoonRow({ moon, onChange, onRemove }: { moon: Moon; onChange: (m
         <input type="checkbox" checked={moon.visible} onChange={(e) => set("visible", e.target.checked)} />
         <span>show</span>
       </label>
-      <Btn onClick={onRemove} aria-label={`remove ${moon.name}`}>×</Btn>
+      <Btn onClick={onRemove} aria-label={`remove ${moon.name}`}><XIcon aria-hidden="true" /></Btn>
     </div>
   );
 }

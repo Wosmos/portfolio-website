@@ -5,10 +5,11 @@
 // the cap is `maxPlanetSize(sunRadius)`, a slightly-over size is clamped to it, and anything wildly
 // over is rejected so a typo is reported rather than silently rewritten.
 
+import { eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db/client";
 import type { LangShareJson, MoonConfigJson, PlanetConfigJson } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
-import { build, createCrud, isRecord, reject, type Parse } from "@/lib/admin-crud";
+import { near, FOLD, build, createCrud, isRecord, reject, type Parse } from "@/lib/admin-crud";
 import { DEFAULT_SCENE } from "@/lib/content";
 import { MAX_MOONS } from "@/lib/github";
 import { clampPlanetSize, maxPlanetSize } from "@/lib/scale";
@@ -116,7 +117,7 @@ function readLangs(value: unknown): LangShareJson[] {
   });
 }
 
-const MOON_TYPES = ["rocky", "ice", "muddy", "liquid", "lava"] as const;
+const MOON_TYPES = ["gas", "rocky", "ice", "muddy", "liquid", "lava"] as const;
 type MoonType = (typeof MOON_TYPES)[number];
 const isMoonType = (v: unknown): v is MoonType => MOON_TYPES.some((k) => k === v);
 
@@ -207,10 +208,23 @@ const parse = (sunRadius: number): Parse<typeof t.projects> => (input, base) =>
     category: f.text("category", base?.category, 60),
     context: f.text("context", base?.context, 60),
     status: f.optText("status", base?.status ?? "", 60),
-    year: f.nullInt("year", base?.year ?? null, { min: 1970, max: 2200 }),
+    // a project cannot have shipped after next year; a typo like 2062 is what this catches
+    year: f.nullInt("year", base?.year ?? null, { min: 1970, max: new Date().getFullYear() + 1 }),
     weight: f.num("weight", base?.weight ?? 0.5, { min: 0, max: 1 }),
-    github: f.optText("github", base?.github ?? "", 400),
-    live: f.optText("live", base?.live ?? "", 400),
+    github: f.of("github", base?.github ?? "", (v, k) => {
+      if (typeof v !== "string") reject(`${k} must be text`);
+      const url = v.trim();
+      if (url === "") return "";
+      if (!/^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/?$/.test(url)) reject(`${k} must be a https://github.com/owner/repo url`);
+      return url.replace(/\/$/, "");
+    }),
+    live: f.of("live", base?.live ?? "", (v, k) => {
+      if (typeof v !== "string") reject(`${k} must be text`);
+      const url = v.trim();
+      if (url === "") return "";
+      if (!/^https?:\/\/\S+$/.test(url) || url.length > 400) reject(`${k} must be an http or https url`);
+      return url;
+    }),
     langs: f.of("langs", base?.langs ?? [], readLangs),
     planet: f.of("planet", base?.planet, readPlanet(sunRadius)),
     orbit: f.of("orbit", base?.orbit, positive),
@@ -234,7 +248,28 @@ const crud = (sunRadius: number) =>
     id: t.projects.id,
     order: t.projects.sortOrder,
     sort: t.projects.sortOrder,
-    unique: { column: t.projects.slug, label: "slug", value: (row) => row.slug },
+    keys: [
+      {
+        parts: [{ column: t.projects.slug, value: (row) => row.slug, compare: FOLD }],
+        message: (existing) => `the slug ${existing.slug} is already taken by ${existing.title}`,
+      },
+      {
+        parts: [{ column: t.projects.github, value: (row) => row.github, compare: FOLD }],
+        message: (existing) => `${existing.title} already points at that repository`,
+      },
+      {
+        parts: [{ column: t.projects.title, value: (row) => row.title, compare: FOLD }],
+        message: (existing) => `${existing.slug} is already called that`,
+      },
+      {
+        // two planets on one orbit is a scene bug, not a content decision — but only among the
+        // projects the scene actually draws, so a hidden one may sit anywhere
+        parts: [{ column: t.projects.orbit, value: (row) => row.orbit, compare: near(0.5) }],
+        when: (row) => row.visible !== false,
+        among: eq(t.projects.visible, true),
+        message: (existing) => `${existing.title} already orbits at ${existing.orbit} — move one of them`,
+      },
+    ],
     parse: parse(sunRadius),
   });
 

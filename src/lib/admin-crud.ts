@@ -8,11 +8,12 @@
 // rather than a half-empty insert — which is also why the values it returns are always a complete,
 // typed insert model and the queries below need no casts.
 
-import { and, asc, desc, eq, getTableColumns, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, inArray, ne, sql, type SQL } from "drizzle-orm";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import { getDb, type Db } from "@/db/client";
 import { requireAdmin } from "@/lib/auth";
 import { revalidateContent } from "@/lib/content";
+import { limitAdminWrite } from "@/lib/rate-limit";
 
 // ── responses ───────────────────────────────────────────
 
@@ -34,9 +35,14 @@ function isUniqueViolation(e: unknown): boolean {
 }
 
 /** The guard, the database handle and the try/catch that every handler needs. */
-async function guarded(where: string, run: (db: Db) => Promise<Response>): Promise<Response> {
+async function guarded(where: string, run: (db: Db) => Promise<Response>, write = false): Promise<Response> {
   const denied = await requireAdmin();
   if (denied) return denied;
+  // Reads are cheap and the panel makes many; only writes are throttled.
+  if (write) {
+    const throttled = await limitAdminWrite();
+    if (throttled) return throttled;
+  }
   const db = getDb();
   if (!db) return bad("The database is not configured", 503);
   try {
@@ -177,6 +183,40 @@ export type Row<T extends PgTable> = T["$inferSelect"];
 /** `existing` is the stored row on a PUT and null on a POST, so a validator can merge onto it. */
 export type Parse<T extends PgTable> = (input: unknown, existing: Row<T> | null) => Parsed<Insert<T>>;
 
+// ── duplicates ──────────────────────────────────────────
+// Every resource has a natural key — a slug, a group name, company + title + start — and a second row
+// carrying it is a content mistake, not a choice. A key is declared here rather than checked inside a
+// route so all six resources say it the same way, and it is checked before the write so a clash is a
+// 409 naming the row that already holds it instead of a 500 from the database's own constraint.
+
+/** How a stored column is compared with a candidate value. */
+export type Compare = (column: PgColumn, value: string | number) => SQL;
+
+/** Case and surrounding space are not a difference: " Zcrypt" and "zcrypt" are the same title. */
+export const FOLD: Compare = (column, value) => sql`lower(btrim(${column}::text)) = ${String(value).trim().toLowerCase()}`;
+/** Floats: a `real` column and a JSON number never compare exactly, so "the same orbit" needs slack. */
+export const near = (epsilon: number): Compare => (column, value) => sql`abs(${column} - ${Number(value)}) < ${epsilon}`;
+const EXACT: Compare = (column, value) => sql`${column} = ${value}`;
+
+export interface KeyPart<T extends PgTable> {
+  column: PgColumn;
+  /** null means there is nothing to clash with, and the whole key is skipped. */
+  value: (row: Insert<T>) => string | number | null;
+  /** Left out, the value is compared exactly. */
+  compare?: Compare;
+}
+
+export interface UniqueKey<T extends PgTable> {
+  /** One part per column. Several parts make a composite key: company + title + start. */
+  parts: readonly KeyPart<T>[];
+  /** Skips the key when the incoming row cannot clash — a hidden project, an empty field. */
+  when?: (row: Insert<T>) => boolean;
+  /** Narrows what counts as a clash: only the visible rows, for the orbit rule. */
+  among?: SQL;
+  /** The refusal, given the row that already holds the key. Shown to the admin verbatim. */
+  message: (existing: Row<T>) => string;
+}
+
 export interface CrudConfig<T extends PgTable> {
   /** Used in log lines and in "not found" messages. */
   name: string;
@@ -187,8 +227,8 @@ export interface CrudConfig<T extends PgTable> {
   parse: Parse<T>;
   /** Enables PUT { reorder: [{ id, sortOrder }] }. */
   sort?: PgColumn;
-  /** Checked before a write so a clash is a 409 with a useful message rather than a 500. */
-  unique?: { column: PgColumn; label: string; value: (row: Insert<T>) => string };
+  /** Natural keys, checked in order before a write. The first clash answers 409. */
+  keys?: readonly UniqueKey<T>[];
   /** Whether a write should drop the public content cache. Defaults to true. */
   revalidate?: boolean;
 }
@@ -220,14 +260,25 @@ export function createCrud<T extends PgTable>(cfg: CrudConfig<T>): CrudHandlers 
     return rows[0] ?? null;
   };
 
-  /** Pre-flight uniqueness, ignoring the row being edited. */
+  /** Pre-flight uniqueness, ignoring the row being edited. Returns the message for the first clash. */
   const taken = async (db: Db, values: Insert<T>, exceptId: number | null): Promise<string | null> => {
-    const u = cfg.unique;
-    if (!u) return null;
-    const value = u.value(values);
-    const where = exceptId === null ? eq(u.column, value) : and(eq(u.column, value), ne(cfg.id, exceptId));
-    const [row] = await db.select({ n: sql<number>`count(*)::int` }).from(base).where(where);
-    return (row?.n ?? 0) > 0 ? `That ${u.label} is already taken` : null;
+    for (const key of cfg.keys ?? []) {
+      if (key.when && !key.when(values)) continue;
+      const parts: SQL[] = [];
+      for (const part of key.parts) {
+        const value = part.value(values);
+        if (value === null) break;
+        parts.push((part.compare ?? EXACT)(part.column, value));
+      }
+      if (parts.length !== key.parts.length) continue;
+      if (exceptId !== null) parts.push(ne(cfg.id, exceptId));
+      if (key.among) parts.push(key.among);
+      // no .limit(): drizzle cannot resolve the builder's type generically, and these tables are tiny
+      const rows: Row<T>[] = await db.select(cols).from(base).where(and(...parts));
+      const existing = rows[0];
+      if (existing) return key.message(existing);
+    }
+    return null;
   };
 
   const reorder = async (db: Db, input: unknown): Promise<Response> => {
@@ -273,7 +324,7 @@ export function createCrud<T extends PgTable>(cfg: CrudConfig<T>): CrudHandlers 
         const inserted = await db.insert(cfg.table).values(parsed.values).returning(cols);
         after();
         return ok(firstRow(inserted), 201);
-      }),
+      }, true),
 
     PUT: (request) =>
       guarded(`${cfg.name} PUT`, async (db) => {
@@ -292,7 +343,7 @@ export function createCrud<T extends PgTable>(cfg: CrudConfig<T>): CrudHandlers 
         const updated = await db.update(cfg.table).set(parsed.values).where(eq(cfg.id, id)).returning(cols);
         after();
         return ok(firstRow(updated));
-      }),
+      }, true),
 
     DELETE: (request) =>
       guarded(`${cfg.name} DELETE`, async (db) => {
@@ -302,7 +353,7 @@ export function createCrud<T extends PgTable>(cfg: CrudConfig<T>): CrudHandlers 
         if (firstRow(gone) === null) return bad(`No such ${cfg.name}`, 404);
         after();
         return ok({ success: true });
-      }),
+      }, true),
   };
 }
 
@@ -346,6 +397,6 @@ export function createSingleton<T extends PgTable>(cfg: SingletonConfig<T>): Sin
           : await db.insert(cfg.table).values(parsed.values).returning(cols);
         if (revalidate) revalidateContent();
         return ok(firstRow(rows));
-      }),
+      }, true),
   };
 }

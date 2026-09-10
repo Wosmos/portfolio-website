@@ -2,7 +2,7 @@
 // first time stamps publishedAt, and unpublishing leaves that date alone so it survives a round trip.
 
 import { schema as t } from "@/db/client";
-import { build, createCrud, type Parse } from "@/lib/admin-crud";
+import { FOLD, build, createCrud, type Parse } from "@/lib/admin-crud";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,7 +33,10 @@ const handlers = createCrud({
   id: t.posts.id,
   order: t.posts.createdAt,
   newestFirst: true,
-  unique: { column: t.posts.slug, label: "slug", value: (row) => row.slug },
+  keys: [{
+    parts: [{ column: t.posts.slug, value: (row) => row.slug, compare: FOLD }],
+    message: (existing) => `the slug ${existing.slug} is already taken by "${existing.title}"`,
+  }],
   parse,
 });
 export const GET = handlers.GET;

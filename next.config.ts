@@ -9,9 +9,9 @@ const csp = [
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://va.vercel-scripts.com`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https://fggnxvf87yifjcf8.public.blob.vercel-storage.com",
   "media-src 'self'",
-  "connect-src 'self' https://api.github.com https://api.resend.com https://va.vercel-scripts.com https://vitals.vercel-insights.com wss: ws:",
+  "connect-src 'self' https://fggnxvf87yifjcf8.public.blob.vercel-storage.com https://api.github.com https://api.resend.com https://va.vercel-scripts.com https://vitals.vercel-insights.com wss: ws:",
   "worker-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -41,7 +41,6 @@ const nextConfig: NextConfig = {
       },
       // the audio cuts never change under the same name; everything else Next fingerprints itself
       { source: "/v3/audio/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=86400" }] },
-      { source: "/resume/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=3600, stale-while-revalidate=86400" }] },
     ];
   },
 };

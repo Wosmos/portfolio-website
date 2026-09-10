@@ -52,7 +52,7 @@ export interface MoonConfigJson {
   /** Where it starts on its orbit, degrees, so two moons do not overlap. */
   phase: number;
   colour: number;
-  type: "rocky" | "ice" | "muddy" | "liquid" | "lava";
+  type: "gas" | "rocky" | "ice" | "muddy" | "liquid" | "lava";
   /** True while it is still whatever detection produced; a hand edit clears it. */
   auto: boolean;
   visible: boolean;

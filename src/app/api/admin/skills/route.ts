@@ -1,7 +1,7 @@
 // Skill groups — one row per heading, with the items under it.
 
 import { schema as t } from "@/db/client";
-import { build, createCrud, type Parse } from "@/lib/admin-crud";
+import { FOLD, build, createCrud, type Parse } from "@/lib/admin-crud";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +19,10 @@ const handlers = createCrud({
   id: t.skillGroups.id,
   order: t.skillGroups.sortOrder,
   sort: t.skillGroups.sortOrder,
+  keys: [{
+    parts: [{ column: t.skillGroups.group, value: (row) => row.group, compare: FOLD }],
+    message: (existing) => `there is already a group called ${existing.group}`,
+  }],
   parse,
 });
 export const GET = handlers.GET;

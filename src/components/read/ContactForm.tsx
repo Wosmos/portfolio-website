@@ -2,7 +2,7 @@
 // Posts to /api/contact, which sends through Resend. `website` is a honeypot: a real visitor never
 // fills it, and a submission that does is accepted and dropped server-side.
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { getAudio } from "@/lib/sound-client";
 import { ev } from "@/lib/analytics";
@@ -13,6 +13,9 @@ const FIELDS = ["name", "email", "subject", "message"] as const;
 export default function ContactForm() {
   const form = useRef<HTMLFormElement>(null);
   const [status, setStatus] = useState<Status>({ text: "", kind: "" });
+  // when this form appeared. The route refuses anything sent within two seconds of it — a script, not a person.
+  const shownAt = useRef(0);
+  useEffect(() => { shownAt.current = Date.now(); }, []);
   const [sending, setSending] = useState(false);
   const [count, setCount] = useState(0);
 
@@ -37,13 +40,19 @@ export default function ContactForm() {
     setSending(true);
     setStatus({ text: "sending …", kind: "" });
     try {
-      const r = await fetch("/api/contact", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
+      const r = await fetch("/api/contact", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...data, at: shownAt.current }) });
       const j: { success?: boolean; error?: string } = await r.json().catch(() => ({}));
       if (r.ok && j.success) {
         setStatus({ text: "sent · i will reply from my inbox", kind: "ok" });
         el.reset(); setCount(0); getAudio().arrive(); ev("contact_submit", { ok: true });
       } else {
-        setStatus({ text: j.error ?? `could not send (${r.status})`, kind: "bad" }); shake(); setSending(false); ev("contact_submit", { ok: false });
+        const wait = Number(r.headers.get("retry-after"));
+        const tooMany = r.status === 429;
+        setStatus({
+          text: j.error ?? (tooMany ? `too many messages — try again in ${Math.max(1, Math.ceil(wait / 60))} min` : `could not send (${r.status})`),
+          kind: "bad",
+        });
+        shake(); setSending(false); ev("contact_submit", { ok: false });
       }
     } catch {
       setStatus({ text: "no connection to the mail endpoint", kind: "bad" }); shake(); setSending(false);

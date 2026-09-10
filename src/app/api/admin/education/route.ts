@@ -1,7 +1,7 @@
 // Education. `start` and `end` are free text here because the résumé prints them verbatim.
 
 import { schema as t } from "@/db/client";
-import { build, createCrud, type Parse } from "@/lib/admin-crud";
+import { FOLD, build, createCrud, type Parse } from "@/lib/admin-crud";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,6 +22,13 @@ const handlers = createCrud({
   id: t.education.id,
   order: t.education.sortOrder,
   sort: t.education.sortOrder,
+  keys: [{
+    parts: [
+      { column: t.education.school, value: (row) => row.school, compare: FOLD },
+      { column: t.education.degree, value: (row) => row.degree, compare: FOLD },
+    ],
+    message: (existing) => `${existing.degree} at ${existing.school} is already listed`,
+  }],
   parse,
 });
 export const GET = handlers.GET;

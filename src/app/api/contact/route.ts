@@ -4,25 +4,17 @@ import { eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db/client";
 import { person } from "@/data/portfolio";
 import { clientIp, geoFrom, hashVisitor } from "@/lib/fingerprint";
+import { contactAll, contactByEmail, contactByIp, requestIp, sourceKey, tooMany, waitFor } from "@/lib/rate-limit";
 import { escapeHtml } from "@/lib/text";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Best-effort in-memory rate limit. Per-instance only (serverless instances do not share this map),
-// so it is a coarse abuse brake rather than a guarantee.
-const RATE_LIMIT = 5;
-const RATE_WINDOW_MS = 60 * 60 * 1000;
-const hits = new Map<string, number[]>();
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const recent = (hits.get(ip) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
-  recent.push(now);
-  hits.set(ip, recent);
-  if (hits.size > 5000) hits.clear();               // bound the map on a long-lived instance
-  return recent.length > RATE_LIMIT;
-}
+// This is the one route the public can reach that costs money and lands in a human inbox, so it is
+// limited three ways at once — by source, by the address being claimed, and in total per instance —
+// and it also refuses a submission that arrived faster than a person could have typed it.
+const MIN_FILL_MS = 2_000;
+const MAX_BODY = 12_000;
 
 const MAX = { name: 100, email: 254, subject: 150, message: 5000 } as const;
 type Field = keyof typeof MAX;
@@ -36,17 +28,23 @@ const TO = process.env.CONTACT_TO ?? person.email;
 
 const bad = (error: string, status: number): NextResponse => NextResponse.json({ error }, { status });
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<Response> {
   try {
     const key = process.env.RESEND_API_KEY;
     if (!key) {
       console.error("[contact] RESEND_API_KEY is not configured");
       return bad("Email service is not configured", 500);
     }
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-    if (isRateLimited(ip)) return bad("Too many requests. Please try again later.", 429);
+    const ip = requestIp(request);
+    const bySource = contactByIp.hit(await sourceKey("contact", ip));
+    if (!bySource.ok) return tooMany(`That is enough messages for now. Try again ${waitFor(bySource.retryAfter)}.`, bySource.retryAfter);
+    const everyone = contactAll.hit("all");
+    if (!everyone.ok) return tooMany(`The inbox is busy. Try again ${waitFor(everyone.retryAfter)}.`, everyone.retryAfter);
 
-    const body: unknown = await request.json().catch(() => null);
+    // a body this long is not a message, it is someone testing what the endpoint accepts
+    const text = await request.text().catch(() => "");
+    if (text.length > MAX_BODY) return bad("That message is too long", 413);
+    const body: unknown = (() => { try { return JSON.parse(text) as unknown; } catch { return null; } })();
     if (body === null || typeof body !== "object") return bad("Invalid JSON", 400);
     const raw = body as Record<string, unknown>;
 
@@ -60,6 +58,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       values[field] = v.trim();
     }
     if (!EMAIL.test(values.email)) return bad("Invalid email format", 400);
+
+    // The form stamps itself when it renders. Nothing legitimate arrives two seconds later, and a
+    // missing or nonsense stamp is treated as fine so an old cached page still works.
+    const stamp = Number(raw.at);
+    if (Number.isFinite(stamp) && stamp > 0 && Date.now() - stamp < MIN_FILL_MS) {
+      return bad("That was too quick — have another look and send it again", 400);
+    }
+    const byEmail = contactByEmail.hit(await sourceKey("contact-email", values.email.toLowerCase()));
+    if (!byEmail.ok) return tooMany(`You have already written a few times. Try again ${waitFor(byEmail.retryAfter)}.`, byEmail.retryAfter);
 
     const safe = {
       name: escapeHtml(values.name),

@@ -1,7 +1,7 @@
 // Testimonials. `placeholder` marks a sample so the page can label it instead of passing it off as real.
 
 import { schema as t } from "@/db/client";
-import { build, createCrud, type Parse } from "@/lib/admin-crud";
+import { FOLD, build, createCrud, type Parse } from "@/lib/admin-crud";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,6 +25,10 @@ const handlers = createCrud({
   id: t.testimonials.id,
   order: t.testimonials.sortOrder,
   sort: t.testimonials.sortOrder,
+  keys: [{
+    parts: [{ column: t.testimonials.quote, value: (row) => row.quote, compare: FOLD }],
+    message: (existing) => `${existing.name || "someone"} is already quoted saying that`,
+  }],
   parse,
 });
 export const GET = handlers.GET;

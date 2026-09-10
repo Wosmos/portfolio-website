@@ -339,8 +339,14 @@ void main(){
   vec3 albedo = mix(uC0, uC1, clamp(0.5 + 0.9 * h0, 0.0, 1.0)) * (1.0 - 0.34 * basin) + uC1 * ridge * 0.28;
   float rough = 0.95, glint = 0.0;
   vec3 emissive = vec3(0.0);
-  // the same chain as the planet's, so one type table serves both: rocky · lava · ice · liquid · muddy
-  if (uType < 1.5) {                                          // rocky: bare regolith, the default above
+  // the same chain as the planet's, so one type table serves both: gas · rocky · lava · ice · liquid · muddy
+  if (uType < 0.5) {                                          // gas: bands, no craters to catch light
+    float lat = asin(clamp(p.y, -1.0, 1.0));
+    float band = sin(lat * 9.0 + uSeed) * 0.5 + 0.5;
+    albedo = mix(uC0, uC1, band * 0.8 + 0.1 * h0);
+    N = Ng;                                                   // nothing solid to relieve
+    rough = 0.9;
+  } else if (uType < 1.5) {                                   // rocky: bare regolith, the default above
     rough = 0.96;
   } else if (uType < 2.5) {                                   // lava: cracks still glowing
     emissive = uC1 * (1.0 - smoothstep(0.0, 0.09, abs(h0 + 0.18))) * (0.8 + 0.3 * sin(uTime * 1.7));

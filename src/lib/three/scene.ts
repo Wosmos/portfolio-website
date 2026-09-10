@@ -369,8 +369,11 @@ void main(){
   vec3 pdir = rel / pdist;
   float phase = clamp(0.5 - 0.5 * dot(normalize(-uPlanet), normalize(vW - uPlanet)), 0.0, 1.0);
   float shine = max(dot(N, pdir), 0.0) * ((uPlanetR * uPlanetR) / (pdist * pdist)) * phase;
-  vec3 col = albedo * (0.02 + d * 1.1) * sunCol + spec * sunCol + uShine * shine * 2.2 + emissive;
-  col += uC1 * pow(1.0 - max(dot(Ng, V), 0.0), 4.0) * (0.04 + 0.4 * uHot) * (0.3 + 0.7 * d);
+  vec3 col = albedo * (0.085 + d * 1.05) * sunCol + spec * sunCol + uShine * shine * 2.2 + emissive;
+  // a limb rim on every side: without it a moon turned away from the sun reads as a hole in the sky
+  float limb = pow(1.0 - max(dot(Ng, V), 0.0), 3.0);
+  col += albedo * limb * 0.22;
+  col += uC1 * limb * (0.06 + 0.4 * uHot) * (0.35 + 0.65 * d);
   gl_FragColor = vec4(col, 1.0);
 }`;
 

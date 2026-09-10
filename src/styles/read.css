@@ -216,7 +216,7 @@ canvas.planet { touch-action: pan-y; }
 
 /* project page */
 .back { display: inline-flex; gap: 8px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-3); margin-bottom: 26px; } .back:hover { color: var(--cy); }
-.pj__hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr); gap: clamp(24px, 4vw, 64px); align-items: center; }
+.pj__hero { display: grid; grid-template-columns: minmax(0, .92fr) minmax(340px, 1.08fr); gap: clamp(24px, 4vw, 56px); align-items: center; }
 .pj h1 { font-size: clamp(34px, 5.4vw, 68px); font-weight: 700; line-height: 1; letter-spacing: -.03em; }
 .pj__tag { margin-top: 12px; color: var(--fg-2); font-size: 16px; }
 .pj__meta { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 18px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--fg-3); }
@@ -225,7 +225,7 @@ canvas.planet { touch-action: pan-y; }
 .pj__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
 .sf--ghost { --sf-bg: rgba(6,12,18,.6); --sf-border: rgba(0,229,255,.3); } .sf--ghost > .sf__in { color: var(--fg-2); }
 .pj__planet { display: grid; gap: 12px; }
-.pj__stage { position: relative; aspect-ratio: 1 / 1; max-height: 560px; }
+.pj__stage { position: relative; aspect-ratio: 1 / 1; max-height: min(74vh, 720px); }
 .pj__stage .planet { position: absolute; inset: 0; height: 100%; }
 .pj__stagek { position: absolute; left: 4px; top: 4px; }
 .pj__stage .planet__hint { bottom: 54px; }
@@ -258,7 +258,7 @@ canvas.planet { touch-action: pan-y; }
 @media (max-width: 960px) {
   .hero { grid-template-columns: 1fr; } .hero__side { grid-template-columns: 1fr 1fr; } .hero__side .status { grid-column: 1 / -1; }
   .proj { grid-template-columns: 1fr; } .skills, .edu, .pj__grid { grid-template-columns: 1fr; }
-  .contact, .pj__hero, .about, .built { grid-template-columns: 1fr; } .about__facts { position: static; } .pj__stage { max-height: 420px; }
+  .contact, .pj__hero, .about, .built { grid-template-columns: 1fr; } .about__facts { position: static; } .pj__stage { max-height: min(64vh, 520px); }
   .xp::before, .xp::after { left: 6px; } .xp__i { grid-template-columns: 1fr; gap: 6px; padding-left: 26px; } .xp__i::before { left: 2px; } .xp__when { text-align: left; grid-template-columns: auto auto; justify-content: start; gap: 12px; }
 }
 @media (max-width: 720px) {

@@ -36,7 +36,7 @@ export function createPlanetView({ canvas, project, index = 0, interactive = tru
   scene.add(b.root);
   const extent = b.size * (b.cfg.ring ? b.extent * 0.98 : b.extent) * fit;
   const camDir = new THREE.Vector3(0.42, 0.34, -1).normalize();
-  const dist = (): number => (extent / Math.tan(((camera.fov / 2) * Math.PI) / 180)) * (camera.aspect < 1 ? 1 / camera.aspect : 1) * 1.05;
+  const dist = (): number => (extent / Math.tan(((camera.fov / 2) * Math.PI) / 180)) * (camera.aspect < 1 ? 1 / camera.aspect : 1) * 0.94;
   const placeCamera = (): void => { camera.position.copy(P).addScaledVector(camDir, dist()); camera.lookAt(P); };
 
   const reduced = reducedMotion();

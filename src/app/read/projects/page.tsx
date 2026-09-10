@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { projects } from "@/data/portfolio";
+import { projects, SITE_URL } from "@/data/portfolio";
 import PlanetCanvases from "@/components/read/PlanetCanvases";
 import ProjectCard from "@/components/read/ProjectCard";
 
@@ -13,8 +13,17 @@ export const metadata: Metadata = {
 };
 
 export default function ProjectsPage() {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Projects",
+    itemListElement: projects.map((p, i) => ({
+      "@type": "ListItem", position: i + 1, name: p.title, description: p.tagline, url: `${SITE_URL}/read/projects/${p.id}`,
+    })),
+  };
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <section className="hero pj" style={{ marginTop: 0, gridTemplateColumns: "1fr" }}>
         <div>
           <p className="k">08 planets · one per orbit · languages from github</p>

@@ -26,7 +26,7 @@ export interface Highlight { heading: string; tech: readonly string[]; bullets: 
 export interface Testimonial { placeholder?: boolean; quote: string; name: string; role: string; company: string; link: string | null }
 export interface Person {
   name: string; role: string; line: string; positioning: string; location: string; tz: string; tzLabel: string;
-  email: string; phone: string; fullName: string; summary: string; cv: string; logo: string;
+  email: string; phone: string; fullName: string; metaDescription: string; summary: string; cv: string;
   github: string; linkedin: string; hashnode: string; npmCard: string;
 }
 
@@ -42,11 +42,13 @@ export const person: Person = {
   email: "m.wasifmalik17@gmail.com",
   phone: "+92 306 224 8224",
   fullName: "Muhammad Wasif Malik",
+  // Search engines truncate around 160 characters, so meta descriptions use this, not `summary`.
+  metaDescription:
+    "Software engineer in Karachi, open to remote work. Concurrent Go backends, Next.js frontends, security-first architecture. Eight shipped projects, all on GitHub.",
   // Professional summary, verbatim from the résumé PDF.
   summary:
     "Software Engineer building production web applications and systems-level software end-to-end. Specialised in concurrent backends with Go, modern frontends with Next.js, and security-first architecture. Have shipped a zero-knowledge encrypted cloud platform across web, desktop, and terminal clients, a real-time chat system across web and mobile, and a range of client products spanning e-commerce, POS, HRMS, and real-estate. Comfortable owning every layer: schema design, backend services, client implementations, and deployment. Open to remote opportunities globally.",
   cv: "/resume/Wasif_Malik_Resume_SoftwareEngineer.pdf",
-  logo: "/v3/wosmo-w.svg",
   github: "https://github.com/Wosmos",
   linkedin: "https://www.linkedin.com/in/wasif-malik-79205a1bb",
   hashnode: "https://hashnode.com/@Wosmo",

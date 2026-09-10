@@ -16,9 +16,9 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: `${person.name} — software engineer`,
-  description: person.summary,
+  description: person.metaDescription,
   alternates: { canonical: "/read" },
-  openGraph: { url: "/read", title: `${person.name} — software engineer`, description: person.summary },
+  openGraph: { url: "/read", title: `${person.name} — software engineer`, description: person.metaDescription },
 };
 
 const tel = person.phone.replace(/\s/g, "");

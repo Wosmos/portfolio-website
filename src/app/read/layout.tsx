@@ -4,6 +4,7 @@ import SiteHeader from "@/components/read/SiteHeader";
 import SiteFooter from "@/components/read/SiteFooter";
 import "@/styles/read.css";
 import ReadDepth from "@/components/read/ReadDepth";
+import HashScroll from "@/components/read/HashScroll";
 
 export default function ReadLayout({ children }: { children: ReactNode }) {
   return (
@@ -12,6 +13,7 @@ export default function ReadLayout({ children }: { children: ReactNode }) {
         <SiteHeader />
         {children}
         <ReadDepth />
+        <HashScroll />
         <SiteFooter />
       </div>
     </ReadShell>

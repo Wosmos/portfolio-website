@@ -15,11 +15,12 @@ export default function ReadShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const audio = getAudio();
-    const start = (): void => { audio.resume(); void audio.load().then(() => audio.startAmbient()); };
-    start();
-    const resume = (): void => audio.resume();
-    addEventListener("pointerdown", resume, { once: true });
-    addEventListener("keydown", resume, { once: true });
+    void audio.load();                       // the short interface cuts only, a few KB
+    // the ambient bed is ~1 MB, so it is fetched on the first real interaction, never on load
+    const begin = (): void => { audio.resume(); void audio.startAmbient(); };
+    addEventListener("pointerdown", begin, { once: true });
+    addEventListener("keydown", begin, { once: true });
+    addEventListener("scroll", begin, { once: true, passive: true });
     // click + deliberate-hover ticks: the pointer must have moved onto the element and stayed 500 ms
     const onClick = (e: MouseEvent): void => { if (e.target instanceof Element && e.target.closest("a, button")) audio.click(); };
     let lastMove = 0, dwell = 0, dwellEl: Element | null = null;
@@ -37,7 +38,7 @@ export default function ReadShell({ children }: { children: ReactNode }) {
     document.addEventListener("pointerover", onOver, true);
     document.addEventListener("pointerout", onOut, true);
     return () => {
-      removeEventListener("pointerdown", resume); removeEventListener("keydown", resume);
+      removeEventListener("pointerdown", begin); removeEventListener("keydown", begin); removeEventListener("scroll", begin);
       document.removeEventListener("click", onClick, true); removeEventListener("pointermove", onMove);
       document.removeEventListener("pointerover", onOver, true); document.removeEventListener("pointerout", onOut, true);
       clearTimeout(dwell);

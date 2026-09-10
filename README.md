@@ -16,6 +16,23 @@ Two ways into the same work. A visitor picks one at the door and can switch at a
 - **Resend** for the contact form (server route: honeypot, rate limit, escaped HTML)
 - Vercel Analytics + Speed Insights · dynamic `next/og` social card
 
+## Performance
+
+Measured against `next start` on this machine, uncompressed:
+
+| Route | JS on load | Total on load |
+|---|---|---|
+| `/` | 455 kB | 521 kB |
+| `/read` desktop | 1206 kB | 1581 kB |
+| `/read` mobile | 606 kB | 942 kB |
+| `/read/contact` | 636 kB | 948 kB |
+
+three.js is ~700 kB of that and is never in the first payload: the chunk is requested only when a
+planet canvas comes within 700 px of the viewport. The decorative planet strip in the hero is skipped
+entirely on coarse pointers, data saver, low-memory or low-core devices and under
+`prefers-reduced-motion`, which is why mobile loads half as much. The ~1 MB ambient bed is fetched on
+the first real interaction, never on load; the interface cuts are a few kB and load with the page.
+
 ## Routes
 
 | Route | Rendering | What it is |
@@ -64,7 +81,13 @@ RESEND_API_KEY=…    # required for the contact form
 GITHUB_TOKEN=…      # optional: raises the API limit and reads private repos
 CONTACT_TO=…        # optional: overrides the recipient
 CONTACT_FROM=…      # optional: needs a domain verified at resend.com/domains
+NTFY_TOPIC=…        # optional: pushes each submission to your phone via ntfy.sh
+NTFY_URL=…          # optional: a self-hosted ntfy server instead of ntfy.sh
+NTFY_TOKEN=…        # optional: for a protected ntfy topic
 ```
+
+A contact submission emails you through Resend and, when `NTFY_TOPIC` is set, also pushes to your
+phone: install the ntfy app, subscribe to that topic, done. The push never blocks the email.
 
 ## Run
 

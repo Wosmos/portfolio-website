@@ -59,16 +59,17 @@ export default function ContactForm() {
         <div className="f"><label htmlFor="c-email">email</label><input id="c-email" name="email" type="email" required maxLength={254} autoComplete="email" onInput={tick} /></div>
       </div>
       <div className="f"><label htmlFor="c-subject">subject</label><input id="c-subject" name="subject" type="text" required maxLength={150} onInput={tick} /></div>
-      <div className="f">
+      <div className="f f--msg">
         <label htmlFor="c-msg">message</label>
         <textarea id="c-msg" name="message" required maxLength={5000} onInput={(e) => { setCount(e.currentTarget.value.length); tick(); }} />
-        <span className="f__count" aria-hidden="true">{count} / 5000</span>
+        {/* the send control lives inside the message box, like a composer */}
+        <div className="f__send">
+          <span className="f__count" aria-hidden="true">{count} / 5000</span>
+          <span className={`form__msg${status.kind ? ` is-${status.kind}` : ""}`} role="status">{status.text}</span>
+          <button className="sf sf--btn" type="submit" disabled={sending}><span className="sf__in">send <i>→</i></span></button>
+        </div>
       </div>
       <div className="f f--hp" aria-hidden="true"><label htmlFor="c-web">website</label><input id="c-web" name="website" type="text" tabIndex={-1} autoComplete="off" /></div>
-      <div className="form__foot">
-        <button className="sf sf--btn" type="submit" disabled={sending}><span className="sf__in">send <i>→</i></span></button>
-        <span className={`form__msg${status.kind ? ` is-${status.kind}` : ""}`} role="status">{status.text}</span>
-      </div>
     </form>
   );
 }

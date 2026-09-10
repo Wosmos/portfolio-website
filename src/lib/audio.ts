@@ -21,6 +21,8 @@ const SLOTS: Record<Slot, SlotConfig> = {
   belt: { loop: true, gain: 0.55 },
 };
 const isSlot = (s: string): s is Slot => s in SLOTS;
+// the long loops are hundreds of KB; they are only fetched when something asks to play them
+const LAZY: ReadonlySet<Slot> = new Set<Slot>(["ambient", "belt"]);
 
 export interface AudioOptions { muted?: boolean; base?: string; ambientGain?: number }
 export interface AudioApi {
@@ -53,6 +55,7 @@ export function createAudio({ muted = false, base = "/v3/audio/", ambientGain = 
   const loops = new Map<Slot, Voice>();
   let ambientNode: Voice | null = null;
   let loading: Promise<void> | null = null;
+  let manifest: Manifest | null = null;
 
   function ensure(): AudioContext {
     if (ctx) return ctx;
@@ -62,25 +65,33 @@ export function createAudio({ muted = false, base = "/v3/audio/", ambientGain = 
     master.connect(ctx.destination);
     return ctx;
   }
+  async function readManifest(): Promise<Manifest> {
+    if (manifest) return manifest;
+    try {
+      const r = await fetch(`${base}manifest.json`, { cache: "force-cache" });
+      manifest = r.ok ? ((await r.json()) as Manifest) : {};
+    } catch { manifest = {}; }
+    return manifest;
+  }
+  async function fetchSlot(slot: Slot): Promise<void> {
+    if (buffers.has(slot)) return;
+    const file = (await readManifest())[slot];
+    if (!file) return;
+    const ac = ensure();
+    try {
+      const r = await fetch(base + file);
+      if (!r.ok) throw new Error(String(r.status));
+      buffers.set(slot, await ac.decodeAudioData(await r.arrayBuffer()));
+    } catch (e) { console.warn(`[audio] ${slot}: could not load ${file}`, e); }
+  }
+  /** Loads the short interface cuts only. `ambient` and `belt` are streams — see `startAmbient`. */
   function load(): Promise<void> {
     if (loading) return loading;
     loading = (async () => {
-      const ac = ensure();
-      let manifest: Manifest = {};
-      try {
-        const r = await fetch(`${base}manifest.json`, { cache: "force-cache" });
-        if (r.ok) manifest = (await r.json()) as Manifest;
-      } catch { manifest = {}; }
-      await Promise.all(
-        Object.entries(manifest).map(async ([slot, file]) => {
-          if (!isSlot(slot) || !file) return;
-          try {
-            const r = await fetch(base + file);
-            if (!r.ok) throw new Error(String(r.status));
-            buffers.set(slot, await ac.decodeAudioData(await r.arrayBuffer()));
-          } catch (e) { console.warn(`[audio] ${slot}: could not load ${file}`, e); }
-        }),
-      );
+      ensure();
+      const m = await readManifest();
+      const eager = (Object.keys(m).filter((k): k is Slot => isSlot(k) && !LAZY.has(k)));
+      await Promise.all(eager.map(fetchSlot));
     })();
     return loading;
   }
@@ -98,7 +109,8 @@ export function createAudio({ muted = false, base = "/v3/audio/", ambientGain = 
     return { src, g };
   }
   async function startAmbient(): Promise<void> {
-    await load();
+    if (ambientNode) return;
+    await fetchSlot("ambient");                 // fetched here, not with the interface cuts
     if (ambientNode || !buffers.has("ambient") || !ctx) return;
     const n = play("ambient", { gain: 0.0001 });
     if (!n) return;
@@ -107,7 +119,8 @@ export function createAudio({ muted = false, base = "/v3/audio/", ambientGain = 
     ambientNode = n;
   }
   async function startLoop(slot: Slot): Promise<void> {
-    await load();
+    if (loops.has(slot)) return;
+    await fetchSlot(slot);
     if (loops.has(slot) || !buffers.has(slot)) return;
     const n = play(slot, { gain: 0.0001 });
     if (n) loops.set(slot, n);

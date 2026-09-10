@@ -21,12 +21,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const p = projectById(slug);
   if (!p) return { title: "Project not found", robots: { index: false } };
   const title = `${p.title} — ${p.tagline}`;
+  const description = p.description.length > 158 ? `${p.description.slice(0, 155).trimEnd()}…` : p.description;
   return {
     title: p.title,
-    description: p.description,
+    description,
     alternates: { canonical: `/read/projects/${p.id}` },
-    openGraph: { url: `/read/projects/${p.id}`, title, description: p.description, type: "article" },
-    twitter: { card: "summary_large_image", title, description: p.description },
+    openGraph: { url: `/read/projects/${p.id}`, title, description, type: "article" },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 
@@ -53,6 +54,15 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
   const created = p.meta ? new Date(p.meta.created).getFullYear() : p.year;
   const missingReason = p.meta === null ? "repo is private or github is unreachable" : "no readme on github";
 
+  const breadcrumbs = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/read` },
+      { "@type": "ListItem", position: 2, name: "Projects", item: `${SITE_URL}/read/projects` },
+      { "@type": "ListItem", position: 3, name: p.title, item: `${SITE_URL}/read/projects/${p.id}` },
+    ],
+  };
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareSourceCode",
@@ -68,6 +78,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
   return (
     <article className="pj" style={{ marginTop: 0 }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }} />
       <Link className="back" href="/read/projects">← all projects</Link>
 
       <div className="pj__hero">

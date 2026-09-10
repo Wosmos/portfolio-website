@@ -79,6 +79,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         <p style="margin:24px 0 0;font-size:11px;color:rgba(242,245,255,.35)">sent from the portfolio contact form · reply goes to the sender</p>
       </div></body></html>`;
 
+    // optional phone push. NTFY_TOPIC is a topic name on ntfy.sh (or NTFY_URL for a self-hosted
+    // server); failures are logged and ignored — the email is what must not be lost.
+    const notify = async (): Promise<void> => {
+      const topic = process.env.NTFY_TOPIC;
+      if (!topic) return;
+      const base = process.env.NTFY_URL ?? "https://ntfy.sh";
+      try {
+        const r = await fetch(`${base}/${topic}`, {
+          method: "POST",
+          headers: {
+            title: `Portfolio: ${values.name}`,
+            tags: "envelope",
+            click: "https://mail.google.com/",
+            ...(process.env.NTFY_TOKEN ? { authorization: `Bearer ${process.env.NTFY_TOKEN}` } : {}),
+          },
+          body: `${values.subject}\n${values.email}\n\n${values.message.slice(0, 400)}`,
+        });
+        if (!r.ok) console.error("[contact] ntfy", r.status);
+      } catch (e) { console.error("[contact] ntfy", e instanceof Error ? e.message : e); }
+    };
+
     const { data, error } = await new Resend(key).emails.send({
       from: FROM,
       to: [TO],
@@ -91,6 +112,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       console.error("[contact] resend:", error.name, error.message);
       return bad("Failed to send email", 502);
     }
+    await notify();
     return NextResponse.json({ success: true, message: "Email sent successfully", id: data?.id }, { status: 200 });
   } catch (e) {
     console.error("[contact]", e instanceof Error ? e.message : e);

@@ -8,6 +8,17 @@ import { projects } from "@/data/portfolio";
 import { pad2 } from "@/lib/text";
 import type { PlanetStripApi } from "@/lib/three/types";
 
+interface SaveDataConnection { saveData?: boolean; effectiveType?: string }
+function worthLoading(): boolean {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+  if (!matchMedia("(pointer: fine)").matches) return false;
+  const nav: Navigator & { connection?: SaveDataConnection; deviceMemory?: number } = navigator;
+  if (nav.connection?.saveData) return false;
+  if (nav.connection?.effectiveType && /2g/.test(nav.connection.effectiveType)) return false;
+  if (typeof nav.deviceMemory === "number" && nav.deviceMemory <= 2) return false;
+  return (nav.hardwareConcurrency ?? 8) > 2;
+}
+
 export default function PlanetStrip() {
   const canvas = useRef<HTMLCanvasElement>(null);
   const router = useRouter();
@@ -18,21 +29,27 @@ export default function PlanetStrip() {
     if (!el) return;
     let strip: PlanetStripApi | null = null;
     let cancelled = false;
-    void (async () => {
+    // The strip is decorative and three.js is ~700 kB, so it is skipped where that cost is not worth
+    // paying: coarse pointers, data saver, low core counts, and reduced-motion. The numbered links
+    // below it stay, so nothing is lost but the render.
+    if (!worthLoading()) { el.classList.add("is-off"); return; }
+    // let the page paint and settle first, and never race the project planets
+    const idle = window.setTimeout(() => void boot(el), 900);
+    async function boot(target: HTMLCanvasElement): Promise<void> {
       try {
         const { createPlanetStrip } = await import("@/lib/three/planet-view");
         if (cancelled) return;
         strip = createPlanetStrip({
-          canvas: el,
+          canvas: target,
           projects,
           onPick: (p) => router.push(`/read/projects/${p.id}`),
           onHover: (_p, i) => setHover(i),
         });
       } catch {
-        el.classList.add("is-off");
+        target.classList.add("is-off");
       }
-    })();
-    return () => { cancelled = true; strip?.dispose(); };
+    }
+    return () => { cancelled = true; clearTimeout(idle); strip?.dispose(); };
   }, [router]);
 
   const hovered = projects[hover];

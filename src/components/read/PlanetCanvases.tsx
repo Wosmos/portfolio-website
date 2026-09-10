@@ -1,13 +1,15 @@
 "use client";
-// Mounts a real shader planet into every `canvas[data-planet]` the server rendered. With `cutaway` it
-// also wires the "cut it open" button and builds the layer callouts from the view's own layer data.
+// Mounts a real shader planet into every `canvas[data-planet]` the server rendered. three.js is ~700 kB,
+// so the chunk is not requested until a canvas is actually near the viewport: a visitor who never
+// reaches the projects pays nothing. With `cutaway` this also wires the "cut it open" button and
+// builds the layer callouts from the view's own layer data.
 
 import { useEffect } from "react";
 import { projects } from "@/data/portfolio";
+import { ev } from "@/lib/analytics";
 import { getAudio } from "@/lib/sound-client";
 import { hex } from "@/lib/text";
 import type { PlanetViewApi } from "@/lib/three/types";
-import { ev } from "@/lib/analytics";
 
 const LANG_DESC: Readonly<Record<string, string>> = {
   TypeScript: "app + api code", JavaScript: "scripts", Go: "backend services", Rust: "native / wasm",
@@ -17,11 +19,16 @@ const LANG_DESC: Readonly<Record<string, string>> = {
 
 export default function PlanetCanvases({ cutaway = false }: { cutaway?: boolean }) {
   useEffect(() => {
+    const canvases = Array.from(document.querySelectorAll<HTMLCanvasElement>("canvas[data-planet]"));
+    if (!canvases.length) return;
+
     let dispose: (() => void) | undefined;
-    let cancelled = false;
+    let cancelled = false, started = false;
     const offs: Array<() => void> = [];
 
-    void (async () => {
+    async function start(): Promise<void> {
+      if (started || cancelled) return;
+      started = true;
       try {
         const { mountPlanets } = await import("@/lib/three/planet-view");
         if (cancelled) return;
@@ -30,6 +37,7 @@ export default function PlanetCanvases({ cutaway = false }: { cutaway?: boolean 
         const callouts = cutaway ? document.querySelector<HTMLElement>("#callouts") : null;
         const hint = cutaway ? document.querySelector<HTMLElement>("#planet-hint") : null;
         const label = cutBtn?.querySelector<HTMLElement>(".sf__in") ?? null;
+        const firstId = canvases[0]?.dataset.planet ?? "";
 
         const mounted = mountPlanets(projects, {
           cutaway,
@@ -37,7 +45,7 @@ export default function PlanetCanvases({ cutaway = false }: { cutaway?: boolean 
             if (label) label.textContent = on ? "close it" : "cut it open";
             if (callouts) callouts.hidden = !on;
             if (hint) hint.hidden = on;
-            if (on) { audio.chord(); ev("cutaway", { id: document.querySelector<HTMLCanvasElement>("canvas[data-planet]")?.dataset.planet ?? "", where: "read" }); }
+            if (on) { audio.chord(); ev("cutaway", { id: firstId, where: "read" }); }
           },
         });
         dispose = () => mounted.dispose();
@@ -68,12 +76,18 @@ export default function PlanetCanvases({ cutaway = false }: { cutaway?: boolean 
           offs.push(() => callouts.replaceChildren());
         }
       } catch {
-        // no WebGL (or the chunk failed): leave the canvases as decorative empties
-        for (const c of document.querySelectorAll<HTMLCanvasElement>("canvas[data-planet]")) c.classList.add("is-off");
+        // no WebGL, or the chunk failed: leave the canvases as decorative empties
+        for (const c of canvases) c.classList.add("is-off");
       }
-    })();
+    }
 
-    return () => { cancelled = true; for (const off of offs) off(); dispose?.(); };
+    // a wide margin so the chunk is in flight before the first canvas is on screen
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) { io.disconnect(); void start(); }
+    }, { rootMargin: "700px" });
+    for (const c of canvases) io.observe(c);
+
+    return () => { cancelled = true; io.disconnect(); for (const off of offs) off(); dispose?.(); };
   }, [cutaway]);
 
   return null;

@@ -10,7 +10,7 @@ const mono = JetBrains_Mono({ variable: "--font-mono", subsets: ["latin"], weigh
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#050508" };
 
 const TITLE = `${person.name} — Software Engineer · Go · Next.js · Systems`;
-const DESCRIPTION = person.positioning;
+const DESCRIPTION = person.metaDescription;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -21,7 +21,10 @@ export const metadata: Metadata = {
   creator: person.name,
   keywords: ["Wasif Malik", "Software Engineer", "Go", "Golang", "Next.js", "React", "TypeScript", "Systems", "Karachi", "Remote"],
   alternates: { canonical: "/" },
-  icons: { icon: [{ url: "/icon.svg", type: "image/svg+xml" }], shortcut: "/favicon.ico" },
+  icons: { icon: [{ url: "/icon.svg", type: "image/svg+xml" }], shortcut: "/favicon.ico", apple: "/icon.svg" },
+  manifest: "/manifest.webmanifest",
+  category: "technology",
+  formatDetection: { telephone: true, email: true, address: false },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
   openGraph: { type: "website", locale: "en_US", url: SITE_URL, siteName: "wosmo", title: TITLE, description: DESCRIPTION },
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },

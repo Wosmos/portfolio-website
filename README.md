@@ -76,9 +76,22 @@ local production, which is expected.
 
 ## Admin panel
 
-`/admin` (never indexed) edits everything the site renders and shows what visitors do. One password,
-checked with bcrypt, then an HMAC-signed cookie; five wrong attempts in ten minutes throttles the
-source and every attempt is recorded.
+The panel edits everything the site renders and shows what visitors do. One password, checked with
+bcrypt, then an HMAC-signed cookie (`httpOnly`, `secure` in production, `sameSite=lax`, seven days);
+five wrong attempts in ten minutes throttles the source and every attempt is recorded.
+
+**It is not at `/admin`.** It answers on `<domain>/<ADMIN_PATH>/admin`, where `ADMIN_PATH` is a random
+segment from the environment. `src/middleware.ts` rewrites that URL onto the real `/admin` routes, so
+nothing moved and the secret is never in a bundle; a direct request to `/admin` returns the site's own
+404. The value is server-only — set it in `.env.local` and in Vercel's project settings, or the panel
+has no door. `/api/admin/*` is unaffected: it is guarded by the session cookie, not by the path.
+
+Signing in also drops `wosmo_no_track=1` for a year, so `/api/track` never counts the owner's own
+visits. Signing out leaves it: the owner reads the public site signed out far more than signed in.
+
+**The knock.** Three clicks on the footer wordmark within a second and a half `POST /api/admin/knock`,
+which answers with the path — five knocks per source per ten minutes, never cached. It is a shortcut
+for the owner, not a lock: the password is the only thing that actually keeps anyone out.
 
 | Panel | What it does |
 |---|---|
@@ -143,6 +156,7 @@ SESSION_SECRET=…          # 32+ characters, signs the admin cookie
 ANALYTICS_SALT=…          # salts the visitor hash; changing it resets every profile
 ADMIN_USERNAME=…
 ADMIN_PASSWORD_HASH=…     # bcrypt; see the warning below
+ADMIN_PATH=…              # 16+ URL-safe chars; the panel is at /<ADMIN_PATH>/admin
 BLOB_READ_WRITE_TOKEN=…   # Vercel Blob, for uploads
 ```
 
@@ -164,6 +178,7 @@ bun run check        # typecheck + lint + production build
 ## Layout
 
 ```
+src/middleware.ts   hides the admin panel behind ADMIN_PATH
 src/app/            routes, metadata, sitemap, robots, OG image
 src/components/     read/ (reading site) · ship/ (deck) · gate/ (the door)
 src/data/           portfolio.ts — the single content source of truth

@@ -9,12 +9,18 @@ export const revalidate = 3600;
 
 const DESCRIPTION = "Notes on Go, systems and shipping web software — what I built, and what it taught me.";
 
-export const metadata: Metadata = {
-  title: "Blog",
-  description: DESCRIPTION,
-  alternates: { canonical: "/read/blog" },
-  openGraph: { url: "/read/blog", title: "Blog", description: DESCRIPTION, type: "website" },
-};
+// an index with nothing on it is a thin page, so it stays out of the index until the first post ships
+// (the sitemap makes the same call)
+export async function generateMetadata(): Promise<Metadata> {
+  const posts = await getPosts();
+  return {
+    title: "Blog",
+    description: DESCRIPTION,
+    alternates: { canonical: "/read/blog" },
+    openGraph: { url: "/read/blog", title: "Blog", description: DESCRIPTION, type: "website" },
+    ...(posts.length ? {} : { robots: { index: false, follow: true } }),
+  };
+}
 
 export default async function BlogIndex() {
   const posts = await getPosts();

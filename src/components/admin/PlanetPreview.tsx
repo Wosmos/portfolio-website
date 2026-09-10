@@ -3,8 +3,8 @@
 // so dragging a colour slider does not recompile a shader on every frame.
 
 import { useEffect, useRef, useState } from "react";
-import type { PlanetConfig, RingConfig, Project } from "@/data/portfolio";
-import type { PlanetViewApi } from "@/lib/three/types";
+import type { RingConfig, Project } from "@/data/portfolio";
+import type { PlanetFull, PlanetViewApi } from "@/lib/three/types";
 
 const PLACEHOLDER: Omit<Project, "planet"> = {
   id: "zcrypt", title: "preview", tagline: "", description: "", stack: [], category: "", context: "",
@@ -12,7 +12,7 @@ const PLACEHOLDER: Omit<Project, "planet"> = {
 };
 
 /** The editor holds `ring: null` for "no ring", which is how the column stores it; the shader wants it absent. */
-export type EditablePlanet = Omit<PlanetConfig, "ring"> & { ring?: RingConfig | null };
+export type EditablePlanet = Omit<PlanetFull, "ring"> & { ring?: RingConfig | null };
 
 export default function PlanetPreview({ planet, cutaway = false }: { planet: EditablePlanet; cutaway?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -31,7 +31,7 @@ export default function PlanetPreview({ planet, cutaway = false }: { planet: Edi
           const { createPlanetView } = await import("@/lib/three/planet-view");
           if (cancelled) return;
           const parsed = JSON.parse(key) as EditablePlanet;
-          const config: PlanetConfig = { ...parsed, ring: parsed.ring ?? undefined };
+          const config: PlanetFull = { ...parsed, ring: parsed.ring ?? undefined };
           view = createPlanetView({ canvas: el, project: { ...PLACEHOLDER, planet: config }, index: 0, cutaway });
         } catch { setFailed(true); }
       })();

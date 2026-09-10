@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { SITE_URL } from "@/data/portfolio";
 import { getPerson, getPosts } from "@/lib/content";
 import { renderMarkdown } from "@/lib/markdown";
+import { clampDescription } from "@/lib/seo";
 import { pad2 } from "@/lib/text";
 import PostMeta from "@/components/read/PostMeta";
 
@@ -17,18 +18,20 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const post = (await getPosts()).find((p) => p.slug === slug);
   if (!post) return { title: "Post not found", robots: { index: false } };
+  const description = clampDescription(post.excerpt);
   return {
     title: post.title,
-    description: post.excerpt,
+    description,
     alternates: { canonical: `/read/blog/${post.slug}` },
     openGraph: {
       url: `/read/blog/${post.slug}`,
       title: post.title,
-      description: post.excerpt,
+      description,
       type: "article",
       ...(post.publishedAt ? { publishedTime: post.publishedAt } : {}),
+      ...(post.tags.length ? { tags: [...post.tags] } : {}),
     },
-    twitter: { card: "summary_large_image", title: post.title, description: post.excerpt },
+    twitter: { card: "summary_large_image", title: post.title, description },
   };
 }
 

@@ -36,8 +36,16 @@ const EGG_KINDS: readonly string[] = ["space", "me", "random"];
 const isEggKind = (k: string): k is EggFact["kind"] => EGG_KINDS.includes(k);
 
 export const CONTENT_TAG = "content";
+/** Every cached reader, so one edit can drop one key instead of the whole site's content. */
+export const CONTENT_KEYS = [
+  "person", "projects", "experience", "skills", "education", "testimonials", "scene", "posts", "eggFacts",
+] as const;
+export type ContentKey = (typeof CONTENT_KEYS)[number];
+
 /** Call after any admin write so the public pages pick the change up on the next request. */
 export function revalidateContent(): void { revalidateTag(CONTENT_TAG, "max"); }
+/** Drop one reader's cache — cheaper than the whole tag when only one table changed. */
+export function revalidateKey(key: ContentKey): void { revalidateTag(`content:${key}`, "max"); }
 
 const cached = <T>(key: string, fn: () => Promise<T>): (() => Promise<T>) =>
   unstable_cache(fn, ["content", key], { tags: [CONTENT_TAG, `content:${key}`], revalidate: 3600 });

@@ -11,5 +11,5 @@ export async function POST(): Promise<Response> {
   } catch (e) {
     console.error("[admin] logout", e instanceof Error ? e.message : e);
   }
-  return Response.json({ success: true }, { status: 200 });
+  return Response.json({ success: true }, { status: 200, headers: { "cache-control": "no-store" } });
 }

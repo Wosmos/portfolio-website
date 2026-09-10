@@ -60,3 +60,53 @@ export function clientIp(get: (name: string) => string | null): string {
   const fwd = get("x-forwarded-for");
   return fwd?.split(",")[0]?.trim() ?? get("x-real-ip") ?? "";
 }
+
+// ── me, and things that are not people ──────────────────
+
+/** Set by the admin login so my own browsing never reaches /api/track at all. */
+export const NO_TRACK_COOKIE = "wosmo_no_track";
+
+/**
+ * ADMIN_VISITOR_HASHES is a comma-separated list of visitor-id prefixes. A prefix rather than a whole
+ * id because the id changes with the network: the first 12 characters of the hash of one laptop on one
+ * network are enough to name it, and pasting a short prefix from the dashboard is a one-off job.
+ */
+export function isAllowListedOwner(visitorId: string): boolean {
+  const raw = process.env.ADMIN_VISITOR_HASHES;
+  if (!raw) return false;
+  for (const entry of raw.split(",")) {
+    const prefix = entry.trim().toLowerCase();
+    // a prefix under 6 characters would match a large slice of the table, so it is ignored
+    if (prefix.length >= 6 && visitorId.startsWith(prefix)) return true;
+  }
+  return false;
+}
+
+/** Loopback, link-local and the RFC1918 ranges — plus the empty string, which is what localhost gives. */
+export function isPrivateIp(ip: string): boolean {
+  if (!ip) return true;
+  return /^(::1|::ffff:127\.|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|fc|fd)/i.test(ip);
+}
+
+export interface AutomationHint {
+  /** navigator.webdriver, as reported by the page. */
+  webdriver?: boolean;
+}
+
+/**
+ * Cheap headless/automation heuristic, for clients whose user agent is not on the crawler list. None of
+ * these is proof on its own, so two independent signals are required before a visitor is called scripted;
+ * real browsers behind privacy extensions routinely trip exactly one of them.
+ */
+export function looksAutomated(get: (name: string) => string | null, hint: AutomationHint = {}): boolean {
+  const ua = get("user-agent") ?? "";
+  let marks = 0;
+  if (hint.webdriver === true) marks += 2;                                  // decisive on its own
+  if (/headless|electron|phantom|puppeteer|playwright|selenium|cypress/i.test(ua)) marks += 2;
+  if (!ua || ua.length < 24) marks += 1;                                    // no real browser is this terse
+  if (!get("accept-language")) marks += 1;                                  // every browser sends one
+  if (!get("accept")) marks += 1;
+  // a Chromium user agent without client hints is usually a spoofed one
+  if (/chrome\/\d/i.test(ua) && !get("sec-ch-ua")) marks += 1;
+  return marks >= 2;
+}

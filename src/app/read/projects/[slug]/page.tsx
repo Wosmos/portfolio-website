@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { repoSlug, SITE_URL, type Highlight } from "@/data/portfolio";
 import { getPerson, getProject, getProjects, highlightOf, type ContentProject } from "@/lib/content";
 import { getLiveProject } from "@/lib/github";
+import { clampDescription } from "@/lib/seo";
 import { ago, hostOf, pad2 } from "@/lib/text";
 import Composition, { langsOf } from "@/components/read/Composition";
 import PlanetCanvases from "@/components/read/PlanetCanvases";
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const p = await getProject(slug);
   if (!p) return { title: "Project not found", robots: { index: false } };
   const title = `${p.title} — ${p.tagline}`;
-  const description = p.description.length > 158 ? `${p.description.slice(0, 155).trimEnd()}…` : p.description;
+  const description = clampDescription(p.description);
   return {
     title: p.title,
     description,

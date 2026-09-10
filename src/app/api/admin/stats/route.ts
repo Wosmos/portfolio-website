@@ -1,8 +1,14 @@
-// Everything the analytics dashboard draws, in one response, so the client makes one request instead
-// of a dozen. Every number is counted by Postgres — nothing here pulls a table into JS to reduce it.
+// Everything the analytics dashboard draws, in one response, so the client makes one request instead of
+// a dozen. Every number is counted by Postgres — nothing here pulls a table into JS to reduce it — and
+// the whole set goes to Neon as a single batched request rather than a dozen parallel ones.
+//
+// Who counts as a person: not me, and not a bot. `visitors.isOwner` and `visitors.isBot` are excluded
+// from every figure below unless `?include=owner` (or `bot`, or `all`) asks for them. The tables that
+// have no visitor column — `daily` — are kept honest at the other end instead: /api/track never writes
+// a day row for an owner or a bot, so the series and the page ranking are already clean.
 
-import { and, desc, eq, gte, ne, sql } from "drizzle-orm";
-import { getDb, schema as t, type Db } from "@/db/client";
+import { and, desc, eq, gte, ne, sql, type SQL } from "drizzle-orm";
+import { getDb, schema as t } from "@/db/client";
 import { requireAdmin } from "@/lib/auth";
 import { bad, ok } from "@/lib/admin-crud";
 
@@ -35,6 +41,18 @@ function readDays(raw: string | null): number {
   return Math.min(MAX_DAYS, Math.max(1, Math.trunc(n)));
 }
 
+/**
+ * `include=owner,bot` — or `all` for both. The same rule as /api/admin/visitors, kept as its own few
+ * lines here rather than imported across route modules.
+ */
+function peopleOnly(raw: string | null): SQL | undefined {
+  const wanted = new Set((raw ?? "").toLowerCase().split(",").map((s) => s.trim()));
+  const clauses: SQL[] = [];
+  if (!(wanted.has("owner") || wanted.has("owners") || wanted.has("all"))) clauses.push(eq(t.visitors.isOwner, false));
+  if (!(wanted.has("bot") || wanted.has("bots") || wanted.has("all"))) clauses.push(eq(t.visitors.isBot, false));
+  return clauses.length ? and(...clauses) : undefined;
+}
+
 /** One row per day in the window, so a gap in `daily` shows as a zero rather than a missing point. */
 function fill(days: number, rows: readonly DayPoint[]): DayPoint[] {
   const found = new Map(rows.map((r) => [r.day, r]));
@@ -47,41 +65,37 @@ function fill(days: number, rows: readonly DayPoint[]): DayPoint[] {
   return out;
 }
 
-/** The five headline numbers, in two queries rather than five. */
-async function totals(db: Db): Promise<{ visitors: number; sessions: number; pageviews: number; events: number; converted: number }> {
-  const [people] = await db
-    .select({
-      visitors: count,
-      converted: sql<number>`(count(*) filter (where ${t.visitors.converted}))::int`,
-      pageviews: sql<number>`coalesce(sum(${t.visitors.pageviews}), 0)::int`,
-      events: sql<number>`coalesce(sum(${t.visitors.events}), 0)::int`,
-    })
-    .from(t.visitors)
-    .where(eq(t.visitors.isBot, false));
-  const [sessionCount] = await db.select({ n: count }).from(t.sessions);
-  return {
-    visitors: people?.visitors ?? 0,
-    sessions: sessionCount?.n ?? 0,
-    pageviews: people?.pageviews ?? 0,
-    events: people?.events ?? 0,
-    converted: people?.converted ?? 0,
-  };
-}
-
 export async function GET(request: Request): Promise<Response> {
   const denied = await requireAdmin();
   if (denied) return denied;
   const db = getDb();
   if (!db) return bad("The database is not configured", 503);
 
-  const days = readDays(new URL(request.url).searchParams.get("days"));
+  const params = new URL(request.url).searchParams;
+  const days = readDays(params.get("days"));
   const since = new Date(Date.now() - days * 86_400_000);
   const sinceDay = dayOf(since);
-  const live = eq(t.visitors.isBot, false);
+  const live = peopleOnly(params.get("include"));
 
   try {
-    const [head, series, topPaths, topReferrers, topCountries, devices, browsers, doors, recent, eventTargets] = await Promise.all([
-      totals(db),
+    const [
+      [people], [sessionCount], series, topPaths, topReferrers, topCountries,
+      devices, browsers, doors, intents, recent, eventTargets,
+    ] = await db.batch([
+      // the five headline numbers in one pass over the profiles
+      db
+        .select({
+          visitors: count,
+          converted: sql<number>`(count(*) filter (where ${t.visitors.converted}))::int`,
+          pageviews: sql<number>`coalesce(sum(${t.visitors.pageviews}), 0)::int`,
+          events: sql<number>`coalesce(sum(${t.visitors.events}), 0)::int`,
+          engagedSeconds: sql<number>`coalesce(sum(${t.visitors.engagedSeconds}), 0)::int`,
+        })
+        .from(t.visitors)
+        .where(live),
+
+      // sessions belong to a visitor, so the join is what keeps my own visits out of the visit count
+      db.select({ n: count }).from(t.sessions).innerJoin(t.visitors, eq(t.visitors.id, t.sessions.visitorId)).where(live),
 
       // the site-wide row of `daily` is the one with an empty path
       db
@@ -100,7 +114,8 @@ export async function GET(request: Request): Promise<Response> {
       db
         .select({ key: t.sessions.referrer, count })
         .from(t.sessions)
-        .where(and(ne(t.sessions.referrer, ""), gte(t.sessions.startedAt, since)))
+        .innerJoin(t.visitors, eq(t.visitors.id, t.sessions.visitorId))
+        .where(and(live, ne(t.sessions.referrer, ""), gte(t.sessions.startedAt, since)))
         .groupBy(t.sessions.referrer)
         .orderBy(desc(count))
         .limit(TOP),
@@ -132,6 +147,9 @@ export async function GET(request: Request): Promise<Response> {
         .orderBy(desc(count))
         .limit(TOP),
 
+      // how interested they were, as bands: hot · warm · curious · passing
+      db.select({ key: t.visitors.intent, count }).from(t.visitors).where(live).groupBy(t.visitors.intent).orderBy(desc(count)).limit(TOP),
+
       db
         .select({
           id: t.visitors.id,
@@ -151,6 +169,11 @@ export async function GET(request: Request): Promise<Response> {
           label: t.visitors.label,
           firstReferrer: t.visitors.firstReferrer,
           firstLanding: t.visitors.firstLanding,
+          score: t.visitors.score,
+          intent: t.visitors.intent,
+          scoreWhy: t.visitors.scoreWhy,
+          isOwner: t.visitors.isOwner,
+          isBot: t.visitors.isBot,
         })
         .from(t.visitors)
         .where(live)
@@ -160,7 +183,8 @@ export async function GET(request: Request): Promise<Response> {
       db
         .select({ name: t.events.name, key: t.events.target, count })
         .from(t.events)
-        .where(and(ne(t.events.target, ""), gte(t.events.at, since)))
+        .innerJoin(t.visitors, eq(t.visitors.id, t.events.visitorId))
+        .where(and(live, ne(t.events.target, ""), gte(t.events.at, since)))
         .groupBy(t.events.name, t.events.target)
         .orderBy(desc(count))
         .limit(TOP_EVENTS),
@@ -169,7 +193,14 @@ export async function GET(request: Request): Promise<Response> {
     return ok({
       days,
       since: since.toISOString(),
-      totals: head,
+      totals: {
+        visitors: people?.visitors ?? 0,
+        sessions: sessionCount?.n ?? 0,
+        pageviews: people?.pageviews ?? 0,
+        events: people?.events ?? 0,
+        converted: people?.converted ?? 0,
+        engagedSeconds: people?.engagedSeconds ?? 0,
+      },
       series: fill(Math.min(days, 365), series),
       topPaths,
       topReferrers,
@@ -177,6 +208,7 @@ export async function GET(request: Request): Promise<Response> {
       devices,
       browsers,
       doors,
+      intents,
       recentVisitors: recent,
       eventTargets,
     });

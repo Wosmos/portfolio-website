@@ -1,7 +1,30 @@
 // Shared contracts between the WebGL scene (scene.ts), the small planet views (planet-view.ts) and the
 // flight-deck controller (deck.ts). Kept free of three.js types so UI code never imports three.
 
-import type { Project } from "@/data/portfolio";
+import type { PlanetConfig, Project } from "@/data/portfolio";
+
+/**
+ * The planet parameters the admin gained after `PlanetConfig` was written. Every one is optional and a
+ * missing one reproduces exactly the look the scene had before the field existed — see
+ * `planetDefaults` in scene.ts, which is where those fallbacks live because the shader is what reads
+ * them. Stored on the row as jsonb, so a `PlanetConfig` from the database carries them at runtime even
+ * though its own type predates them.
+ */
+export interface PlanetExtras {
+  /** Surface noise seed — changes the terrain without touching anything else. */
+  seed?: number;
+  /** Rotation, in turns per minute. */
+  spin?: number;
+  /** Axial tilt, in degrees. */
+  tilt?: number;
+  /** Atmosphere shell thickness as a fraction of the radius, and its opacity. */
+  atmo?: number; atmoAlpha?: number;
+  /** Multiplies the emissive channel, and lifts the night side once it goes above 1. */
+  glow?: number;
+  /** Band count (gas and ice), and how hard the band edges are. */
+  bands?: number; bandSharp?: number;
+}
+export type PlanetFull = PlanetConfig & PlanetExtras;
 
 export interface Vec3 { x: number; y: number; z: number }
 export interface HeadingBody { id: string; x: number; y: number; z: number; r: number; size: number }

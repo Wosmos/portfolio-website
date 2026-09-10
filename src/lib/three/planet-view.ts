@@ -30,7 +30,7 @@ export function createPlanetView({ canvas, project, index = 0, interactive = tru
   const P = new THREE.Vector3(0, 0, 80);
   b.root.position.copy(P);
   scene.add(b.root);
-  const extent = b.size * (b.cfg.ring ? b.cfg.ring.outer * 0.98 : 1.22) * fit;
+  const extent = b.size * (b.cfg.ring ? b.extent * 0.98 : b.extent) * fit;
   const camDir = new THREE.Vector3(0.42, 0.34, -1).normalize();
   const dist = (): number => (extent / Math.tan(((camera.fov / 2) * Math.PI) / 180)) * (camera.aspect < 1 ? 1 / camera.aspect : 1) * 1.05;
   const placeCamera = (): void => { camera.position.copy(P).addScaledVector(camDir, dist()); camera.lookAt(P); };
@@ -63,7 +63,7 @@ export function createPlanetView({ canvas, project, index = 0, interactive = tru
     const t = (now - t0) / 1000;
     hot += (wantHot - hot) * 0.12;
     if (!dragging) { vyaw *= 0.92; vpitch *= 0.9; yaw += vyaw; pitch += vpitch; if (Math.abs(vpitch) < 0.0005) pitch += (0.12 - pitch) * 0.02; }
-    if (cut.target <= 0 && !reduced) spinT += dt * (0.22 + (index % 3) * 0.07) * (interactive ? 1 : 0.7);
+    if (cut.target <= 0 && !reduced) spinT += dt * b.spinRate * (interactive ? 1 : 0.7);
     pitch = Math.max(-0.9, Math.min(0.9, pitch));
     b.spin.rotation.y = spinT + yaw;
     b.root.rotation.x = pitch;
@@ -237,7 +237,7 @@ export function createPlanetStrip({ canvas, projects, onPick, onHover }: PlanetS
     const p = projects[i];
     if (!alive || !p) return;
     const base = makeBody(p, i);
-    const extent = base.size * (base.cfg.ring ? base.cfg.ring.outer * 0.78 : 1.14);  // rings may overflow the cell a little
+    const extent = base.size * (base.cfg.ring ? base.extent * 0.78 : 1 + base.atmoT);  // rings may overflow the cell a little
     const k = (CELL * 0.44) / extent;
     base.root.scale.setScalar(k * (0.85 + 0.15 * Math.min(1, p.weight)));
     base.root.position.set(-(i - (n - 1) / 2) * CELL, 0, Z);  // the camera looks along +z, so world −x is screen-right
@@ -275,7 +275,7 @@ export function createPlanetStrip({ canvas, projects, onPick, onHover }: PlanetS
     for (const b of bodies) {
       b.want = b.i === hotIdx ? 1 : 0;
       b.hot += (b.want - b.hot) * 0.12;
-      if (!reduced) b.spinT += dt * (0.3 + (b.i % 3) * 0.08);
+      if (!reduced) b.spinT += dt * b.stripSpinRate;
       b.spin.rotation.y = b.spinT;
       b.root.rotation.x = 0.1;
       const u = b.planet.material.uniforms;

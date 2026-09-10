@@ -1,49 +1,131 @@
 "use client";
+// Degrees and grades. Toolbar, table, detail box — the pattern from panels/Facts.tsx.
 
 import { useState } from "react";
-import { Empty, Field, Skeleton, Text, useDragSort, useResource, type WithId } from "../kit";
+import {
+  Btn, Card, Count, Danger, Empty, Field, Pager, Search, Skeleton, Table, Text, Toolbar,
+  applySort, pageOf, useResource, usePager, useSearch, useSort, type Column, type WithId,
+} from "../kit";
 
 interface Row extends WithId { school: string; degree: string; start: string; end: string; grade: string }
 const blank = { school: "", degree: "", start: "", end: "", grade: "" };
 
-export default function EducationPanel() {
-  const { items, loading, create, update, remove, reorder } = useResource<Row>("education");
-  const [draft, setDraft] = useState(blank);
-  const drag = useDragSort(items, (next) => void reorder(next));
+const COLUMNS: readonly Column<Row>[] = [
+  { key: "degree", label: "degree", value: (r) => r.degree, cell: (r) => <><b>{r.degree || "untitled"}</b><small className="sub">{r.school}</small></> },
+  { key: "start", label: "from", width: "92px", value: (r) => r.start, cell: (r) => r.start || "—" },
+  { key: "end", label: "to", width: "92px", value: (r) => r.end, cell: (r) => r.end || "—" },
+  { key: "grade", label: "grade", width: "110px", value: (r) => r.grade, cell: (r) => r.grade || "—" },
+];
 
-  if (loading) return <Skeleton rows={2} />;
+export default function EducationPanel() {
+  const { items, loading, create, update, remove, move } = useResource<Row>("education");
+  const [term, setTerm] = useState("");
+  const [sel, setSel] = useState<number | null>(null);
+  const [adding, setAdding] = useState(false);
+  const { sort, toggle } = useSort();
+
+  const rows = useSearch(items, term, (r) => [r.degree, r.school, r.grade]);
+  const pager = usePager(rows.length);
+  const page = pageOf(applySort(rows, COLUMNS, sort), pager);
+  const current = sel === null ? null : items.find((r) => r.id === sel) ?? null;
+
+  if (loading) return <Skeleton rows={3} />;
+  const close = (): void => { setSel(null); setAdding(false); };
+
+  return (
+    <div className="split" onKeyDown={(e) => { if (e.key === "Escape") close(); }}>
+      <div>
+        <Toolbar>
+          <Search value={term} onChange={setTerm} placeholder="search degrees…" />
+          <Count shown={rows.length} total={items.length} noun="entries" />
+          <Btn kind="primary" onClick={() => { setSel(null); setAdding(true); }}>new entry</Btn>
+        </Toolbar>
+
+        {rows.length === 0 ? (
+          <Empty
+            icon="⌂" text={items.length ? "Nothing matches that." : "Nothing here yet. These show on the résumé and the reading site."}
+            action={items.length ? undefined : "add the first entry"} onAction={items.length ? undefined : () => setAdding(true)}
+          />
+        ) : (
+          <>
+            <Table
+              label="education" columns={COLUMNS} rows={page} keyOf={(r) => r.id}
+              selected={sel} onSelect={(r) => { setAdding(false); setSel(r.id); }} sort={sort} onSort={toggle}
+              actions={(r) => (
+                <>
+                  <Btn onClick={() => { setAdding(false); setSel(r.id); }}>edit</Btn>
+                  <Danger onConfirm={() => { if (sel === r.id) setSel(null); void remove(r.id); }} />
+                </>
+              )}
+            />
+            <Pager state={pager} total={rows.length} noun="entries" />
+          </>
+        )}
+      </div>
+
+      {adding && <NewEntry onCancel={close} onCreate={async (d) => { const ok = await create(d); if (ok) setAdding(false); return ok; }} />}
+      {current && !adding && (
+        <EditEntry
+          key={current.id} row={current} onClose={close}
+          onSave={(patch) => update({ id: current.id, ...patch })}
+          onDelete={() => { void remove(current.id); close(); }}
+          onMove={(dir) => void move(current.id, dir)}
+        />
+      )}
+    </div>
+  );
+}
+
+function Form({ value, onChange }: { value: typeof blank; onChange: (v: typeof blank) => void }) {
   return (
     <>
-      <div className="adm__list">
-        {items.map((row, i) => (
-          <div key={row.id} className={`sf row${drag.over === i ? " is-over" : ""}`} {...drag.props(i)}>
-            <div className="sf__in">
-              <div className="row__top">
-                <span className="row__grip" aria-hidden="true">⠿</span>
-                <h3>{row.degree || "untitled"}</h3>
-                <span className="tag">{row.school}</span>
-                <div className="row__acts"><button className="btn btn--sm btn--danger" type="button" onClick={() => void remove(row.id)}>delete</button></div>
-              </div>
-              <div className="fields fields--2">
-                <Field label="degree"><Text value={row.degree} onChange={(v) => void update({ id: row.id, degree: v })} /></Field>
-                <Field label="school"><Text value={row.school} onChange={(v) => void update({ id: row.id, school: v })} /></Field>
-                <Field label="from"><Text value={row.start} onChange={(v) => void update({ id: row.id, start: v })} /></Field>
-                <Field label="to"><Text value={row.end} onChange={(v) => void update({ id: row.id, end: v })} /></Field>
-                <Field label="grade"><Text value={row.grade} onChange={(v) => void update({ id: row.id, grade: v })} /></Field>
-              </div>
-            </div>
-          </div>
-        ))}
-        {!items.length && <Empty text="Nothing here yet. Add the first entry below." />}
+      <Field label="degree"><Text value={value.degree} onChange={(v) => onChange({ ...value, degree: v })} required /></Field>
+      <Field label="school"><Text value={value.school} onChange={(v) => onChange({ ...value, school: v })} required /></Field>
+      <Field label="grade" hint="as it should read"><Text value={value.grade} onChange={(v) => onChange({ ...value, grade: v })} /></Field>
+      <div className="fields fields--2">
+        <Field label="from"><Text value={value.start} onChange={(v) => onChange({ ...value, start: v })} /></Field>
+        <Field label="to"><Text value={value.end} onChange={(v) => onChange({ ...value, end: v })} /></Field>
       </div>
-      <form className="fields fields--3" style={{ marginTop: 18 }} onSubmit={(e) => { e.preventDefault(); void create(draft).then((ok) => ok && setDraft(blank)); }}>
-        <Field label="degree"><Text value={draft.degree} onChange={(v) => setDraft({ ...draft, degree: v })} required /></Field>
-        <Field label="school"><Text value={draft.school} onChange={(v) => setDraft({ ...draft, school: v })} required /></Field>
-        <Field label="grade"><Text value={draft.grade} onChange={(v) => setDraft({ ...draft, grade: v })} /></Field>
-        <Field label="from"><Text value={draft.start} onChange={(v) => setDraft({ ...draft, start: v })} /></Field>
-        <Field label="to"><Text value={draft.end} onChange={(v) => setDraft({ ...draft, end: v })} /></Field>
-        <div className="fld" style={{ alignSelf: "end" }}><button className="btn btn--primary" type="submit">add</button></div>
-      </form>
     </>
+  );
+}
+
+function EditEntry({ row, onClose, onSave, onDelete, onMove }: {
+  row: Row; onClose: () => void; onSave: (patch: Partial<Row>) => Promise<boolean>; onDelete: () => void; onMove: (dir: -1 | 1) => void;
+}) {
+  const [form, setForm] = useState<typeof blank>(row);
+  const [busy, setBusy] = useState(false);
+  const dirty = JSON.stringify({ ...row, ...form }) !== JSON.stringify(row);
+
+  return (
+    <Card
+      title={row.degree || "the entry"} onClose={onClose}
+      actions={<><Btn onClick={() => onMove(-1)} aria-label="move up">↑</Btn><Btn onClick={() => onMove(1)} aria-label="move down">↓</Btn></>}
+    >
+      <form className="fields" onSubmit={(e) => { e.preventDefault(); setBusy(true); void onSave(form).finally(() => setBusy(false)); }}>
+        <Form value={form} onChange={setForm} />
+        <div className="acts">
+          <Btn kind="primary" size="md" type="submit" disabled={busy || !dirty}>{busy ? "saving…" : dirty ? "save" : "saved"}</Btn>
+          <Btn size="md" onClick={() => setForm(row)} disabled={!dirty}>undo</Btn>
+          <Danger size="md" onConfirm={onDelete} />
+        </div>
+      </form>
+    </Card>
+  );
+}
+
+function NewEntry({ onCancel, onCreate }: { onCancel: () => void; onCreate: (draft: typeof blank) => Promise<boolean> }) {
+  const [draft, setDraft] = useState(blank);
+  const [busy, setBusy] = useState(false);
+  return (
+    <Card title="new entry" onClose={onCancel}>
+      <form className="fields" onSubmit={(e) => { e.preventDefault(); setBusy(true); void onCreate(draft).then((ok) => { if (ok) setDraft(blank); setBusy(false); }); }}>
+        <Form value={draft} onChange={setDraft} />
+        <div className="acts">
+          <Btn kind="primary" size="md" type="submit" disabled={busy}>{busy ? "adding…" : "add entry"}</Btn>
+          <Btn size="md" onClick={onCancel}>cancel</Btn>
+        </div>
+      </form>
+    </Card>
   );
 }

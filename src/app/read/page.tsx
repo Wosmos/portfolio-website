@@ -3,6 +3,7 @@ import Link from "next/link";
 import { SITE_URL } from "@/data/portfolio";
 import { getEducation, getExperience, getFeatured, getPerson, getProjects, getSkills, getTestimonials } from "@/lib/content";
 import { getLastPush } from "@/lib/github";
+import { absoluteUrl, clampDescription, SITE_NAME } from "@/lib/seo";
 import { ago, monthsBetween, pad2, spanLabel, ym } from "@/lib/text";
 import ContactForm from "@/components/read/ContactForm";
 import LocalTime from "@/components/read/LocalTime";
@@ -19,11 +20,12 @@ export const revalidate = 3600;
 export async function generateMetadata(): Promise<Metadata> {
   const person = await getPerson();
   const title = `${person.name} — software engineer`;
+  const description = clampDescription(person.metaDescription);
   return {
-    title,
-    description: person.metaDescription,
-    alternates: { canonical: "/read" },
-    openGraph: { url: "/read", title, description: person.metaDescription },
+    title: { absolute: title },   // the name is already in it; the template would say it twice
+    description,
+    alternates: { canonical: "/read", types: { "text/plain": "/llms.txt" } },
+    openGraph: { type: "website", url: "/read", title, description },
   };
 }
 
@@ -32,6 +34,8 @@ export default async function ReadHome() {
     getPerson(), getProjects(), getFeatured(), getExperience(), getSkills(), getEducation(), getTestimonials(), getLastPush(),
   ]);
   const tel = person.phone.replace(/\s/g, "");
+  // narrowed once and handed to both islands: the same reference is serialised into the payload once
+  const clientProjects = toProjects(projects);
   const firstStart = experience.map((e) => e.start).sort()[0] ?? "2022-10";
   const years = Math.floor(monthsBetween(firstStart, null) / 12);
   const liveCount = projects.filter((p) => p.live).length;
@@ -54,7 +58,15 @@ export default async function ReadHome() {
         knowsAbout: skills.flatMap((g) => g.items).slice(0, 24),
         alumniOf: education.map((e) => ({ "@type": "EducationalOrganization", name: e.school })),
       },
-      { "@type": "WebSite", "@id": `${SITE_URL}/#website`, url: SITE_URL, name: "wosmo", publisher: { "@id": `${SITE_URL}/#person` } },
+      { "@type": "WebSite", "@id": `${SITE_URL}/#website`, url: SITE_URL, name: SITE_NAME, inLanguage: "en", publisher: { "@id": `${SITE_URL}/#person` } },
+      {
+        "@type": "ProfilePage",
+        "@id": `${absoluteUrl("/read")}#page`,
+        url: absoluteUrl("/read"),
+        name: `${person.name} — software engineer`,
+        isPartOf: { "@id": `${SITE_URL}/#website` },
+        mainEntity: { "@id": `${SITE_URL}/#person` },
+      },
     ],
   };
 
@@ -101,7 +113,7 @@ export default async function ReadHome() {
               <div className="status__row"><span>base</span><b>{person.location}</b></div>
               <div className="status__row"><span>last push</span><b>{lastPush ? <a href={`https://github.com/Wosmos/${lastPush.repo}`} target="_blank" rel="noopener" title={lastPush.msg}>{lastPush.repo} · {ago(lastPush.at)}</a> : "offline"}</b></div>
               <div className="status__row"><span>github</span><b><a href={person.github} target="_blank" rel="noopener">Wosmos ↗</a></b></div>
-              <PlanetStrip projects={toProjects(projects)} />
+              <PlanetStrip projects={clientProjects} />
             </div>
           </div>
         </aside>
@@ -193,7 +205,7 @@ export default async function ReadHome() {
         </div>
       </section>
 
-      <PlanetCanvases projects={toProjects(projects)} />
+      <PlanetCanvases projects={clientProjects} />
     </>
   );
 }

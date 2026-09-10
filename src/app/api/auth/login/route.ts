@@ -6,7 +6,8 @@ import { login } from "@/lib/auth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const say = (body: Record<string, unknown>, status: number): Response => Response.json(body, { status });
+const say = (body: Record<string, unknown>, status: number): Response =>
+  Response.json(body, { status, headers: { "cache-control": "no-store" } });
 
 export async function POST(request: Request): Promise<Response> {
   let username = "";

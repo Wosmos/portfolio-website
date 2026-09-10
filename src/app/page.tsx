@@ -5,10 +5,15 @@ import { person } from "@/data/portfolio";
 import "@/styles/gate.css";
 import { WMark, Wordmark } from "@/components/Mark";
 
+// no `title` here: the gate is the homepage, so it keeps the layout's full default title rather than
+// running it through the `%s — Wasif Malik` template and repeating the name.
+const DESCRIPTION = `${person.name} · software engineer · Go, systems, Next.js. Read the résumé or fly the flight deck.`;
+
 export const metadata: Metadata = {
-  title: `${person.name} — software engineer`,
-  description: `${person.name} · software engineer · Go, systems, Next.js. Read the résumé or fly the flight deck.`,
-  alternates: { canonical: "/" },
+  description: DESCRIPTION,
+  // `alternates` is replaced wholesale per page, so the llms.txt pointer is repeated here
+  alternates: { canonical: "/", types: { "text/plain": "/llms.txt" } },
+  openGraph: { type: "website", url: "/", description: DESCRIPTION },
 };
 
 export default function GatePage() {

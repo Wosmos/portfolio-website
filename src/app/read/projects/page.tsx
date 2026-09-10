@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title: "Projects",
   description: DESCRIPTION,
   alternates: { canonical: "/read/projects" },
-  openGraph: { url: "/read/projects", title: "Projects", description: DESCRIPTION },
+  openGraph: { type: "website", url: "/read/projects", title: "Projects", description: DESCRIPTION },
 };
 
 export default async function ProjectsPage() {
@@ -23,13 +23,23 @@ export default async function ProjectsPage() {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name: "Projects",
+    numberOfItems: projects.length,
     itemListElement: projects.map((p, i) => ({
       "@type": "ListItem", position: i + 1, name: p.title, description: p.tagline, url: `${SITE_URL}/read/projects/${p.id}`,
     })),
   };
+  const breadcrumbs = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/read` },
+      { "@type": "ListItem", position: 2, name: "Projects", item: `${SITE_URL}/read/projects` },
+    ],
+  };
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }} />
       <section className="hero pj" style={{ marginTop: 0, gridTemplateColumns: "1fr" }}>
         <div>
           <p className="k">{pad2(projects.length)} planets · one per orbit · languages from github</p>

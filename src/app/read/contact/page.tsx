@@ -6,11 +6,12 @@ export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
   const person = await getPerson();
+  const description = `Get in touch with ${person.name} about roles, contracts, or one of the projects. Replies within a day.`;
   return {
     title: "Contact",
-    description: `Get in touch with ${person.name} about roles, contracts, or one of the projects.`,
+    description,
     alternates: { canonical: "/read/contact" },
-    openGraph: { url: "/read/contact", title: "Contact", description: `Get in touch with ${person.name}.` },
+    openGraph: { type: "website", url: "/read/contact", title: "Contact", description },
   };
 }
 

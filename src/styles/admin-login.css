@@ -1,0 +1,62 @@
+/* The admin sign-in. Its own file rather than more of admin.css: the panel's styles are built for a
+   dense working tool, and this is one deliberate screen — a single chamfered card on a cyan glow. */
+
+.lgn { position: relative; min-height: 100dvh; display: grid; place-items: center; padding: var(--pad); overflow: hidden; }
+
+/* two static radials and the scanline weave: no canvas, no animation, one paint */
+.lgn__sky { position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(58% 44% at 50% 6%, rgba(0, 229, 255, .16), transparent 72%),
+    radial-gradient(46% 34% at 88% 96%, rgba(255, 43, 214, .1), transparent 70%),
+    repeating-linear-gradient(transparent 0 3px, rgba(255, 255, 255, .012) 3px 4px); }
+
+.lgn__card { position: relative; z-index: 1; width: min(400px, 100%);
+  --sf-bg: rgba(6, 12, 18, .92); --sf-border: rgba(0, 229, 255, .42);
+  animation: lgnIn .5s var(--ease) both; }
+.lgn__card > .sf__in { display: grid; gap: 22px; padding: clamp(24px, 6vw, 34px) clamp(20px, 5vw, 32px); }
+@keyframes lgnIn { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+
+.lgn__head { display: grid; justify-items: center; gap: 9px; text-align: center; }
+.lgn__head h1 { font-size: 12px; font-weight: 500; letter-spacing: .28em; text-transform: uppercase; color: var(--fg); }
+.lgn__head p { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg-3); }
+.lgn__head::after { content: ""; width: 100%; height: 1px; margin-top: 4px; background: var(--neon); opacity: .4; }
+
+.lgn__form { display: grid; gap: 15px; }
+.lgn__fld { display: grid; gap: 7px; min-width: 0; }
+.lgn__fld > label { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg-3); }
+.lgn__wrap { position: relative; display: grid; min-width: 0; }
+
+/* the horizontal padding clears the 8px chamfer, so the first character is never cut into by it */
+.lgn__in { width: 100%; min-width: 0; font: inherit; font-size: 14px; line-height: 1.45; color: var(--fg);
+  background: rgba(4, 8, 12, .86); border: 1px solid rgba(0, 229, 255, .24); padding: 12px 14px;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  transition: border-color .18s, box-shadow .18s, background .18s; }
+.lgn__in::placeholder { color: var(--fg-4); }
+.lgn__in:focus { outline: none; border-color: var(--cy); background: rgba(4, 8, 12, .96); box-shadow: inset 0 0 0 1px rgba(0, 229, 255, .35); }
+.lgn__in--pw { padding-right: 72px; }
+
+.lgn__peek { position: absolute; right: 1px; top: 1px; bottom: 1px; padding: 0 13px;
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-3); transition: color .18s; }
+.lgn__peek:hover { color: var(--cy); }
+
+/* always in the tree, so an error appears without moving the button under the cursor */
+.lgn__err { min-height: 15px; font-size: 11px; line-height: 1.3; color: var(--rd); }
+
+.lgn__go { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  padding: 13px 18px; font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+  color: #061018; position: relative; isolation: isolate; transition: color .2s; }
+.lgn__go::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--cy);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  transition: background .2s, box-shadow .2s; }
+.lgn__go:hover::before, .lgn__go:focus-visible::before { background: #6cf3ff; box-shadow: 0 0 26px rgba(0, 229, 255, .3); }
+.lgn__go[disabled] { color: var(--fg-2); cursor: progress; }
+.lgn__go[disabled]::before { background: rgba(0, 229, 255, .16); box-shadow: inset 0 0 0 1px rgba(0, 229, 255, .35); }
+.lgn__go i { width: 6px; height: 6px; background: currentColor; animation: lgnPulse .9s ease-in-out infinite; }
+
+.lgn__note { font-size: 10px; letter-spacing: .1em; color: var(--fg-4); text-align: center; }
+@keyframes lgnPulse { 0%, 100% { opacity: .25 } 50% { opacity: 1 } }
+
+@media (prefers-reduced-motion: reduce) {
+  .lgn__card { animation: none; }
+  .lgn__go i { animation: none; opacity: .7; }
+}

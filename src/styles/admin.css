@@ -30,8 +30,8 @@
 .row__top .tag { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-3); }
 .row__top .tag.on { color: var(--ok); } .row__top .tag.off { color: var(--rd); } .row__top .tag.warn { color: var(--am); }
 .row__acts { margin-left: auto; display: flex; gap: 6px; }
-.row__grip { cursor: grab; color: var(--fg-4); padding: 0 4px; } .row__grip:active { cursor: grabbing; }
-.row.is-drag { opacity: .5; } .row.is-over > .sf__in { box-shadow: inset 0 2px 0 var(--cy); }
+.clamp { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 62ch; }
+.acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 /* buttons */
 .btn { display: inline-flex; align-items: center; gap: 7px; padding: 7px 13px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--fg-2); position: relative; isolation: isolate; transition: color .18s; }
@@ -118,8 +118,116 @@
 .adm__toast.is-bad { box-shadow: inset 0 0 0 1px rgba(255,77,94,.5); color: #ffd9dd; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 
-.skel { background: linear-gradient(90deg, rgba(242,245,255,.05), rgba(242,245,255,.1), rgba(242,245,255,.05)); background-size: 200% 100%; animation: skel 1.2s linear infinite; height: 58px; clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
-@keyframes skel { from { background-position: 200% 0 } to { background-position: -200% 0 } }
+/* ── the shared list vocabulary (see src/components/admin/kit.tsx) ────────────────────────────── */
+
+/* toolbar: search, filter chips, a count, the primary action */
+.tbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 14px; }
+.tbar__find { position: relative; flex: 1 1 220px; min-width: 180px; }
+.tbar__find i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--fg-3); pointer-events: none; }
+.tbar__find input { width: 100%; font: inherit; font-size: 13px; color: var(--fg); background: rgba(4,8,12,.8); border: 1px solid rgba(0,229,255,.2); padding: 9px 11px 9px 30px; clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px); }
+.tbar__find input:focus { outline: none; border-color: var(--cy); }
+.tbar__find input::-webkit-search-cancel-button { filter: invert(1) opacity(.4); }
+.tbar__chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.tbar__count { font-size: 11px; color: var(--fg-3); font-variant-numeric: tabular-nums; margin-left: auto; }
+.tbar > .btn { flex: 0 0 auto; }
+
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--fg-3); background: rgba(242,245,255,.03); box-shadow: inset 0 0 0 1px rgba(242,245,255,.08); clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px); transition: color .18s, background .18s, box-shadow .18s; }
+.chip:hover { color: var(--fg); background: rgba(0,229,255,.08); }
+.chip.is-on { color: #061018; background: var(--cy); box-shadow: none; }
+.chip b { font-weight: 500; font-size: 10px; opacity: .7; font-variant-numeric: tabular-nums; }
+
+/* the table: sticky head, sortable heads, a selected row, one card per row on a phone */
+.tw { max-height: 62vh; overflow: auto; overscroll-behavior: contain; }
+.tbl--rows { min-width: 520px; }
+.tbl--rows thead th { position: sticky; top: 0; z-index: 2; background: #070b10; padding: 9px 10px; }
+.tbl--rows th button { display: inline-flex; align-items: center; gap: 5px; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; }
+.tbl--rows th button:hover { color: var(--fg); }
+.tbl--rows th button i { font-style: normal; opacity: .45; }
+.tbl--rows th.is-sorted { color: var(--cy); } .tbl--rows th.is-sorted button i { opacity: 1; }
+.tbl--rows tbody tr { cursor: pointer; }
+.tbl--rows tbody tr:focus-visible { outline: 1px solid var(--cy); outline-offset: -1px; }
+.tbl--rows tbody tr.is-on td { background: rgba(0,229,255,.09); }
+.tbl--rows td { vertical-align: middle; }
+.tbl__pin { width: 22px; padding-right: 0 !important; color: var(--fg-4); }
+.tbl--rows tr.is-on .tbl__pin { color: var(--cy); }
+.tbl__pin i { font-style: normal; }
+.tbl__acts { text-align: right; white-space: nowrap; }
+.tbl__acts > * + * { margin-left: 5px; }
+
+/* pager */
+.pager { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding-top: 12px; }
+.pager p { font-size: 11px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.pager__go { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.pager__go span { font-size: 11px; color: var(--fg-2); padding: 0 6px; font-variant-numeric: tabular-nums; }
+.pager__per { display: flex; align-items: center; gap: 7px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-3); }
+.pager__per select { font: inherit; font-size: 11px; letter-spacing: 0; color: var(--fg); background: rgba(4,8,12,.8); border: 1px solid rgba(0,229,255,.2); padding: 5px 7px; }
+
+/* table + detail box */
+/* The detail column only takes room when a detail box is actually open, or every table sits in
+   two-thirds of the width and its action buttons get clipped. */
+.split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
+.split:has(> .dbox) { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); }
+.split > * { min-width: 0; }
+.dbox { position: sticky; top: 16px; }
+.dbox > .sf__in { display: grid; gap: 12px; padding: 16px 18px; }
+.dbox__top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.dbox__top h3 { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--fg-3); font-weight: 400; margin-right: auto; }
+.sect { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.sect .panel__h { margin-bottom: 0; display: inline-flex; align-items: center; gap: 6px; }
+.sect__acts { margin-left: auto; display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* badges */
+.badge { display: inline-block; padding: 2px 7px; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+.badge--mute { color: var(--fg-3); background: rgba(242,245,255,.06); }
+.badge--on { color: var(--ok); background: rgba(61,220,151,.12); }
+.badge--off { color: var(--rd); background: rgba(255,77,94,.12); }
+.badge--warn { color: var(--am); background: rgba(255,181,71,.14); }
+.badge--hot { color: #ffd9dd; background: rgba(255,43,214,.22); }
+.badge--cool { color: var(--cy); background: rgba(0,229,255,.12); }
+
+/* empty states */
+.empty { display: grid; justify-items: center; gap: 10px; padding: 40px 20px; text-align: center; }
+.empty i { font-style: normal; font-size: 26px; color: var(--fg-4); }
+.empty p { font-size: 12px; color: var(--fg-3); max-width: 46ch; }
+
+/* tooltips: the bubble stays in the accessibility tree, so it is faded rather than removed */
+.tip { position: relative; display: inline-flex; }
+.tip__btn { display: inline-flex; align-items: center; justify-content: center; color: var(--fg-3); }
+.tip__btn i { font-style: normal; font-size: 9px; width: 14px; height: 14px; display: grid; place-items: center; box-shadow: inset 0 0 0 1px rgba(242,245,255,.2); border-radius: 50%; }
+.tip__btn:hover, .tip__btn:focus-visible { color: var(--cy); }
+.tip__bub { position: absolute; left: 50%; bottom: calc(100% + 7px); z-index: 40; width: max-content; max-width: 240px; transform: translateX(-50%); padding: 7px 10px; font-size: 11px; line-height: 1.5; letter-spacing: 0; text-transform: none; color: var(--fg); background: #070b10; box-shadow: inset 0 0 0 1px rgba(0,229,255,.35); opacity: 0; pointer-events: none; transition: opacity .15s; }
+.tip__bub.is-on { opacity: 1; }
+
+.bone { clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
+.dbox__pane { padding: 16px 18px; display: grid; gap: 14px; align-content: start; }
+.sub.ok { color: var(--ok); }
+
+/* the lead score: a band plus a bar that reads as a bar even at 12px */
+.lead { display: flex; align-items: center; gap: 7px; }
+.meter { position: relative; display: inline-block; min-width: 42px; padding: 2px 5px; background: rgba(242,245,255,.06); }
+.meter::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: var(--w, 0%); background: linear-gradient(90deg, rgba(0,229,255,.35), rgba(255,43,214,.45)); }
+.meter b { position: relative; font-size: 11px; font-weight: 500; color: var(--fg); font-variant-numeric: tabular-nums; }
+.whys { display: grid; gap: 5px; }
+.whys li { font-size: 12px; color: var(--fg-2); padding-left: 14px; position: relative; }
+.whys li::before { content: "·"; position: absolute; left: 3px; color: var(--cy); }
+
+/* a table with a full-width detail box under it, for panels whose editor is too wide for a column */
+.stack { display: grid; gap: 16px; }
+.sub { color: var(--fg-3); font-size: 11px; margin-left: 7px; }
+
+/* the planet editor: controls beside the live preview */
+.pled { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 16px; align-items: start; }
+.pled__view { position: sticky; top: 16px; }
+
+/* sliders read their own value, so the label carries it */
+.sld > label small { margin-left: auto; color: var(--cy); font-variant-numeric: tabular-nums; letter-spacing: .04em; text-transform: none; }
+
+@media (max-width: 980px) {
+  .split { grid-template-columns: 1fr; }
+  .dbox, .pled__view { position: static; }
+  .pled { grid-template-columns: 1fr; }
+  .pled__view { max-width: 260px; }
+}
 
 @media (max-width: 900px) {
   .adm { grid-template-columns: 1fr; }
@@ -128,4 +236,29 @@
   .adm__tab b { display: none; }
   .fields--2, .fields--3 { grid-template-columns: 1fr; }
   .inbox { grid-template-columns: 1fr; } .inbox__list { max-height: 40vh; }
+}
+
+/* one card per row, and every target at least 44px */
+@media (max-width: 720px) {
+  .tw { max-height: none; overflow: visible; }
+  .tbl--rows { min-width: 0; }
+  .tbl--rows thead { display: none; }
+  .tbl--rows, .tbl--rows tbody, .tbl--rows tr, .tbl--rows td { display: block; }
+  .tbl--rows tbody tr { padding: 12px 14px; margin-bottom: 8px; background: rgba(6,12,18,.6); box-shadow: inset 0 0 0 1px rgba(0,229,255,.12); clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
+  .tbl--rows tbody tr.is-on td { background: none; }
+  .tbl--rows tbody tr.is-on { box-shadow: inset 0 0 0 1px rgba(0,229,255,.55); }
+  .tbl--rows td { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; padding: 4px 0; border: 0; text-align: left; }
+  .tbl--rows td::before { content: attr(data-label); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--fg-3); }
+  .tbl--rows td.num { text-align: left; }
+  .tbl--rows .tbl__pin { display: none; }
+  .tbl--rows td.tbl__acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tbl--rows td.tbl__acts::before { content: none; }
+  .tbl--rows td.tbl__acts > * + * { margin-left: 0; }
+  .clamp { max-width: none; white-space: normal; }
+  .btn, .chip { min-height: 44px; }
+  .btn--sm { padding: 5px 12px; }
+  .tbar__find input, .fld input, .fld select, .pager__per select { min-height: 44px; }
+  .tbar__count { margin-left: 0; }
+  .pager { justify-content: space-between; } .pager__go { margin-left: 0; }
+  .tip__bub { max-width: 62vw; }
 }

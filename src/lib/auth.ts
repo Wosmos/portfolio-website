@@ -8,7 +8,15 @@ import { getDb, schema as t } from "@/db/client";
 import { hashVisitor } from "@/lib/fingerprint";
 
 const COOKIE = "wosmo_admin";
+// Dropped alongside the session so /api/track skips the owner's own visits. Not a security cookie.
+const NO_TRACK = "wosmo_no_track";
+// Set for ten minutes on sign-out so the middleware can send the dashboard's post-logout navigation
+// (a hardcoded /admin/login) back to the secret URL instead of a 404. Signed, so only someone who
+// held a session a moment ago gets that courtesy.
+const EXIT = "wosmo_admin_exit";
+const EXIT_TTL_MS = 10 * 60 * 1000;
 const TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const YEAR_S = 365 * 24 * 60 * 60;
 const encoder = new TextEncoder();
 
 function secret(): string {
@@ -30,21 +38,58 @@ function same(a: string, b: string): boolean {
   return diff === 0;
 }
 
-// Per-instance login throttle: five wrong passwords in ten minutes and that source waits.
-const attempts = new Map<string, number[]>();
-const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 10 * 60 * 1000;
-function throttled(who: string): boolean {
-  const now = Date.now();
-  const recent = (attempts.get(who) ?? []).filter((x) => now - x < WINDOW_MS);
-  attempts.set(who, recent);
-  if (attempts.size > 1000) attempts.clear();
-  return recent.length >= MAX_ATTEMPTS;
+// Per-instance throttle: N attempts in a window and that source waits. One map per caller so the
+// knock endpoint cannot spend the login budget, or the other way round.
+interface Limiter { blocked(who: string): boolean; note(who: string): void }
+function limiter(max: number, windowMs: number): Limiter {
+  const seen = new Map<string, number[]>();
+  return {
+    blocked(who) {
+      const now = Date.now();
+      const recent = (seen.get(who) ?? []).filter((x) => now - x < windowMs);
+      seen.set(who, recent);
+      if (seen.size > 1000) seen.clear();
+      return recent.length >= max;
+    },
+    note(who) {
+      const list = seen.get(who) ?? [];
+      list.push(Date.now());
+      seen.set(who, list);
+    },
+  };
 }
-function noteAttempt(who: string): void {
-  const list = attempts.get(who) ?? [];
-  list.push(Date.now());
-  attempts.set(who, list);
+
+const logins = limiter(5, 10 * 60 * 1000);
+/** Five knocks per source per ten minutes: enough for a mistimed triple-click, useless for a sweep. */
+export const knocks = limiter(5, 10 * 60 * 1000);
+
+/** The hashed request source both throttles key on: no raw IP is ever kept. */
+export async function requestSource(): Promise<string> {
+  const h = await headers();
+  return hashVisitor(h.get("x-forwarded-for") ?? "", h.get("user-agent") ?? "", "");
+}
+
+// The panel lives at /<ADMIN_PATH>/admin, rewritten by src/middleware.ts. Server-only: prefixing this
+// with NEXT_PUBLIC_ would compile the secret into every client bundle.
+const DEV_SEGMENT = "admin-dev";
+let warned = false;
+
+/** The secret segment, or null when it is missing in production — in which case nothing is reachable. */
+export function adminSegment(): string | null {
+  const raw = process.env.ADMIN_PATH?.trim();
+  if (raw && /^[A-Za-z0-9._~-]{16,}$/.test(raw)) return raw;
+  if (process.env.NODE_ENV === "production") {
+    if (!warned) { warned = true; console.error("[admin] ADMIN_PATH is missing or too short; the panel is unreachable"); }
+    return null;
+  }
+  if (!warned) { warned = true; console.warn(`[admin] ADMIN_PATH is not set; using /${DEV_SEGMENT}/admin in development`); }
+  return DEV_SEGMENT;
+}
+
+/** The URL the panel answers on, or null when unconfigured. */
+export function adminBase(): string | null {
+  const segment = adminSegment();
+  return segment === null ? null : `/${segment}/admin`;
 }
 
 export type LoginResult = "ok" | "invalid" | "throttled" | "unconfigured";
@@ -56,8 +101,8 @@ export async function login(username: string, password: string): Promise<LoginRe
 
   const h = await headers();
   const ua = h.get("user-agent") ?? "";
-  const who = await hashVisitor(h.get("x-forwarded-for") ?? "", ua, "");
-  if (throttled(who)) return "throttled";
+  const who = await requestSource();
+  if (logins.blocked(who)) return "throttled";
 
   const ok = username === expectedUser && (await bcrypt.compare(password, hash));
   const db = getDb();
@@ -65,7 +110,7 @@ export async function login(username: string, password: string): Promise<LoginRe
     try { await db.insert(t.adminLogins).values({ ok, fromHash: who, userAgent: ua.slice(0, 300) }); }
     catch (e) { console.error("[auth] could not record the attempt", e); }
   }
-  if (!ok) { noteAttempt(who); return "invalid"; }
+  if (!ok) { logins.note(who); return "invalid"; }
 
   const expires = Date.now() + TTL_MS;
   const payload = String(expires);
@@ -74,11 +119,27 @@ export async function login(username: string, password: string): Promise<LoginRe
     httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax",
     path: "/", expires: new Date(expires),
   });
+  jar.delete(EXIT);
+  // Readable by nothing that matters, so httpOnly buys nothing; /api/track only needs it to be sent.
+  jar.set(NO_TRACK, "1", {
+    httpOnly: false, secure: process.env.NODE_ENV === "production", sameSite: "lax",
+    path: "/", maxAge: YEAR_S,
+  });
   return "ok";
 }
 
 export async function logout(): Promise<void> {
-  (await cookies()).delete(COOKIE);
+  const jar = await cookies();
+  jar.delete(COOKIE);
+  // wosmo_no_track deliberately survives sign-out. It exists so the owner's own browsing never lands
+  // in the analytics tables, and the owner browses the public site signed out far more than signed in
+  // — clearing it here would start counting exactly the traffic it was set to exclude.
+  const expires = Date.now() + EXIT_TTL_MS;
+  const payload = String(expires);
+  jar.set(EXIT, `${payload}.${await sign(payload)}`, {
+    httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax",
+    path: "/", expires: new Date(expires),
+  });
 }
 
 export async function isAdmin(): Promise<boolean> {
@@ -98,5 +159,5 @@ export async function isAdmin(): Promise<boolean> {
 /** Guard for every admin API route: returns null when the caller is allowed. */
 export async function requireAdmin(): Promise<Response | null> {
   if (await isAdmin()) return null;
-  return Response.json({ error: "Not authorised" }, { status: 401 });
+  return Response.json({ error: "Not authorised" }, { status: 401, headers: { "cache-control": "no-store" } });
 }

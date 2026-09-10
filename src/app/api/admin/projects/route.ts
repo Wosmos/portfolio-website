@@ -28,7 +28,32 @@ const finite = (value: unknown, key: string): number => {
   return value;
 };
 
-const TINTS = ["ocean", "cloud", "crater", "vein"] as const;
+const ranged = (min: number, max: number) => (value: unknown, key: string): number => {
+  if (typeof value !== "number" || !Number.isFinite(value)) reject(`${key} must be a number`);
+  if (value < min || value > max) reject(`${key} must be between ${min} and ${max}`);
+  return value;
+};
+
+/**
+ * The optional shader knobs, with the range each one is useful over. Leaving one out is meaningful —
+ * the scene then falls back to the look it had before the field existed — so a null clears it rather
+ * than writing a zero.
+ */
+type Knob = "ocean" | "cloud" | "crater" | "vein" | "seed" | "spin" | "tilt" | "atmo" | "atmoAlpha" | "glow" | "bands" | "bandSharp";
+const KNOBS: readonly (readonly [Knob, (value: unknown, key: string) => number])[] = [
+  ["ocean", ranged(0, 1)],
+  ["cloud", ranged(0, 1)],
+  ["crater", ranged(0, 1)],
+  ["vein", ranged(0, 1)],
+  ["seed", ranged(0, 10_000)],
+  ["spin", ranged(0, 20)],
+  ["tilt", ranged(-90, 90)],
+  ["atmo", ranged(0, 1)],
+  ["atmoAlpha", ranged(0, 1)],
+  ["glow", ranged(0, 3)],
+  ["bands", ranged(1, 60)],
+  ["bandSharp", ranged(0, 1)],
+];
 
 function readPlanet(value: unknown): PlanetConfigJson {
   if (!isRecord(value)) reject("planet must be an object");
@@ -42,9 +67,9 @@ function readPlanet(value: unknown): PlanetConfigJson {
     c3: colour(value.c3, "planet.c3"),
     rim: colour(value.rim, "planet.rim"),
   };
-  for (const key of TINTS) {
-    const tint = value[key];
-    if (tint !== undefined && tint !== null) planet[key] = colour(tint, `planet.${key}`);
+  for (const [key, read] of KNOBS) {
+    const knob = value[key];
+    if (knob !== undefined && knob !== null) planet[key] = read(knob, `planet.${key}`);
   }
   const ring = value.ring;
   if (ring !== undefined && ring !== null) {

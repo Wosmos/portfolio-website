@@ -39,6 +39,16 @@ export interface PlanetConfigJson {
   type: "gas" | "rocky" | "lava" | "ice";
   size: number; c0: number; c1: number; c2: number; c3: number; rim: number;
   ocean?: number; cloud?: number; crater?: number; vein?: number;
+  /** Surface noise seed — changes the terrain without touching anything else. */
+  seed?: number;
+  /** Spin rate (turns per scene minute) and axial tilt in degrees. */
+  spin?: number; tilt?: number;
+  /** Atmosphere shell: thickness as a fraction of the radius, and its opacity. */
+  atmo?: number; atmoAlpha?: number;
+  /** Night-side glow from the emissive channel (lava veins, city lights). */
+  glow?: number;
+  /** Band count for gas giants, and how hard the bands are edged. */
+  bands?: number; bandSharp?: number;
   ring?: RingConfigJson | null;
 }
 export type LangShareJson = [name: string, percent: number];
@@ -229,7 +239,21 @@ export const visitors = pgTable("visitors", {
   converted: boolean("converted").default(false).notNull(),
   label: text("label").default("").notNull(),
   isBot: boolean("is_bot").default(false).notNull(),
-}, (t) => [index("visitors_last_seen_idx").on(t.lastSeen), index("visitors_country_idx").on(t.country)]);
+  /** Me. Set from ADMIN_VISITOR_HASHES or by signing into the admin; excluded from every figure. */
+  isOwner: boolean("is_owner").default(false).notNull(),
+  /** 0–100, worked out from behaviour by src/lib/lead.ts. */
+  score: integer("score").default(0).notNull(),
+  /** hot · warm · curious · passing · bot — the band `score` falls in. */
+  intent: varchar("intent", { length: 12 }).default("passing").notNull(),
+  /** Why it scored that way, so the admin shows reasons rather than a bare number. */
+  scoreWhy: jsonb("score_why").$type<readonly string[]>().default([]).notNull(),
+  scoredAt: timestamp("scored_at", { withTimezone: true }),
+}, (t) => [
+  index("visitors_last_seen_idx").on(t.lastSeen),
+  index("visitors_country_idx").on(t.country),
+  index("visitors_score_idx").on(t.score),
+  index("visitors_owner_idx").on(t.isOwner),
+]);
 
 export const sessions = pgTable("sessions", {
   id: varchar("id", { length: 64 }).primaryKey(),

@@ -9,8 +9,8 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { DEFAULT_ORBITS, LANG_COLORS } from "@/data/portfolio";
-import type { PlanetConfig, PlanetType, Project, RingConfig } from "@/data/portfolio";
-import type { FlightEventName, Heading, Layer, LayerAnchor, Pick, SystemApi, SystemOptions, Vec3 } from "./types";
+import type { PlanetType, Project, RingConfig } from "@/data/portfolio";
+import type { FlightEventName, Heading, Layer, LayerAnchor, Pick, PlanetFull, SystemApi, SystemOptions, Vec3 } from "./types";
 
 const BG = 0x06060a;
 const WHITE = new THREE.Color(0xfafafa);
@@ -87,10 +87,17 @@ const PLANET_FRAG = /* glsl */ `
 uniform vec3 uC0; uniform vec3 uC1; uniform vec3 uC2; uniform vec3 uC3; uniform vec3 uRim;
 uniform float uType; uniform float uSeed; uniform float uTime; uniform float uHot;
 uniform float uOcean; uniform float uCloud; uniform float uCrater; uniform float uVein;
+uniform float uGlow; uniform float uBands; uniform float uBandSharp;
 uniform float uRingOn; uniform vec3 uRingN; uniform vec3 uPlanetC; uniform float uRingIn; uniform float uRingOut;
 varying vec3 vN; varying vec3 vW; varying vec3 vL;
 ${NOISE}
 ${CUT_GLSL}
+// Sharpens a 0–1 band value towards a step. At uBandSharp 0 the mix returns the sine untouched, which
+// is what keeps a planet with no bandSharp set looking exactly as it did.
+float bandEdge(float b, float s){
+  float w = max(0.02, 0.5 * (1.0 - s));
+  return mix(b, smoothstep(0.5 - w, 0.5 + w, b), s);
+}
 void main(){
   if (inWedge(vW)) discard;
   vec3 N = normalize(vN);
@@ -104,8 +111,9 @@ void main(){
   vec3 albedo = uC0; vec3 emissive = vec3(0.0); float rough = 0.6;
   if (uType < 0.5) {
     float lat = p.y + n * 0.07 + w1 * 0.04;
-    float band  = sin(lat * 14.0 + uSeed) * 0.5 + 0.5;
-    float band2 = sin(lat * 31.0 + n * 2.0 + 1.3) * 0.5 + 0.5;
+    // the second set is always 17 cycles finer than the first, so uBands moves both together
+    float band  = bandEdge(sin(lat * uBands + uSeed) * 0.5 + 0.5, uBandSharp);
+    float band2 = bandEdge(sin(lat * (uBands + 17.0) + n * 2.0 + 1.3) * 0.5 + 0.5, uBandSharp);
     albedo = mix(mix(uC0, uC1, band), mix(uC2, uC3, band2), 0.3 + 0.2 * n);
     float storm = smoothstep(0.55, 0.85, fbm(q * 3.0 + warp));
     albedo = mix(albedo, uC3, storm * 0.3);
@@ -131,7 +139,7 @@ void main(){
     rough = 0.8;
   } else {
     float lat = p.y + n * 0.1;
-    float band = sin(lat * 7.0 + uSeed) * 0.5 + 0.5;
+    float band = bandEdge(sin(lat * uBands * 0.5 + uSeed) * 0.5 + 0.5, uBandSharp);
     albedo = mix(uC0, uC1, band * 0.55 + n * 0.2);
     albedo = mix(albedo, uC2, smoothstep(0.6, 0.9, fbm(q * 2.0 + warp) * 0.5 + 0.5) * 0.7);
     rough = 0.3;
@@ -159,12 +167,14 @@ void main(){
   vec3 col = albedo * (0.035 + d * 1.15) * sunCol + spec * sunCol;
   col += uRim * fres * (0.32 + uHot * 0.8) * (0.35 + 0.65 * d);
   col += uRim * pow(1.0 - max(dot(N, V), 0.0), 6.0) * 0.12;
-  col += emissive;
+  col += emissive * uGlow;
+  // above 1, glow also lights the night side, so a planet without lava veins can still burn
+  col += uRim * max(0.0, uGlow - 1.0) * 0.12 * (1.0 - d) * (0.4 + 0.6 * fres);
   gl_FragColor = vec4(col, 1.0);
 }`;
 
 const ATMO_FRAG = /* glsl */ `
-uniform vec3 uRim; uniform float uHot;
+uniform vec3 uRim; uniform float uHot; uniform float uAlpha;
 varying vec3 vN; varying vec3 vW;
 ${CUT_GLSL}
 void main(){
@@ -173,7 +183,7 @@ void main(){
   vec3 L = normalize(-vW);
   float f = pow(1.0 - abs(dot(normalize(vN), V)), 2.6);
   float day = 0.45 + 0.55 * smoothstep(-0.3, 0.5, dot(normalize(vN), L));
-  gl_FragColor = vec4(uRim, f * (0.28 + uHot * 0.6) * day);
+  gl_FragColor = vec4(uRim, f * (uAlpha + uHot * 0.6) * day);
 }`;
 
 // planetary ring. RingGeometry UVs are Cartesian, so the radius is rebuilt from the local
@@ -372,9 +382,10 @@ export type PlanetUniforms = CutUniforms & {
   uC0: U<THREE.Color>; uC1: U<THREE.Color>; uC2: U<THREE.Color>; uC3: U<THREE.Color>; uRim: U<THREE.Color>;
   uType: U<number>; uSeed: U<number>; uTime: U<number>; uHot: U<number>;
   uOcean: U<number>; uCloud: U<number>; uCrater: U<number>; uVein: U<number>;
+  uGlow: U<number>; uBands: U<number>; uBandSharp: U<number>;
   uRingOn: U<number>; uRingN: U<THREE.Vector3>; uPlanetC: U<THREE.Vector3>; uRingIn: U<number>; uRingOut: U<number>;
 };
-export type AtmoUniforms = CutUniforms & { uRim: U<THREE.Color>; uHot: U<number> };
+export type AtmoUniforms = CutUniforms & { uRim: U<THREE.Color>; uHot: U<number>; uAlpha: U<number> };
 export type RingUniforms = { uMap: U<THREE.Texture>; uInner: U<number>; uOuter: U<number>; uHot: U<number>; uPlanet: U<THREE.Vector3>; uPlanetR: U<number>; uSeed: U<number> };
 export type ShellUniforms = CutUniforms & { uColor: U<THREE.Color>; uSeed: U<number>; uTime: U<number>; uAlpha: U<number>; uHi: U<number> };
 export type FaceUniforms = { uMap: U<THREE.Texture>; uR: U<number>; uSeed: U<number>; uAlpha: U<number>; uSpan: U<number> };
@@ -493,31 +504,64 @@ function buildCutaway(p: Project, size: number, i: number): Cutaway {
 export interface Body {
   root: THREE.Group; tilt: THREE.Group; spin: THREE.Group;
   planet: ShaderMesh<THREE.SphereGeometry, PlanetUniforms>; atmo: ShaderMesh<THREE.SphereGeometry, AtmoUniforms>;
-  ring: ShaderMesh<THREE.RingGeometry, RingUniforms> | null; cut: Cutaway; size: number; cfg: PlanetConfig;
+  ring: ShaderMesh<THREE.RingGeometry, RingUniforms> | null; cut: Cutaway; size: number; cfg: PlanetFull;
+  /** Radians per second, from `spin` or from what the body's index used to give it. */
+  spinRate: number;
+  /** The same, at the slightly brisker rate the planet strip has always used. */
+  stripSpinRate: number;
+  /** Outer radius as a multiple of `size`, so a view can frame a thicker atmosphere. */
+  extent: number;
+  /** The resolved atmosphere thickness, for views that frame the shell rather than the ring. */
+  atmoT: number;
+}
+
+const DEG = Math.PI / 180;
+const TURNS = (Math.PI * 2) / 60;   // turns per minute → radians per second
+
+/**
+ * What each of the optional planet parameters means when the row does not set it. These are read off
+ * the shader and the animation loops as they were before the fields existed, several of them derived
+ * from the body's index, which is why they cannot simply be constants in the schema.
+ */
+export function planetDefaults(i: number): { seed: number; spinRate: number; stripSpinRate: number; tilt: number; atmo: number; atmoAlpha: number; glow: number; bands: number; bandSharp: number } {
+  return {
+    seed: i * 7.31 + 2.0,
+    spinRate: 0.22 + (i % 3) * 0.07,
+    stripSpinRate: 0.3 + (i % 3) * 0.08,
+    tilt: ((i * 0.37) % 0.6) - 0.3,
+    atmo: 0.14,
+    atmoAlpha: 0.28,
+    glow: 1,
+    bands: 14,
+    bandSharp: 0,
+  };
 }
 
 // One project → one body: tilt/spin groups, shader planet, atmosphere shell, cutaway group, optional ring.
 // Lighting comes from the world origin (the sun), so the body must sit away from (0,0,0).
 export function makeBody(p: Project, i: number): Body {
-  const cfg = p.planet, size = cfg.size * PLANET_SCALE;
+  const cfg: PlanetFull = p.planet, size = cfg.size * PLANET_SCALE;
+  const d = planetDefaults(i);
+  const atmoT = cfg.atmo ?? d.atmo;
   const root = new THREE.Group();
 
-  const tilt = new THREE.Group(); tilt.rotation.z = ((i * 0.37) % 0.6) - 0.3;
+  const tilt = new THREE.Group(); tilt.rotation.z = cfg.tilt === undefined ? d.tilt : cfg.tilt * DEG;
   const spin = new THREE.Group();
   tilt.add(spin); root.add(tilt);
 
   const mat = new ShaderMat<PlanetUniforms>({ vertexShader: V_WORLD, fragmentShader: PLANET_FRAG,
     uniforms: {
       uC0: { value: new THREE.Color(cfg.c0) }, uC1: { value: new THREE.Color(cfg.c1) }, uC2: { value: new THREE.Color(cfg.c2) }, uC3: { value: new THREE.Color(cfg.c3) },
-      uRim: { value: new THREE.Color(cfg.rim) }, uType: { value: TYPE[cfg.type] }, uSeed: { value: i * 7.31 + 2.0 },
+      uRim: { value: new THREE.Color(cfg.rim) }, uType: { value: TYPE[cfg.type] }, uSeed: { value: cfg.seed ?? d.seed },
       uTime: { value: 0 }, uHot: { value: 0 }, uOcean: { value: cfg.ocean ?? 0 }, uCloud: { value: cfg.cloud ?? 0 }, uCrater: { value: cfg.crater ?? 0 }, uVein: { value: cfg.vein ?? 0 },
+      uGlow: { value: cfg.glow ?? d.glow }, uBands: { value: cfg.bands ?? d.bands }, uBandSharp: { value: cfg.bandSharp ?? d.bandSharp },
       uRingOn: { value: cfg.ring ? 1 : 0 }, uRingN: { value: new THREE.Vector3(0, 1, 0) }, uPlanetC: { value: new THREE.Vector3() }, uRingIn: { value: 0 }, uRingOut: { value: 0 },
       ...cutUniforms(),
     } });
   const planet = new THREE.Mesh(sphereGeo, mat); planet.scale.setScalar(size); spin.add(planet);
   const atmo = new THREE.Mesh(sphereGeo, new ShaderMat<AtmoUniforms>({ vertexShader: V_WORLD, fragmentShader: ATMO_FRAG, transparent: true, depthWrite: false, side: THREE.BackSide, blending: THREE.AdditiveBlending,
-    uniforms: { uRim: { value: new THREE.Color(cfg.rim) }, uHot: { value: 0 }, ...cutUniforms() } }));
-  atmo.scale.setScalar(size * 1.14); root.add(atmo);
+    uniforms: { uRim: { value: new THREE.Color(cfg.rim) }, uHot: { value: 0 }, uAlpha: { value: cfg.atmoAlpha ?? d.atmoAlpha }, ...cutUniforms() } }));
+  atmo.scale.setScalar(size * (1 + atmoT)); root.add(atmo);
   const cut = buildCutaway(p, size, i);
   root.add(cut.group);
 
@@ -529,7 +573,12 @@ export function makeBody(p: Project, i: number): Body {
     ring.rotation.x = Math.PI / 2 + cfg.ring.tilt;
     tilt.add(ring);
   }
-  return { root, tilt, spin, planet, atmo, ring, cut, size, cfg };
+  return {
+    root, tilt, spin, planet, atmo, ring, cut, size, cfg,
+    spinRate: cfg.spin === undefined ? d.spinRate : cfg.spin * TURNS,
+    stripSpinRate: cfg.spin === undefined ? d.stripSpinRate : cfg.spin * TURNS,
+    extent: cfg.ring ? cfg.ring.outer : Math.max(1.22, 1 + atmoT + 0.08), atmoT,
+  };
 }
 
 /** Write the cutaway wedge into a material's cut uniforms. Shared by the deck and the planet views. */
@@ -983,7 +1032,7 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, onSelect,
       const want = i === hotIdx ? 1 : 0;
       b.hot += (want - b.hot) * Math.min(1, dt * 6);
       b.root.scale.setScalar((1 + 0.06 * b.hot) * (1 - 0.3 * b.mix));
-      if (!(i === focusIdx && cutOpen)) b.spinT += dt * (0.22 + (i % 3) * 0.07) * (i === focusIdx ? 1.4 : 1);
+      if (!(i === focusIdx && cutOpen)) b.spinT += dt * b.spinRate * (i === focusIdx ? 1.4 : 1);
       b.spin.rotation.y = b.spinT;
       b.planet.material.uniforms.uTime.value = t;
       // cutaway: ease toward target, orient the wedge to face the camera when it opens

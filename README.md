@@ -114,6 +114,8 @@ bun run admin:hash pw  # print a bcrypt hash for ADMIN_PASSWORD_HASH
 
 ## Environment
 
+`.env.example` is the full list with notes; copy it to `.env.local`.
+
 ```bash
 RESEND_API_KEY=…    # required for the contact form
 GITHUB_TOKEN=…      # optional: raises the API limit and reads private repos

@@ -346,7 +346,13 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   function renderTele(): void {
     if (!system) return;
     const h = system.heading();
-    $("#tl-state").textContent = h.flying ? "in flight" : current ? `holding · ${current.title.toLowerCase()}` : coreOpen ? "holding · core" : "orbiting";
+    // a hovered or focused moon takes the "where" line, because it is the smaller, more specific answer
+    const moon = h.moons.find((m) => m.focused) ?? h.moons.find((m) => m.hot);
+    $("#tl-state").textContent = h.flying
+      ? "in flight"
+      : moon
+        ? `${moon.name.toLowerCase()} · ${moon.path ? `/${moon.path}` : "moon"}`
+        : current ? `holding · ${current.title.toLowerCase()}` : coreOpen ? "holding · core" : "orbiting";
     const link = $("#tl-link"); link.textContent = live.on ? `live · ${live.rtt}ms` : "static"; link.classList.toggle("on", live.on);
     $("#tl-push").textContent = lastPush ? `${lastPush.repo} · ${relTime(lastPush.at)}` : "…";
     $("#tl-clock").textContent = clockLocal ? `${clock()} local` : `${clock(person.tz)} pkt`;
@@ -400,61 +406,121 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     system.setHeading(theta); showToast(`heading ${String(Math.round(deg360(theta))).padStart(3, "0")}°`, 1200); audio.tick();
   });
 
-  // ── main instrument: horizon ball · heading tape · throttle · energy · velocity ──
+  // ── main instrument ───────────────────────────────────
+  // The canvas used to be a fixed 640×150 stretched into a ~368×105 box, which squashed the attitude
+  // ball into an ellipse, left both top corners empty (the tape was clipped 150px in from each edge)
+  // and pushed the ATT caption off the bottom. The backing store now matches the element's own box, and
+  // one layout object describes every region, so the painter and the pointer handler cannot disagree.
+  interface DashBox { x: number; y: number; w: number; h: number }
+  interface DashLayout {
+    w: number; h: number; pad: number;
+    tape: DashBox;
+    ball: { cx: number; cy: number; r: number };
+    vel: { cx: number; top: number; mid: number; foot: number };
+    thr: DashBox; nrg: DashBox; read: number;
+  }
+  let dashDpr = 1, dashW = 0, dashH = 0;
+
+  function sizeDash(): void {
+    const r = dashCanvas.getBoundingClientRect();
+    if (r.width < 40 || r.height < 30) return;
+    dashDpr = Math.min(2, devicePixelRatio || 1);
+    dashW = Math.round(r.width); dashH = Math.round(r.height);
+    const bw = Math.round(dashW * dashDpr), bh = Math.round(dashH * dashDpr);
+    if (dashCanvas.width !== bw) dashCanvas.width = bw;
+    if (dashCanvas.height !== bh) dashCanvas.height = bh;
+  }
+
+  function dashLayout(): DashLayout {
+    const w = dashW || 640, h = dashH || 150, pad = Math.max(6, Math.round(h * 0.07));
+    const tapeH = Math.min(40, Math.max(26, h * 0.3));       // the top band
+    const bandY = tapeH + pad * 0.4, bandH = h - bandY - pad * 0.6;
+    const caption = 11;                                       // room under the ball and gauges for a label
+    const r = Math.max(13, Math.min((bandH - caption) / 2 - 2, h * 0.29));
+    const gw = Math.max(7, Math.round(w * 0.024));
+    const read = w - 38;                                      // the % column
+    const thrX = read - 52 - gw;
+    const gapL = pad + 4 + r * 2 + 10;
+    return {
+      w, h, pad,
+      tape: { x: pad, y: 0, w: w - pad * 2, h: tapeH },
+      ball: { cx: pad + 4 + r, cy: bandY + 2 + r, r },
+      vel: { cx: gapL + (thrX - 10 - gapL) / 2, top: bandY + 1, mid: bandY + bandH * 0.3, foot: bandY + bandH - 11 },
+      thr: { x: thrX, y: bandY + 2, w: gw, h: bandH - caption - 2 },
+      nrg: { x: thrX + gw + 16, y: bandY + 2, w: gw, h: bandH - caption - 2 },
+      read,
+    };
+  }
+
+  // horizon ball · heading tape · throttle · energy · velocity
   function drawDash(): void {
     const c = dashCanvas; if (!system) return;
     const g = c.getContext("2d"); if (!g) return;
-    const W = c.width, H = c.height, h = system.heading();
-    g.clearRect(0, 0, W, H);
+    sizeDash();
+    const L = dashLayout(), h = system.heading();
+    g.setTransform(dashDpr, 0, 0, dashDpr, 0, 0);
+    g.clearRect(0, 0, L.w, L.h);
     g.font = `10px ${MONO}`; g.textBaseline = "top";
 
-    // heading tape (top band)
-    const deg = deg360(h.theta), pxPerDeg = 3.6, cx = W * 0.5;
-    for (let d = -70; d <= 70; d += 5) {
+    // heading tape — the full width now, dissolving at the ends rather than stopping short of them
+    const deg = deg360(h.theta), pxPerDeg = 3.6, cx = L.w * 0.5, reach = L.tape.w / 2;
+    for (let d = -90; d <= 90; d += 5) {
       const val = ((Math.round(deg / 5) * 5 + d) % 360 + 360) % 360;
       let diff = val - deg; if (diff > 180) diff -= 360; if (diff < -180) diff += 360;
-      const x = cx + diff * pxPerDeg; if (x < 150 || x > W - 150) continue;
+      const x = cx + diff * pxPerDeg;
+      if (x < L.tape.x || x > L.tape.x + L.tape.w) continue;
       const major = val % 30 === 0;
+      g.globalAlpha = Math.max(0, Math.min(1, (reach - Math.abs(x - cx)) / 26));
       g.strokeStyle = major ? "rgba(0,229,255,.75)" : "rgba(242,245,255,.28)"; g.lineWidth = 1;
-      g.beginPath(); g.moveTo(x, 6); g.lineTo(x, major ? 18 : 12); g.stroke();
-      if (major) { g.fillStyle = "rgba(242,245,255,.72)"; g.textAlign = "center"; g.fillText(String(val).padStart(3, "0"), x, 20); }
+      g.beginPath(); g.moveTo(x, 5); g.lineTo(x, major ? 15 : 10); g.stroke();
+      if (major) { g.fillStyle = "rgba(242,245,255,.72)"; g.textAlign = "center"; g.fillText(String(val).padStart(3, "0"), x, 17); }
+      g.globalAlpha = 1;
     }
-    g.fillStyle = "#00e5ff"; g.beginPath(); g.moveTo(cx, 0); g.lineTo(cx - 4, 6); g.lineTo(cx + 4, 6); g.closePath(); g.fill();
-    g.fillStyle = "rgba(0,229,255,.9)"; g.textAlign = "center"; g.fillText(`HDG ${String(Math.round(deg)).padStart(3, "0")}°`, cx, 34);
+    g.fillStyle = "#00e5ff"; g.beginPath(); g.moveTo(cx, 0); g.lineTo(cx - 4, 5); g.lineTo(cx + 4, 5); g.closePath(); g.fill();
+    g.fillStyle = "rgba(0,229,255,.9)"; g.textAlign = "center"; g.fillText(`HDG ${String(Math.round(deg)).padStart(3, "0")}°`, cx, L.tape.h - 12);
 
-    // artificial horizon (left half of the lower band): pitch from phi, roll from camera z
-    const hx = W * 0.27, hy = H * 0.66, hr = 40;
+    // artificial horizon: pitch from phi, roll from the camera's z
+    const { cx: hx, cy: hy, r: hr } = L.ball;
     g.save(); g.beginPath(); g.arc(hx, hy, hr, 0, Math.PI * 2); g.clip();
-    const pitch = (h.phi - 0.27) * 120, roll = -h.roll;
-    g.translate(hx, hy + pitch); g.rotate(roll);
-    g.fillStyle = "rgba(0,229,255,.10)"; g.fillRect(-100, -200, 200, 200);
-    g.fillStyle = "rgba(255,181,71,.10)"; g.fillRect(-100, 0, 200, 200);
-    g.strokeStyle = "rgba(0,229,255,.8)"; g.lineWidth = 1; g.beginPath(); g.moveTo(-100, 0); g.lineTo(100, 0); g.stroke();
-    g.strokeStyle = "rgba(242,245,255,.35)"; for (const k of [-2, -1, 1, 2]) { g.beginPath(); g.moveTo(-14, k * 14); g.lineTo(14, k * 14); g.stroke(); }
+    g.translate(hx, hy + (h.phi - 0.27) * hr * 3); g.rotate(-h.roll);
+    g.fillStyle = "rgba(0,229,255,.10)"; g.fillRect(-hr * 3, -hr * 6, hr * 6, hr * 6);
+    g.fillStyle = "rgba(255,181,71,.10)"; g.fillRect(-hr * 3, 0, hr * 6, hr * 6);
+    g.strokeStyle = "rgba(0,229,255,.8)"; g.lineWidth = 1; g.beginPath(); g.moveTo(-hr * 3, 0); g.lineTo(hr * 3, 0); g.stroke();
+    g.strokeStyle = "rgba(242,245,255,.35)";
+    for (const k of [-2, -1, 1, 2]) { const yy = k * hr * 0.36; g.beginPath(); g.moveTo(-hr * 0.4, yy); g.lineTo(hr * 0.4, yy); g.stroke(); }
     g.restore();
     g.strokeStyle = "rgba(0,229,255,.35)"; g.beginPath(); g.arc(hx, hy, hr, 0, Math.PI * 2); g.stroke();
-    g.strokeStyle = "#00e5ff"; g.lineWidth = 1.5; g.beginPath(); g.moveTo(hx - 16, hy); g.lineTo(hx - 5, hy); g.moveTo(hx + 5, hy); g.lineTo(hx + 16, hy); g.moveTo(hx, hy - 3); g.lineTo(hx, hy + 3); g.stroke();
-    g.fillStyle = "rgba(242,245,255,.45)"; g.textAlign = "center"; g.fillText("ATT", hx, hy + hr + 4);
+    g.strokeStyle = "#00e5ff"; g.lineWidth = 1.5;
+    g.beginPath();
+    g.moveTo(hx - hr * 0.42, hy); g.lineTo(hx - hr * 0.14, hy);
+    g.moveTo(hx + hr * 0.14, hy); g.lineTo(hx + hr * 0.42, hy);
+    g.moveTo(hx, hy - 3); g.lineTo(hx, hy + 3);
+    g.stroke();
+    g.fillStyle = "rgba(242,245,255,.45)"; g.textAlign = "center"; g.fillText("ATT", hx, hy + hr + 1);
 
-    // velocity + eta (centre of lower band)
+    // velocity, in the gap the ball and the gauges leave between them
     const vel = h.flying ? h.speed * 9.6 : 0;
-    g.fillStyle = "rgba(242,245,255,.45)"; g.textAlign = "center"; g.fillText("VEL au/s", cx, H * 0.46);
-    g.fillStyle = h.flying ? "#00e5ff" : "rgba(242,245,255,.8)"; g.font = `700 22px ${MONO}`; g.fillText(vel.toFixed(1), cx, H * 0.55);
+    g.fillStyle = "rgba(242,245,255,.45)"; g.textAlign = "center"; g.fillText("VEL au/s", L.vel.cx, L.vel.top);
+    g.fillStyle = h.flying ? "#00e5ff" : "rgba(242,245,255,.8)";
+    g.font = `700 ${Math.round(Math.min(24, L.h * 0.22))}px ${MONO}`;
+    g.fillText(vel.toFixed(1), L.vel.cx, L.vel.mid);
     g.font = `10px ${MONO}`; g.fillStyle = "rgba(242,245,255,.45)";
-    g.fillText(h.flying ? `ETA ${Math.max(0, (1 - h.flightT) * h.flightDur).toFixed(1)}s` : (current ? "holding" : coreOpen ? "at core" : "orbit"), cx, H * 0.78);
+    g.fillText(h.flying ? `ETA ${Math.max(0, (1 - h.flightT) * h.flightDur).toFixed(1)}s` : (current ? "holding" : coreOpen ? "at core" : "orbit"), L.vel.cx, L.vel.foot);
 
-    // throttle + energy (right of lower band): two vertical gauges
-    const gx = W * 0.74, gy = H * 0.44, gh = H * 0.46, gw = 10;
-    const drawGauge = (x: number, v: number, col: string, label: string, detents: readonly number[]): void => {
-      g.fillStyle = "rgba(242,245,255,.08)"; g.fillRect(x, gy, gw, gh);
-      g.fillStyle = col; g.fillRect(x, gy + gh * (1 - v), gw, gh * v);
-      g.strokeStyle = "rgba(242,245,255,.25)"; for (const d of detents) { const yy = gy + gh * (1 - d); g.beginPath(); g.moveTo(x - 4, yy); g.lineTo(x + gw + 4, yy); g.stroke(); }
-      g.fillStyle = "rgba(242,245,255,.45)"; g.textAlign = "center"; g.fillText(label, x + gw / 2, gy + gh + 4);
+    // throttle and energy
+    const drawGauge = (box: DashBox, v: number, col: string, label: string, detents: readonly number[]): void => {
+      g.fillStyle = "rgba(242,245,255,.08)"; g.fillRect(box.x, box.y, box.w, box.h);
+      g.fillStyle = col; g.fillRect(box.x, box.y + box.h * (1 - v), box.w, box.h * v);
+      g.strokeStyle = "rgba(242,245,255,.25)";
+      for (const d of detents) { const yy = box.y + box.h * (1 - d); g.beginPath(); g.moveTo(box.x - 3, yy); g.lineTo(box.x + box.w + 3, yy); g.stroke(); }
+      g.fillStyle = "rgba(242,245,255,.45)"; g.textAlign = "center"; g.fillText(label, box.x + box.w / 2, box.y + box.h + 1);
     };
-    drawGauge(gx, (throttle + 0.6) / 1.6, "#00e5ff", "THR", [0.375, 0.7, 1]);
-    drawGauge(gx + 46, energy, energy < 0.2 ? "#ff4d5e" : energy < 0.5 ? "#ffb547" : "rgba(0,229,255,.75)", "NRG", [0.25, 0.5, 0.75]);
-    g.fillStyle = "rgba(242,245,255,.7)"; g.textAlign = "left"; g.fillText(`${Math.round(throttle * 100)} %`, gx + 100, gy + 2); g.fillText(`${Math.round(energy * 100)} %`, gx + 100, gy + 16);
-    g.fillStyle = "rgba(242,245,255,.3)"; g.fillText(`${fps.value} fps`, gx + 100, gy + gh - 10);
+    drawGauge(L.thr, (throttle + 0.6) / 1.6, "#00e5ff", "THR", [0.375, 0.7, 1]);
+    drawGauge(L.nrg, energy, energy < 0.2 ? "#ff4d5e" : energy < 0.5 ? "#ffb547" : "rgba(0,229,255,.75)", "NRG", [0.25, 0.5, 0.75]);
+    g.textAlign = "left"; g.fillStyle = "rgba(242,245,255,.7)";
+    g.fillText(`${Math.round(throttle * 100)} %`, L.read, L.thr.y);
+    g.fillText(`${Math.round(energy * 100)} %`, L.read, L.thr.y + 13);
+    g.fillStyle = "rgba(242,245,255,.3)"; g.fillText(`${fps.value} fps`, L.read, L.thr.y + L.thr.h - 10);
   }
 
   // ── target lock reticle (follows the hovered / current planet) ──
@@ -884,14 +950,20 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   // dash canvas: drag the heading tape to turn, tap the horizon to level, drag the THR gauge, tap NRG to recharge
   {
     const c = dashCanvas; let mode: DashDrag = null, lastX = 0;
-    const pt = (e: PointerEvent): { x: number; y: number } => { const r = c.getBoundingClientRect(); return { x: (e.clientX - r.left) * (c.width / r.width), y: (e.clientY - r.top) * (c.height / r.height) }; };
-    const thrFromY = (y: number): number => { const gy = c.height * 0.44, gh = c.height * 0.46; return clamp((1 - (y - gy) / gh) * 1.6 - 0.6, -0.6, 1); };
+    // pointer positions are in CSS pixels, the space dashLayout() works in
+    const pt = (e: PointerEvent): { x: number; y: number } => { const r = c.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    const near = (box: DashBox, x: number, y: number): boolean =>
+      x > box.x - 8 && x < box.x + box.w + 8 && y > box.y - 6 && y < box.y + box.h + 8;
+    const thrFromY = (y: number): number => {
+      const L = dashLayout();
+      return clamp((1 - (y - L.thr.y) / L.thr.h) * 1.6 - 0.6, -0.6, 1);
+    };
     listen(c, "pointerdown", (e) => {
-      const { x, y } = pt(e), W = c.width, H = c.height;
-      if (y < 40) { mode = "tape"; lastX = x; c.setPointerCapture(e.pointerId); }
-      else if (Math.hypot(x - W * 0.27, y - H * 0.66) < 44) { system?.level(); showToast("view levelled", 1200); audio.tick(); }
-      else if (x > W * 0.74 - 8 && x < W * 0.74 + 18 && y > H * 0.4) { mode = "thr"; setThrottle(thrFromY(y)); c.setPointerCapture(e.pointerId); }
-      else if (x > W * 0.74 + 38 && x < W * 0.74 + 64 && y > H * 0.4) recharge();
+      const { x, y } = pt(e), L = dashLayout();
+      if (y < L.tape.h) { mode = "tape"; lastX = x; c.setPointerCapture(e.pointerId); }
+      else if (Math.hypot(x - L.ball.cx, y - L.ball.cy) < L.ball.r + 6) { system?.level(); showToast("view levelled", 1200); audio.tick(); }
+      else if (near(L.thr, x, y)) { mode = "thr"; setThrottle(thrFromY(y)); c.setPointerCapture(e.pointerId); }
+      else if (near(L.nrg, x, y)) recharge();
     });
     listen(c, "pointermove", (e) => {
       if (!mode) return; const { x, y } = pt(e);

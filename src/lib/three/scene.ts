@@ -11,6 +11,7 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { DEFAULT_ORBITS, LANG_COLORS } from "@/data/portfolio";
 import type { PlanetType, RingConfig } from "@/data/portfolio";
 import { arrange, clampPlanetSize, type Arrangement, type ScaleMode } from "@/lib/scale";
+import { visibleMoons } from "./types";
 import type {
   FlightEventName, Heading, HeadingMoon, Layer, LayerAnchor, MoonConfig, Pick, PlanetFull,
   ProjectFull, SystemApi, SystemOptions, Vec3,
@@ -828,8 +829,6 @@ export function planetDefaults(i: number): { seed: number; spinRate: number; str
 // planet — `size` and `orbit` are multiples of the planet's radius — so the same row reads correctly
 // under all three scale modes.
 
-/** How many moons a body will draw. Shadow slots and labels both cost per moon, so the row is trimmed. */
-export const MOON_MAX = 6;
 /** A moon may not be more than this fraction of its planet's radius, or it starts hiding the planet. */
 const MOON_SIZE_CAP = 0.32;
 /** Shared, so a planet with no moons allocates nothing for the uniform it never declares. */
@@ -848,14 +847,13 @@ export interface MoonBody {
   omega: number; phase: number;
   /** sin and cos of the inclination, so a frame costs one sin, one cos and three multiplies. */
   st: number; ct: number;
+  /** Hover/focus glow: the target a pointer sets, and the eased value the shader and the scale read. */
+  want: number; hot: number;
 }
 
 /** The moons a row asks to draw: visible ones, in the order given, capped at `MOON_MAX`. */
 export function moonsOf(p: ProjectFull): readonly MoonConfig[] {
-  const src = p.moons ?? p.planet.moons;
-  if (!src || src.length === 0) return [];
-  const on = src.filter((m) => m.visible);
-  return on.length > MOON_MAX ? on.slice(0, MOON_MAX) : on;
+  return visibleMoons(p.moons ?? p.planet.moons);
 }
 
 /**
@@ -880,7 +878,7 @@ function makeMoon(m: MoonConfig, i: number, k: number, of: number, planetSize: n
   mesh.scale.setScalar(size);
   const tilt = m.tilt * DEG;
   const phase = m.phase === 0 ? (k * Math.PI * 2) / Math.max(1, of) : m.phase * DEG;
-  return { cfg: m, mesh, size, dist, omega: m.speed * TURNS, phase, st: Math.sin(tilt), ct: Math.cos(tilt) };
+  return { cfg: m, mesh, size, dist, omega: m.speed * TURNS, phase, st: Math.sin(tilt), ct: Math.cos(tilt), want: 0, hot: 0 };
 }
 
 /**
@@ -893,6 +891,30 @@ export function moonAt(m: MoonBody, t: number, out: THREE.Vector3): number {
   out.set(c * m.dist, s * m.dist * m.st, s * m.dist * m.ct);
   return a;
 }
+
+const moonLocal = new THREE.Vector3();
+/**
+ * One moon's frame, shared by the deck and by the reading site's views: advance the orbit, aim the
+ * locked face, ease the hover glow, and hand back the world centre in `out`.
+ *
+ * That centre comes off the moon's own world matrix, not from arithmetic on the planet's position,
+ * because the shadow and earthshine uniforms are read in world space and the reading site's views
+ * rotate `root` to let you turn the planet. The deck leaves `root` unrotated, so for it the matrix and
+ * the arithmetic are the same three multiply-adds and nothing about it changes.
+ */
+export function stepMoon(mn: MoonBody, t: number, dt: number, planetC: THREE.Vector3, planetR: number, planetHot: number, out: THREE.Vector3): void {
+  mn.hot += (mn.want - mn.hot) * Math.min(1, dt * 12);
+  const ang = moonAt(mn, t, moonLocal);
+  mn.mesh.position.copy(moonLocal);
+  mn.mesh.rotation.y = -ang;                                      // tidally locked: one face to the planet
+  mn.mesh.scale.setScalar(mn.size * (1 + 0.14 * mn.hot));         // a hovered moon swells enough to read as picked
+  const u = mn.mesh.material.uniforms;
+  u.uTime.value = t; u.uHot.value = Math.max(planetHot, mn.hot);
+  u.uPlanet.value.copy(planetC); u.uPlanetR.value = planetR;
+  mn.mesh.getWorldPosition(out);
+}
+/** The world radius `stepMoon` just gave the moon, for the shadow slot and for screen-radius maths. */
+export const moonRadius = (mn: MoonBody, scale: number): number => mn.size * (1 + 0.14 * mn.hot) * scale;
 
 /**
  * What a scale arrangement wants to say about one body instead of the stored row. Only the fields the
@@ -1296,6 +1318,10 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
 
   // ── interaction + flight state (declared before the labels so their handlers can read it)
   let rayHot = -1, hotHover = -1, hotIdx = -1, focusIdx = -1, sunHot = false, sunFocus = false;
+  /** Which body's which moon. A moon is a folder, so picking one names it rather than flying anywhere. */
+  interface MoonRef { b: number; k: number }
+  let moonHot: MoonRef | null = null, moonFocus: MoonRef | null = null;
+  const isMoon = (r: MoonRef | null, i: number, k: number): boolean => r !== null && r.b === i && r.k === k;
   let active = false, dragging = false, dragMoved = false, dragX = 0, dragY = 0, lastDragX = 0, lastDragY = 0;
   let w = 1, h = 1;
   const flight: Flight = { active: false, stopped: false, t: 0, dur: 2.2, kind: "out", from: new THREE.Vector3(), to: new THREE.Vector3(), lookFrom: new THREE.Vector3(), lookTo: new THREE.Vector3(), onDone: null };
@@ -1332,6 +1358,8 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
 
     // Moon labels are the planet's own machinery, one class quieter: same `.lab` markup, no tagline,
     // no pointer target, and a smaller type size set here so the deck's stylesheet needs no new rule.
+    // The `.lab__sub` line carries the folder the moon was detected from, and `.lab.is-hot` — the rule
+    // the planet labels already have — is what reveals it once the pointer picks the moon.
     const moonEls = body.moons.map((mn) => {
       const ml = document.createElement("div");
       ml.className = "lab lab--moon";
@@ -1340,6 +1368,11 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
       const mname = document.createElement("span"); mname.className = "lab__name"; mname.textContent = mn.cfg.name;
       mname.style.pointerEvents = "none"; mname.style.padding = "1px 5px";
       ml.append(mname);
+      if (mn.cfg.path) {
+        const msub = document.createElement("span"); msub.className = "lab__sub"; msub.textContent = `/${mn.cfg.path}`;
+        msub.style.pointerEvents = "none"; msub.style.fontSize = "8px"; msub.style.padding = "1px 5px";
+        ml.append(msub);
+      }
       labelsEl.appendChild(ml);
       return ml;
     });
@@ -1419,9 +1452,38 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
     if (sunHit) return { sun: true };
     return null;
   }
+  // Moon picking: the moon meshes themselves, so a folder is a target and not just a dot beside a
+  // planet. A moon smaller than MOON_PICK_PX on screen is skipped, so a distant orbit can never steal
+  // the click that was meant for the planet it belongs to.
+  const MOON_PICK_PX = 4;
+  const moonPicks = bodies.flatMap((b, i) => b.moons.map((mn, k) => ({ b: i, k, mn, body: b })));
+  function pickMoon(): MoonRef | null {
+    if (moonPicks.length === 0) return null;
+    raycaster.setFromCamera(ndc, camera);
+    const tan2 = 2 * Math.tan(fovRad());
+    let best: MoonRef | null = null, bd = Infinity;
+    for (const mp of moonPicks) {
+      if (!(mp.body.moonRoot?.visible ?? false) || mp.body.mix > 0.02) continue;
+      const hit: THREE.Intersection | undefined = raycaster.intersectObject(mp.mn.mesh, false)[0];
+      if (!hit || hit.distance >= bd) continue;
+      const sc = mp.body.root.scale.x;
+      // the moons are raycast alone, so a moon round the back has to be occluded by hand: past the
+      // planet's centre, with the ray inside the planet's silhouette, is behind the planet
+      if (hit.distance > raycaster.ray.origin.distanceTo(mp.body.pos)
+        && raycaster.ray.distanceToPoint(mp.body.pos) <= mp.body.size * sc) continue;
+      if ((moonRadius(mp.mn, sc) * h) / (tan2 * hit.distance) < MOON_PICK_PX) continue;
+      bd = hit.distance; best = { b: mp.b, k: mp.k };
+    }
+    return best;
+  }
   const onCanvasClick = (e: MouseEvent) => {
-    if (dragMoved || !active || focusIdx >= 0 || sunFocus || flight.active) return;
+    if (dragMoved || !active || flight.active) return;
     setNdc(e);
+    // a moon is reachable while a planet is focused, which is the only time it is big enough to read
+    const mh = pickMoon();
+    if (mh) { moonFocus = isMoon(moonFocus, mh.b, mh.k) ? null : mh; return; }
+    moonFocus = null;
+    if (focusIdx >= 0 || sunFocus) return;
     const hit = pickAt();
     if (hit?.index !== undefined) onSelect?.(bodies[hit.index].p);
     else if (hit?.sun) onSunSelect?.();
@@ -1473,6 +1535,7 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
     flight.to.copy(toPos); flight.lookTo.copy(toLook);
     flight.t = 0; flight.active = true; flight.kind = kind; flight.onDone = onDone ?? null; flight.stopped = false;
     for (const b of bodies) b.cut.target = 0;
+    moonFocus = null;                                             // the folder you were reading is not where we are going
     const dist = flight.from.distanceTo(flight.to);
     flight.dur = reducedMotion ? 0.01 : flightDuration(dist);
     warpDir = kind === "out" ? 1 : -1;
@@ -1509,19 +1572,24 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
   const findBody = (id: string) => bodies.find((x) => x.p.id === id);
 
   /**
-   * The focused planet's moons, with where each one currently is on screen, so the deck can list them
-   * without knowing anything about three.js. Empty whenever nothing is focused or it has no moons.
+   * The moons of whichever planet the deck is holding, with where each one currently is on screen, so
+   * the deck can list them without knowing anything about three.js — and `hot`/`focused` so it can say
+   * which one the pointer picked. With nothing focused it falls back to the planet whose moon the
+   * pointer is on, because a moon is pickable from the orbit view too. Empty when there is no such body.
    */
   function moonHeading(): readonly HeadingMoon[] {
-    const b = focusIdx >= 0 ? bodies[focusIdx] : null;
+    // whichever body the deck is holding, or — with nothing focused — the one whose moon the pointer is on
+    const idx = focusIdx >= 0 ? focusIdx : moonFocus ? moonFocus.b : moonHot ? moonHot.b : -1;
+    const b = idx >= 0 ? bodies[idx] : null;
     if (!b || b.moons.length === 0) return [];
     const sc = b.root.scale.x, tan2 = 2 * Math.tan(fovRad()), dPlanet = b.pos.distanceTo(camPos);
-    return b.moons.map((mn): HeadingMoon => {
-      moonW.copy(mn.mesh.position).multiplyScalar(sc).add(b.pos);
+    return b.moons.map((mn, k): HeadingMoon => {
+      mn.mesh.getWorldPosition(moonW);
       project(moonW);
       const dist = moonW.distanceTo(camPos);
       return { id: `${b.p.id}/${mn.cfg.path || mn.cfg.name}`, name: mn.cfg.name, path: mn.cfg.path,
-        x: scr.x, y: scr.y, z: scr.z, px: (mn.size * sc * h) / (tan2 * dist), dist, front: dist < dPlanet };
+        x: scr.x, y: scr.y, z: scr.z, px: (moonRadius(mn, sc) * h) / (tan2 * dist), dist, front: dist < dPlanet,
+        hot: isMoon(moonHot, idx, k), focused: isMoon(moonFocus, idx, k) };
     });
   }
 
@@ -1531,7 +1599,7 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
   function project(v: THREE.Vector3) { tmp2.copy(v).project(camera); scr.x = (tmp2.x * 0.5 + 0.5) * w; scr.y = (-tmp2.y * 0.5 + 0.5) * h; scr.z = tmp2.z; }
   const fovRad = () => (camera.fov * Math.PI) / 360;
 
-  const moonL = new THREE.Vector3(), moonW = new THREE.Vector3();
+  const moonW = new THREE.Vector3();
   const moonLabXY: number[] = [];   // where this body's moon labels have already landed, x,y pairs
   /**
    * One body's moons: advance the orbits, hand the planet their world positions for its shadow pass,
@@ -1552,24 +1620,22 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
     const want = hidden || !active || flight.active ? 0 : i === focusIdx ? 1 : near;
     b.moonLab += (want - b.moonLab) * Math.min(1, dt * 5);
     const tan2 = 2 * Math.tan(fovRad());
+    const canLight = !hidden && active && !flight.active;
     moonLabXY.length = 0;
     for (let k = 0; k < b.moons.length; k++) {
       const mn = b.moons[k];
-      const ang = moonAt(mn, t, moonL);
-      mn.mesh.position.copy(moonL);
-      mn.mesh.rotation.y = -ang;                                    // tidally locked: one face to the planet
-      const mu = mn.mesh.material.uniforms;
-      mu.uTime.value = t; mu.uHot.value = b.hot;
-      mu.uPlanet.value.copy(b.pos); mu.uPlanetR.value = b.size * sc;
-      // root carries no rotation on the deck, so the world centre is the local one scaled and offset
-      moonW.copy(moonL).multiplyScalar(sc).add(b.pos);
-      const wr = hidden ? 0 : mn.size * sc;                         // a zero radius switches the shader's slot off
+      // hovered or clicked: the label is pinned open, which is what shows the folder line
+      const lit = canLight && (isMoon(moonHot, i, k) || isMoon(moonFocus, i, k));
+      mn.want = lit ? 1 : 0;
+      stepMoon(mn, t, dt, b.pos, b.size * sc, b.hot, moonW);
+      const wr = hidden ? 0 : moonRadius(mn, sc);                   // a zero radius switches the shader's slot off
       shadows[k * 4] = moonW.x; shadows[k * 4 + 1] = moonW.y; shadows[k * 4 + 2] = moonW.z; shadows[k * 4 + 3] = wr;
       const el = b.moonEls[k];
-      if (b.moonLab < 0.004) { if (el.style.opacity !== "0") el.style.opacity = "0"; continue; }
+      el.classList.toggle("is-hot", lit);
+      if (b.moonLab < 0.004 && !lit) { if (el.style.opacity !== "0") el.style.opacity = "0"; continue; }
       project(moonW);
       const mdist = moonW.distanceTo(camPos);
-      const mpx = (mn.size * sc * h) / (tan2 * mdist);
+      const mpx = (moonRadius(mn, sc) * h) / (tan2 * mdist);
       const x = scr.x, y = scr.y - mpx - 4;
       // give way to the planet's own label, and to any moon label already placed this frame
       let clear = Math.abs(x - labX) < 52 && Math.abs(y - labY) < 16 ? 0 : 1;
@@ -1577,9 +1643,11 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
         if (Math.abs(x - moonLabXY[j]) < 44 && Math.abs(y - moonLabXY[j + 1]) < 13) clear = 0;
       }
       if (clear > 0) moonLabXY.push(x, y);
+      // a picked moon keeps its name whatever it collides with: it is the one thing you asked to read
+      if (lit) clear = 1;
       el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
       // a moon round the back is still named, just fainter, so the list and the view agree
-      el.style.opacity = String(b.moonLab * clear * (mdist < dcam ? 1 : 0.4) * (scr.z < 1 ? 1 : 0) * (1 - Math.max(warp, tunnel)) * (1 - b.mix));
+      el.style.opacity = String(Math.max(b.moonLab, lit ? 1 : 0) * clear * (lit || mdist < dcam ? 1 : 0.4) * (scr.z < 1 ? 1 : 0) * (1 - Math.max(warp, tunnel)) * (1 - b.mix));
     }
   }
 
@@ -1603,14 +1671,16 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
 
     raycaster.setFromCamera(ndc, camera);
     rayHot = -1; sunHot = false;
-    if (orbiting && active && !dragging) {
+    moonHot = active && !dragging && !flight.active ? pickMoon() : null;
+    // a moon under the pointer takes the hover: it is in front of the planet, so it is what you meant
+    if (orbiting && active && !dragging && moonHot === null) {
       const hit = pickAt();
       if (hit?.index !== undefined) rayHot = hit.index;
       else if (hit?.sun) sunHot = true;
     }
     hotHover = domHot >= 0 ? domHot : rayHot;
     hotIdx = focusIdx >= 0 ? focusIdx : hotHover;
-    canvas.style.cursor = rayHot >= 0 || sunHot ? "pointer" : dragging ? "grabbing" : orbiting && active ? "grab" : "";
+    canvas.style.cursor = moonHot !== null || rayHot >= 0 || sunHot ? "pointer" : dragging ? "grabbing" : orbiting && active ? "grab" : "";
 
     sunMat.uniforms.uTime.value = t;
     corona.material.uniforms.uTime.value = t;

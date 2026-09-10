@@ -3,13 +3,18 @@
 // so the chunk is not requested until a canvas is actually near the viewport: a visitor who never
 // reaches the projects pays nothing. With `cutaway` this also wires the "cut it open" button and
 // builds the layer callouts from the view's own layer data.
+//
+// Moons are wired here too, on every page: hovering one names it, and clicking one opens the folder it
+// was detected from on GitHub. On the project page the server also renders a legend (`#moons`), and the
+// rows and the moons light each other — the same two-way link the cutaway callouts have to their layers.
 
 import { useEffect } from "react";
-import { projects as staticProjects, type Project } from "@/data/portfolio";
+import { projects as staticProjects } from "@/data/portfolio";
 import { ev } from "@/lib/analytics";
 import { getAudio } from "@/lib/sound-client";
 import { hex } from "@/lib/text";
-import type { PlanetViewApi } from "@/lib/three/types";
+import { moonUrl } from "@/lib/three/types";
+import type { MoonConfig, PlanetViewApi, ProjectFull } from "@/lib/three/types";
 
 const LANG_DESC: Readonly<Record<string, string>> = {
   TypeScript: "app + api code", JavaScript: "scripts", Go: "backend services", Rust: "native / wasm",
@@ -18,7 +23,7 @@ const LANG_DESC: Readonly<Record<string, string>> = {
 };
 
 // `projects` comes from the server page (the database); the static records are the fallback.
-export default function PlanetCanvases({ cutaway = false, projects = staticProjects }: { cutaway?: boolean; projects?: readonly Project[] }) {
+export default function PlanetCanvases({ cutaway = false, projects = staticProjects }: { cutaway?: boolean; projects?: readonly ProjectFull[] }) {
   useEffect(() => {
     const canvases = Array.from(document.querySelectorAll<HTMLCanvasElement>("canvas[data-planet]"));
     if (!canvases.length) return;
@@ -39,6 +44,16 @@ export default function PlanetCanvases({ cutaway = false, projects = staticProje
         const hint = cutaway ? document.querySelector<HTMLElement>("#planet-hint") : null;
         const label = cutBtn?.querySelector<HTMLElement>(".sf__in") ?? null;
         const firstId = canvases[0]?.dataset.planet ?? "";
+        // only the project page renders a legend; on a card the moon's own tooltip is all there is
+        const moonsEl = document.querySelector<HTMLElement>("#moons");
+        const moonName = document.querySelector<HTMLElement>("#moon-name");
+        const moonRows = moonsEl ? Array.from(moonsEl.querySelectorAll<HTMLElement>("[data-moon]")) : [];
+        const litRow = (k: number): void => { for (const r of moonRows) r.classList.toggle("is-on", Number(r.dataset.moon) === k); };
+        const nameMoon = (m: MoonConfig | null): void => {
+          if (!moonName) return;
+          moonName.textContent = m ? `${m.name}${m.path ? ` \u00b7 /${m.path}` : ""}` : "";
+          moonName.hidden = m === null;
+        };
 
         const mounted = mountPlanets(projects, {
           cutaway,
@@ -48,6 +63,9 @@ export default function PlanetCanvases({ cutaway = false, projects = staticProje
             if (hint) hint.hidden = on;
             if (on) { audio.chord(); ev("cutaway", { id: firstId, where: "read" }); }
           },
+          onMoonHover: (_p, m, k) => { litRow(k); nameMoon(m); },
+          // a moon is a folder in the repository, so that is where a click on one goes
+          onMoonPick: (p, m) => { audio.click(); ev("moon_open", { id: p.id, folder: m.path || m.name }); window.open(moonUrl(p.github, m), "_blank", "noopener,noreferrer"); },
         });
         dispose = () => mounted.dispose();
 
@@ -75,6 +93,15 @@ export default function PlanetCanvases({ cutaway = false, projects = staticProje
             }),
           );
           offs.push(() => callouts.replaceChildren());
+        }
+
+        for (const row of moonRows) {
+          const k = Number(row.dataset.moon);
+          const on = (): void => { view.highlightMoon(k); row.classList.add("is-on"); nameMoon(view.moons[k] ?? null); };
+          const offRow = (): void => { view.highlightMoon(-1); row.classList.remove("is-on"); nameMoon(null); };
+          row.addEventListener("pointerenter", on);
+          row.addEventListener("pointerleave", offRow);
+          offs.push(() => { row.removeEventListener("pointerenter", on); row.removeEventListener("pointerleave", offRow); });
         }
       } catch {
         // no WebGL, or the chunk failed: leave the canvases as decorative empties

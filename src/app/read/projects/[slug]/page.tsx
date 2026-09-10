@@ -5,7 +5,8 @@ import { repoSlug, SITE_URL, type Highlight } from "@/data/portfolio";
 import { getPerson, getProject, getProjects, highlightOf, type ContentProject } from "@/lib/content";
 import { getLiveProject } from "@/lib/github";
 import { clampDescription } from "@/lib/seo";
-import { ago, hostOf, pad2 } from "@/lib/text";
+import { ago, hex, hostOf, pad2 } from "@/lib/text";
+import { moonUrl, visibleMoons } from "@/lib/three/types";
 import Composition, { langsOf } from "@/components/read/Composition";
 import PlanetCanvases from "@/components/read/PlanetCanvases";
 import { Chips } from "@/components/read/ProjectCard";
@@ -55,6 +56,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
   const prev = projects[(i - 1 + projects.length) % projects.length] ?? base;
   const next = projects[(i + 1) % projects.length] ?? base;
   const top = langsOf(p.langs)[0];
+  // the same list `makeBody` draws, from the same helper, so the legend and the stage cannot disagree
+  const moons = visibleMoons(base.moons);
   const created = p.meta ? new Date(p.meta.created).getFullYear() : p.year;
   // the row can switch the live readme off, in which case there is nothing missing to explain
   const missingReason = !base.useLiveReadme
@@ -110,11 +113,39 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
         <div className="pj__planet">
           <div className="pj__stage">
             <canvas className="planet" data-planet={p.id} aria-label={`${p.title} planet`} />
-            <span className="pj__stagek k">planet {pad2(i + 1)} · drag to turn</span>
+            <span className="pj__stagek k">planet {pad2(i + 1)} · drag to turn{moons.length > 0 ? ` · ${pad2(moons.length)} moons` : ""}</span>
             <span className="planet__hint" id="planet-hint">click the planet to see what it is made of</span>
+            {moons.length > 0 && <span className="planet__moon k" id="moon-name" hidden />}
             <button className="sf sf--btn pj__cut" id="cutbtn" type="button"><span className="sf__in">cut it open</span></button>
           </div>
           <div className="callouts callouts--grid" id="callouts" hidden />
+          {moons.length > 0 && (
+            <div className="sf sf--thin card moons" id="moons">
+              <div className="sf__in">
+                <span className="k" data-cipher>moons · one per top-level folder</span>
+                <ul className="moons__list">
+                  {moons.map((m, k) => (
+                    <li key={m.path || m.name}>
+                      <a
+                        className="moons__row"
+                        data-moon={k}
+                        href={moonUrl(p.github, m)}
+                        target="_blank"
+                        rel="noopener"
+                        style={{ borderLeftColor: hex(m.colour) }}
+                        aria-label={`${m.name} — open ${m.path ? `${m.path}/` : "the repository"} on github`}
+                      >
+                        <em style={{ background: hex(m.colour) }} aria-hidden="true" />
+                        <b>{m.name}</b>
+                        <i>{m.path ? `/${m.path}` : "added by hand"}</i>
+                        <span aria-hidden="true">↗</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

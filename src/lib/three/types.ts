@@ -47,6 +47,28 @@ export interface WithMoons { moons?: readonly MoonConfig[] }
 export type PlanetFull = PlanetConfig & PlanetExtras & WithMoons;
 export type ProjectFull = Omit<Project, "planet"> & WithMoons & { planet: PlanetFull };
 
+/** How many moons a body will draw. Shadow slots and labels both cost per moon, so the row is trimmed. */
+export const MOON_MAX = 6;
+/**
+ * The moons a row asks to draw: the visible ones, in the order given, capped. Lives here rather than
+ * in scene.ts because the server pages render the legend from the same list and must not pull three.js
+ * into their bundle to agree with the shader about which moons exist.
+ */
+export function visibleMoons(moons: readonly MoonConfig[] | undefined): readonly MoonConfig[] {
+  if (!moons || moons.length === 0) return [];
+  const on = moons.filter((m) => m.visible);
+  return on.length > MOON_MAX ? on.slice(0, MOON_MAX) : on;
+}
+/**
+ * Where a moon points. A moon is a folder in the repository, so clicking one on the reading site opens
+ * that folder; `HEAD` rather than a branch name because the default branch is not stored anywhere. A
+ * moon added by hand has no folder, and falls back to the repository itself.
+ */
+export function moonUrl(github: string, m: MoonConfig): string {
+  const base = github.replace(/\/+$/, "");
+  return m.path ? `${base}/tree/HEAD/${m.path.replace(/^\/+/, "")}` : base;
+}
+
 export interface Vec3 { x: number; y: number; z: number }
 export interface HeadingBody { id: string; x: number; y: number; z: number; r: number; size: number }
 /** One moon of the focused planet, ready for the deck to list: name, screen position, screen radius. */
@@ -58,6 +80,8 @@ export interface HeadingMoon {
   px: number; dist: number;
   /** True while the moon is on the near side of its planet. */
   front: boolean;
+  /** The pointer is over this moon, and the pointer has clicked it — the deck's two lit states. */
+  hot: boolean; focused: boolean;
 }
 export interface Heading {
   theta: number; phi: number; roll: number; pos: Vec3; flying: boolean; flightT: number; flightDur: number;
@@ -121,11 +145,28 @@ export interface SystemApi {
 export interface PlanetViewOptions {
   canvas: HTMLCanvasElement; project: ProjectFull; index?: number; interactive?: boolean; cutaway?: boolean; fit?: number;
   onCut?: (on: boolean) => void; onHover?: (on: boolean) => void;
+  /** The pointer moved onto a moon, or off every moon (`null`, index −1). */
+  onMoonHover?: (m: MoonConfig | null, k: number) => void;
+  /** A tap or click landed on a moon. Nothing happens without a handler, so the admin preview is inert. */
+  onMoonPick?: (m: MoonConfig, k: number) => void;
 }
 export interface PlanetViewApi {
   readonly cutOpen: boolean; readonly layers: readonly Layer[];
-  setCut(on: boolean): void; toggleCut(): void; setHot(v: boolean): void; highlightLayer(k: number): void; dispose(): void;
+  /** The moons this body actually drew, in the order the legend must list them. */
+  readonly moons: readonly MoonConfig[];
+  setCut(on: boolean): void; toggleCut(): void; setHot(v: boolean): void; highlightLayer(k: number): void;
+  /** Light one moon from outside the canvas — the legend row's half of the two-way link. −1 clears. */
+  highlightMoon(k: number): void;
+  dispose(): void;
 }
+/**
+ * What `mountPlanets` takes. One handler serves every canvas on the page, so the per-moon callbacks
+ * say which project fired where the single-view ones do not have to.
+ */
+export type MountOptions = Omit<PlanetViewOptions, "canvas" | "project" | "index" | "onMoonHover" | "onMoonPick"> & {
+  onMoonHover?: (p: ProjectFull, m: MoonConfig | null, k: number) => void;
+  onMoonPick?: (p: ProjectFull, m: MoonConfig, k: number) => void;
+};
 export interface PlanetStripOptions {
   canvas: HTMLCanvasElement; projects: readonly ProjectFull[];
   onPick?: (p: Project, i: number) => void; onHover?: (p: Project | null, i: number) => void;

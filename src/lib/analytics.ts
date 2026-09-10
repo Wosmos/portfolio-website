@@ -12,6 +12,7 @@ export type EventName =
   | "resume"            // { from: string } — the résumé PDF was opened
   | "project_open"      // { id, from }
   | "cutaway"           // { id, where: "read" | "deck" }
+  | "moon_open"         // { id, folder } — a moon was clicked, opening that folder on github
   | "planet_drag"       // { id }
   | "read_depth"        // { path, depth: 25 | 50 | 75 | 100 }
   | "contact_submit"    // { ok: boolean }

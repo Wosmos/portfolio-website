@@ -4,12 +4,13 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { projects, skills, type Project } from "@/data/portfolio";
+import { projects as staticProjects, skills as staticSkills, type SkillGroup } from "@/data/portfolio";
 import { pad2 } from "@/lib/text";
+import type { MatrixProject } from "./project-props";
 
 const norm = (x: string): string => x.toLowerCase().replace(/\s*\(.*?\)/g, "").replace(/\.js$/, "").replace(/\s+\d+$/, "").trim();
 
-function usedIn(skill: string): readonly Project[] {
+function usedIn(skill: string, projects: readonly MatrixProject[]): readonly MatrixProject[] {
   const k = norm(skill);
   return projects.filter((p) =>
     [...p.stack, ...p.langs.map((l) => l[0])].some((t) => {
@@ -19,7 +20,7 @@ function usedIn(skill: string): readonly Project[] {
   );
 }
 
-interface Token { skill: string; group: string; n: number; used: readonly Project[] }
+interface Token { skill: string; group: string; n: number; used: readonly MatrixProject[] }
 
 /** Cross-highlighting reaches the server-rendered bento cards, which are outside this component. */
 function paintCards(used: readonly string[] | null): void {
@@ -31,12 +32,13 @@ function paintCards(used: readonly string[] | null): void {
   }
 }
 
-export default function SkillsMatrix() {
+// `skills`/`projects` come from the server page (the database); the static records are the fallback.
+export default function SkillsMatrix({ skills = staticSkills, projects = staticProjects }: { skills?: readonly SkillGroup[]; projects?: readonly MatrixProject[] }) {
   const { rows, total } = useMemo(() => {
     let n = 0;
-    const rows = skills.map((g) => ({ group: g.group, tokens: g.items.map((skill): Token => ({ skill, group: g.group, n: ++n, used: usedIn(skill) })) }));
+    const rows = skills.map((g) => ({ group: g.group, tokens: g.items.map((skill): Token => ({ skill, group: g.group, n: ++n, used: usedIn(skill, projects) })) }));
     return { rows, total: n };
-  }, []);
+  }, [skills, projects]);
   const [active, setActive] = useState<Token | null>(null);
   const [pinned, setPinned] = useState<Token | null>(null);
   const shown = active ?? pinned;

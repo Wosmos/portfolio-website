@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { person } from "@/data/portfolio";
+import type { Person } from "@/data/portfolio";
 import { Wordmark } from "@/components/Mark";
 
-export default function SiteFooter() {
+export default function SiteFooter({ person }: { person: Person }) {
   return (
     <footer className="foot">
       <span><Wordmark className="foot__mark" height={11} /> · {person.location} · {person.tzLabel}</span>

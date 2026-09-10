@@ -9,7 +9,7 @@ import { WMark, Wordmark } from "@/components/Mark";
 
 export type ShipDeckProps = DeckOptions;
 
-export default function ShipDeck({ initialTarget, lastPush = null }: ShipDeckProps) {
+export default function ShipDeck({ initialTarget, lastPush = null, projects, orbits, scene }: ShipDeckProps) {
   const root = useRef<HTMLDivElement>(null);
   // `?to=<id>` deep links from the reading site; read here so /ship can be prerendered
   const target = initialTarget ?? new URLSearchParams(typeof window === "undefined" ? "" : window.location.search).get("to") ?? undefined;
@@ -21,10 +21,10 @@ export default function ShipDeck({ initialTarget, lastPush = null }: ShipDeckPro
     let cancelled = false;
     void import("@/lib/ship/deck").then(({ mountDeck }) => {
       if (cancelled) return;
-      cleanup = mountDeck(el, { initialTarget: target, lastPush });
+      cleanup = mountDeck(el, { initialTarget: target, lastPush, projects, orbits, scene });
     });
     return () => { cancelled = true; cleanup?.(); };
-  }, [target, lastPush]);
+  }, [target, lastPush, projects, orbits, scene]);
 
   return (
     <div ref={root}>

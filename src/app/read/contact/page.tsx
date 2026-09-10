@@ -1,17 +1,22 @@
 import type { Metadata } from "next";
-import { person } from "@/data/portfolio";
+import { getPerson } from "@/lib/content";
 import ContactForm from "@/components/read/ContactForm";
 
-export const metadata: Metadata = {
-  title: "Contact",
-  description: `Get in touch with ${person.name} about roles, contracts, or one of the projects.`,
-  alternates: { canonical: "/read/contact" },
-  openGraph: { url: "/read/contact", title: "Contact", description: `Get in touch with ${person.name}.` },
-};
+export const revalidate = 3600;
 
-const tel = person.phone.replace(/\s/g, "");
+export async function generateMetadata(): Promise<Metadata> {
+  const person = await getPerson();
+  return {
+    title: "Contact",
+    description: `Get in touch with ${person.name} about roles, contracts, or one of the projects.`,
+    alternates: { canonical: "/read/contact" },
+    openGraph: { url: "/read/contact", title: "Contact", description: `Get in touch with ${person.name}.` },
+  };
+}
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const person = await getPerson();
+  const tel = person.phone.replace(/\s/g, "");
   return (
     <>
       <section className="hero pj" style={{ marginTop: 0, gridTemplateColumns: "1fr" }}>

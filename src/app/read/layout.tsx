@@ -5,16 +5,19 @@ import SiteFooter from "@/components/read/SiteFooter";
 import "@/styles/read.css";
 import ReadDepth from "@/components/read/ReadDepth";
 import HashScroll from "@/components/read/HashScroll";
+import { getPerson, getPosts } from "@/lib/content";
 
-export default function ReadLayout({ children }: { children: ReactNode }) {
+export default async function ReadLayout({ children }: { children: ReactNode }) {
+  // one read each, cached: the header/footer are server components, so nothing ships to the client
+  const [person, posts] = await Promise.all([getPerson(), getPosts()]);
   return (
     <ReadShell>
       <div className="page">
-        <SiteHeader />
+        <SiteHeader person={person} hasBlog={posts.length > 0} />
         {children}
         <ReadDepth />
         <HashScroll />
-        <SiteFooter />
+        <SiteFooter person={person} />
       </div>
     </ReadShell>
   );

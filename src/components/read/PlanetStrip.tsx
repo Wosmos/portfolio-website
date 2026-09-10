@@ -4,7 +4,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { projects } from "@/data/portfolio";
+import { projects as staticProjects, type Project } from "@/data/portfolio";
 import { pad2 } from "@/lib/text";
 import type { PlanetStripApi } from "@/lib/three/types";
 
@@ -19,7 +19,8 @@ function worthLoading(): boolean {
   return (nav.hardwareConcurrency ?? 8) > 2;
 }
 
-export default function PlanetStrip() {
+// `projects` comes from the server page (the database); the static records are the fallback.
+export default function PlanetStrip({ projects = staticProjects }: { projects?: readonly Project[] }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const router = useRouter();
   const [hover, setHover] = useState(-1);
@@ -50,7 +51,7 @@ export default function PlanetStrip() {
       }
     }
     return () => { cancelled = true; clearTimeout(idle); strip?.dispose(); };
-  }, [router]);
+  }, [router, projects]);
 
   const hovered = projects[hover];
   return (

@@ -21,6 +21,7 @@ let lastTick = 0;
 let active = false;
 let maxScroll = 0;
 let timer = 0;
+let firstFlush = 0;
 let started = false;
 
 function newSessionId(): string {
@@ -79,7 +80,10 @@ function flush(final = false): void {
 export function track(name: string, opts: { target?: string; value?: number; meta?: Record<string, string | number | boolean>; vercel?: EventName } = {}): void {
   queue.push({ name, path: location.pathname, target: opts.target ?? "", value: opts.value ?? null, meta: opts.meta ?? {} });
   if (opts.vercel) vercelEvent(opts.vercel, { ...(opts.target ? { target: opts.target } : {}), ...opts.meta });
-  if (queue.length >= 20) flush();
+  if (queue.length >= 20) { flush(); return; }
+  // a visitor who leaves in three seconds should still be counted, so the first batch goes early
+  // rather than waiting for the interval or for a beacon that a closing tab may not deliver
+  if (!firstFlush) firstFlush = window.setTimeout(() => { firstFlush = 0; flush(); }, 2500);
 }
 export const pageview = (): void => { maxScroll = 0; track("pageview"); };
 
@@ -128,7 +132,7 @@ export function startTracker(): () => void {
 
   return () => {
     started = false;
-    clearInterval(timer); clearTimeout(idle);
+    clearInterval(timer); clearTimeout(idle); clearTimeout(firstFlush); firstFlush = 0;
     removeEventListener("scroll", onScroll); removeEventListener("pointerdown", bump); removeEventListener("keydown", bump);
     document.removeEventListener("click", onClick, true);
     document.removeEventListener("visibilitychange", onHide);

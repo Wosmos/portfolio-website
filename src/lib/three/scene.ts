@@ -18,11 +18,11 @@ const NEON_B = new THREE.Color(0x00e5ff);
 const NEON_A = new THREE.Color(0xff2bd6);
 const UP = new THREE.Vector3(0, 1, 0);
 
-const SUN_R = 6.0;
+const SUN_R_DEFAULT = 6.0;
 export const PLANET_SCALE = 1.0;
-const ORBITS = [17, 25, 34, 45, 58, 73, 90, 110];
-const BELT_R = 65.5;
-const FOV = 42;
+const ORBITS_DEFAULT = [17, 25, 34, 45, 58, 73, 90, 110] as const;
+const BELT_R_DEFAULT = 65.5;
+const FOV_DEFAULT = 42;
 export const TYPE: Readonly<Record<PlanetType, number>> = { gas: 0, rocky: 1, lava: 2, ice: 3 };
 
 // camera poses along the page — [phi (elevation), radius]; theta comes from the user's drag
@@ -579,7 +579,13 @@ interface Flight {
 }
 interface Comet { active: boolean; t: number; dur: number; from: THREE.Vector3; to: THREE.Vector3; next: number; hist: THREE.Vector3[] }
 
-export function createSystem({ canvas, labelsEl, projects, onSelect, onSunSelect, onFlightEvent, onBeltLevel, reducedMotion = false }: SystemOptions): SystemApi {
+export function createSystem({ canvas, labelsEl, projects, scene: cfg, onSelect, onSunSelect, onFlightEvent, onBeltLevel, reducedMotion = false }: SystemOptions): SystemApi {
+  // everything the admin can change; anything it does not set keeps the original constant
+  const SUN_R = cfg?.sunRadius ?? SUN_R_DEFAULT;
+  const BELT_R = cfg?.beltRadius ?? BELT_R_DEFAULT;
+  const FOV = cfg?.fov ?? FOV_DEFAULT;
+  const orbitScale = cfg?.orbitScale ?? 1;
+  const ORBITS = (cfg?.orbits?.length ? cfg.orbits : ORBITS_DEFAULT).map((r) => r * orbitScale);
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: "high-performance" });
   renderer.setClearColor(BG, 1);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
@@ -597,11 +603,11 @@ export function createSystem({ canvas, labelsEl, projects, onSelect, onSunSelect
   // nebula sky
   const nebula = new THREE.Mesh(new THREE.SphereGeometry(1700, 48, 32),
     new ShaderMat<NebulaUniforms>({ vertexShader: NEBULA_VERT, fragmentShader: NEBULA_FRAG, side: THREE.BackSide, depthWrite: false,
-      uniforms: { uA: { value: new THREE.Color(0x3b0764) }, uB: { value: new THREE.Color(0x0b2f6e) }, uTint: { value: nebulaTint }, uMix: { value: 0 }, uFade, uTime: { value: 0 } } }));
+      uniforms: { uA: { value: new THREE.Color(cfg?.nebulaA ?? 0x3b0764) }, uB: { value: new THREE.Color(cfg?.nebulaB ?? 0x0b2f6e) }, uTint: { value: nebulaTint }, uMix: { value: 0 }, uFade, uTime: { value: 0 } } }));
   scene.add(nebula);
 
   // twinkling stars
-  const STARS = 4200;
+  const STARS = Math.max(200, Math.min(20000, cfg?.starCount ?? 4200));
   const sp = new Float32Array(STARS * 3), sc = new Float32Array(STARS * 3), sph = new Float32Array(STARS), ssz = new Float32Array(STARS);
   for (let i = 0; i < STARS; i++) {
     const r = 620 + Math.random() * 640, th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1);
@@ -638,7 +644,7 @@ export function createSystem({ canvas, labelsEl, projects, onSelect, onSunSelect
 
   // sun
   const sunMat = new ShaderMat<SunUniforms>({ vertexShader: V_WORLD, fragmentShader: SUN_FRAG,
-    uniforms: { uCore: { value: new THREE.Color(0xffc978) }, uEdge: { value: new THREE.Color(0xff2bd6) }, uTime: { value: 0 }, uFade } });
+    uniforms: { uCore: { value: new THREE.Color(cfg?.sunColorCore ?? 0xffc978) }, uEdge: { value: new THREE.Color(cfg?.sunColorEdge ?? 0xff2bd6) }, uTime: { value: 0 }, uFade } });
   const sun = new THREE.Mesh(new THREE.SphereGeometry(SUN_R, 96, 96), sunMat);
   scene.add(sun);
   const coronaA = new THREE.Sprite(new THREE.SpriteMaterial({ map: disc, color: 0xff2bd6, transparent: true, opacity: 0.12, depthWrite: false, blending: THREE.AdditiveBlending }));
@@ -650,7 +656,7 @@ export function createSystem({ canvas, labelsEl, projects, onSelect, onSunSelect
   const anamorphic = new THREE.Sprite(new THREE.SpriteMaterial({ map: streakTex, color: 0xff9be0, transparent: true, opacity: 0.35, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending }));
   anamorphic.scale.set(SUN_R * 22, SUN_R * 0.9, 1);
   scene.add(anamorphic);
-  scene.add(new THREE.PointLight(0xffd9c0, 12500, 0, 2), new THREE.AmbientLight(0x2a2a44, 0.8));
+  scene.add(new THREE.PointLight(0xffd9c0, 12500 * (cfg?.sunIntensity ?? 1), 0, 2), new THREE.AmbientLight(0x2a2a44, 0.8));
 
   // orbit lines
   const rings = ORBITS.map((r) => {
@@ -663,7 +669,7 @@ export function createSystem({ canvas, labelsEl, projects, onSelect, onSunSelect
   });
 
   // asteroid belt
-  const BELT = 2200;
+  const BELT = Math.max(100, Math.min(8000, cfg?.beltDensity ?? 2200));
   const belt = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0),
     new THREE.MeshStandardMaterial({ color: 0x5a5e69, roughness: 0.95, metalness: 0.05, flatShading: true }), BELT);
   {
@@ -764,7 +770,7 @@ export function createSystem({ canvas, labelsEl, projects, onSelect, onSunSelect
   // post
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.5, 0.55, 0.8);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.5 * (cfg?.bloom ?? 1), 0.55, 0.8);
   composer.addPass(bloom);
   const blurU: BlurUniforms = { tDiffuse: { value: null }, uStrength: { value: 0 }, uCenter: { value: new THREE.Vector2(0.5, 0.5) } };
   const blur = new ShaderPass(new ShaderMat<BlurUniforms>({ uniforms: blurU, vertexShader: POST_VERT, fragmentShader: RADIAL_BLUR_FRAG }));

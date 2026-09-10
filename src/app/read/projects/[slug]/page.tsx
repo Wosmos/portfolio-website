@@ -1,24 +1,27 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { highlights, person, projects, projectById, repoSlug, SITE_URL, type Project } from "@/data/portfolio";
+import { repoSlug, SITE_URL, type Highlight } from "@/data/portfolio";
+import { getPerson, getProject, getProjects, highlightOf, type ContentProject } from "@/lib/content";
 import { getLiveProject } from "@/lib/github";
 import { ago, hostOf, pad2 } from "@/lib/text";
 import Composition, { langsOf } from "@/components/read/Composition";
 import PlanetCanvases from "@/components/read/PlanetCanvases";
 import { Chips } from "@/components/read/ProjectCard";
 import FlyLink from "@/components/read/FlyLink";
+import { toProjects } from "@/components/read/project-props";
 
 export const revalidate = 3600;
-export const dynamicParams = false;
+// no `dynamicParams = false`: a project added in the admin has to render before the next build,
+// and an unknown slug still 404s below.
 
-export function generateStaticParams(): { slug: string }[] {
-  return projects.map((p) => ({ slug: p.id }));
+export async function generateStaticParams(): Promise<{ slug: string }[]> {
+  return (await getProjects()).map((p) => ({ slug: p.id }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const p = projectById(slug);
+  const p = await getProject(slug);
   if (!p) return { title: "Project not found", robots: { index: false } };
   const title = `${p.title} — ${p.tagline}`;
   const description = p.description.length > 158 ? `${p.description.slice(0, 155).trimEnd()}…` : p.description;
@@ -31,8 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-function links(p: Project): (readonly [string, string])[] {
-  const h = highlights[p.id];
+function links(p: ContentProject, h: Highlight | undefined): (readonly [string, string])[] {
   return [
     ["source on github", p.github] as const,
     ...(p.live ? [["open live", p.live] as const] : []),
@@ -42,14 +44,15 @@ function links(p: Project): (readonly [string, string])[] {
 
 export default async function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const base = projectById(slug);
+  const [projects, person] = await Promise.all([getProjects(), getPerson()]);
+  const base = projects.find((q) => q.id === slug);
   if (!base) notFound();
 
   const p = await getLiveProject(base, { readme: true });
-  const i = projects.findIndex((q) => q.id === p.id);
-  const h = highlights[p.id];
-  const prev = projects[(i - 1 + projects.length) % projects.length] ?? p;
-  const next = projects[(i + 1) % projects.length] ?? p;
+  const i = projects.findIndex((q) => q.id === base.id);
+  const h = highlightOf(base);
+  const prev = projects[(i - 1 + projects.length) % projects.length] ?? base;
+  const next = projects[(i + 1) % projects.length] ?? base;
   const top = langsOf(p.langs)[0];
   const created = p.meta ? new Date(p.meta.created).getFullYear() : p.year;
   const missingReason = p.meta === null ? "repo is private or github is unreachable" : "no readme on github";
@@ -94,7 +97,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
           </div>
           <p className="pj__desc">{p.description}</p>
           <div className="pj__actions">
-            {links(p).map(([label, url], k) => (
+            {links(base, h).map(([label, url], k) => (
               <a key={url} className={`sf sf--btn${k === 0 ? "" : " sf--ghost"}`} href={url} target="_blank" rel="noopener"><span className="sf__in">{label} ↗</span></a>
             ))}
             <FlyLink className="sf sf--btn is-mg" to={p.id}><span className="sf__in">fly there ↗</span></FlyLink>
@@ -158,7 +161,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
         <Link href={`/read/projects/${next.id}`}>{next.title} →</Link>
       </nav>
 
-      <PlanetCanvases cutaway />
+      <PlanetCanvases cutaway projects={toProjects(projects)} />
     </article>
   );
 }

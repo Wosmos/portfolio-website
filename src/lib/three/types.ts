@@ -15,8 +15,16 @@ export type FlightEventName = "launch" | "launchBack" | "belt" | "arrive" | "hom
 export interface FlightEventInfo { dur: number; dist: number }
 export interface Pick { sun?: boolean; index?: number }
 
+/** The values the admin can edit; every field is optional and falls back to the built-in default. */
+export interface SceneSettings {
+  sunRadius?: number; sunColorCore?: number; sunColorEdge?: number; sunIntensity?: number;
+  orbitScale?: number; beltRadius?: number; beltDensity?: number; starCount?: number;
+  nebulaA?: number; nebulaB?: number; bloom?: number; fov?: number;
+  /** Distance from the sun per project, in the order `projects` is given. */
+  orbits?: readonly number[];
+}
 export interface SystemOptions {
-  canvas: HTMLCanvasElement; labelsEl: HTMLElement; projects: readonly Project[];
+  canvas: HTMLCanvasElement; labelsEl: HTMLElement; projects: readonly Project[]; scene?: SceneSettings;
   onSelect?: (p: Project) => void; onSunSelect?: () => void;
   onFlightEvent?: (name: FlightEventName, info: FlightEventInfo) => void; onBeltLevel?: (k: number) => void;
   reducedMotion?: boolean;

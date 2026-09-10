@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { education, experience, featuredProjects, person, projects, skills, testimonials, SITE_URL } from "@/data/portfolio";
+import { SITE_URL } from "@/data/portfolio";
+import { getEducation, getExperience, getFeatured, getPerson, getProjects, getSkills, getTestimonials } from "@/lib/content";
 import { getLastPush } from "@/lib/github";
 import { ago, monthsBetween, pad2, spanLabel, ym } from "@/lib/text";
 import ContactForm from "@/components/read/ContactForm";
@@ -11,20 +12,26 @@ import ProjectCard, { Chips } from "@/components/read/ProjectCard";
 import SkillsMatrix from "@/components/read/SkillsMatrix";
 import FlyLink from "@/components/read/FlyLink";
 import ResumeLink from "@/components/read/ResumeLink";
+import { toMatrixProjects, toProjects } from "@/components/read/project-props";
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: `${person.name} — software engineer`,
-  description: person.metaDescription,
-  alternates: { canonical: "/read" },
-  openGraph: { url: "/read", title: `${person.name} — software engineer`, description: person.metaDescription },
-};
-
-const tel = person.phone.replace(/\s/g, "");
+export async function generateMetadata(): Promise<Metadata> {
+  const person = await getPerson();
+  const title = `${person.name} — software engineer`;
+  return {
+    title,
+    description: person.metaDescription,
+    alternates: { canonical: "/read" },
+    openGraph: { url: "/read", title, description: person.metaDescription },
+  };
+}
 
 export default async function ReadHome() {
-  const lastPush = await getLastPush();
+  const [person, projects, featuredProjects, experience, skills, education, testimonials, lastPush] = await Promise.all([
+    getPerson(), getProjects(), getFeatured(), getExperience(), getSkills(), getEducation(), getTestimonials(), getLastPush(),
+  ]);
+  const tel = person.phone.replace(/\s/g, "");
   const firstStart = experience.map((e) => e.start).sort()[0] ?? "2022-10";
   const years = Math.floor(monthsBetween(firstStart, null) / 12);
   const liveCount = projects.filter((p) => p.live).length;
@@ -63,7 +70,7 @@ export default async function ReadHome() {
 
       <section className="hero" style={{ marginTop: 0 }}>
         <div>
-          <p className="k"><i className="live" />open to remote roles · <LocalTime /></p>
+          <p className="k"><i className="live" />open to remote roles · <LocalTime tz={person.tz} location={person.location} /></p>
           <h1 style={{ marginTop: 16 }}><span className="name">{person.name}</span><span className="sub">software engineer · go · systems · next.js</span></h1>
           <p className="hero__p">{person.summary}</p>
           <div className="hero__row">
@@ -94,7 +101,7 @@ export default async function ReadHome() {
               <div className="status__row"><span>base</span><b>{person.location}</b></div>
               <div className="status__row"><span>last push</span><b>{lastPush ? <a href={`https://github.com/Wosmos/${lastPush.repo}`} target="_blank" rel="noopener" title={lastPush.msg}>{lastPush.repo} · {ago(lastPush.at)}</a> : "offline"}</b></div>
               <div className="status__row"><span>github</span><b><a href={person.github} target="_blank" rel="noopener">Wosmos ↗</a></b></div>
-              <PlanetStrip />
+              <PlanetStrip projects={toProjects(projects)} />
             </div>
           </div>
         </aside>
@@ -103,7 +110,7 @@ export default async function ReadHome() {
       <section id="projects">
         <div className="sec__h">
           <h2 data-n="01">Selected projects</h2><i />
-          <small>the real planets · drag to turn · <Link href="/read/projects">all eight →</Link></small>
+          <small>the real planets · drag to turn · <Link href="/read/projects">all {projects.length} →</Link></small>
         </div>
         <ol className="proj bento">
           {featuredProjects.map((p) => <ProjectCard key={p.id} p={p} index={projects.findIndex((q) => q.id === p.id)} />)}
@@ -132,7 +139,7 @@ export default async function ReadHome() {
 
       <section id="skills">
         <div className="sec__h"><h2 data-n="03">Technical skills</h2><i /><small>hover one · it lights up the projects that use it</small></div>
-        <SkillsMatrix />
+        <SkillsMatrix skills={skills} projects={toMatrixProjects(projects)} />
       </section>
 
       <section id="education">
@@ -150,7 +157,7 @@ export default async function ReadHome() {
         <section id="testimonials">
           <div className="sec__h">
             <h2 data-n="05">What people say</h2><i />
-            <small>{testimonials.some((t) => t.placeholder) ? "sample quotes · real ones go in portfolio.ts" : `${testimonials.length} references`}</small>
+            <small>{testimonials.some((t) => t.placeholder) ? "sample quotes · real ones go in the admin" : `${testimonials.length} references`}</small>
           </div>
           <div className="quotes">
             {testimonials.map((t) => (
@@ -186,7 +193,7 @@ export default async function ReadHome() {
         </div>
       </section>
 
-      <PlanetCanvases />
+      <PlanetCanvases projects={toProjects(projects)} />
     </>
   );
 }

@@ -1,6 +1,9 @@
 import { Resend } from "resend";
 import { NextResponse, type NextRequest } from "next/server";
+import { eq } from "drizzle-orm";
+import { getDb, schema as t } from "@/db/client";
 import { person } from "@/data/portfolio";
+import { clientIp, geoFrom, hashVisitor } from "@/lib/fingerprint";
 import { escapeHtml } from "@/lib/text";
 
 export const runtime = "nodejs";
@@ -111,6 +114,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (error) {
       console.error("[contact] resend:", error.name, error.message);
       return bad("Failed to send email", 502);
+    }
+    // keep a copy so the admin inbox has a history, and tie it to the visitor profile that sent it
+    const db = getDb();
+    if (db) {
+      try {
+        const get = (n: string): string | null => request.headers.get(n);
+        const ua = get("user-agent") ?? "";
+        const lang = (get("accept-language") ?? "").split(",")[0] ?? "";
+        const visitorId = await hashVisitor(clientIp(get), ua, lang);
+        const geo = geoFrom(get);
+        await db.insert(t.submissions).values({
+          name: values.name, email: values.email, subject: values.subject, message: values.message,
+          visitorId, country: geo.country, city: geo.city, referrer: (get("referer") ?? "").slice(0, 300),
+          userAgent: ua.slice(0, 300), emailId: data?.id ?? "",
+        });
+        await db.update(t.visitors).set({ converted: true }).where(eq(t.visitors.id, visitorId));
+      } catch (dbErr) {
+        console.error("[contact] could not store the submission", dbErr instanceof Error ? dbErr.message : dbErr);
+      }
     }
     await notify();
     return NextResponse.json({ success: true, message: "Email sent successfully", id: data?.id }, { status: 200 });

@@ -74,6 +74,44 @@ Web Vitals. `src/lib/analytics.ts` adds the events the dashboard cannot infer, a
 Enable Web Analytics and Speed Insights once per project in the Vercel dashboard; the scripts 404 in
 local production, which is expected.
 
+## Admin panel
+
+`/admin` (never indexed) edits everything the site renders and shows what visitors do. One password,
+checked with bcrypt, then an HMAC-signed cookie; five wrong attempts in ten minutes throttles the
+source and every attempt is recorded.
+
+| Panel | What it does |
+|---|---|
+| Overview | traffic per day, top pages, referrers, countries, devices, read-or-fly split, what got clicked |
+| Inbox | every contact submission, with new / read / replied / archived / spam, a private note, and a reply that sends through Resend |
+| Visitors | one row per profile: return visits, pages, attention, and a per-profile history of visits and clicks |
+| Projects | content, links, and **each project's planet** — type, size, the four-colour ramp, atmosphere rim, surface sliders, ring, and the orbit it sits on, with a live preview using the real renderer |
+| Solar system | the sun's radius, colours and brightness, orbit scale, the belt, the starfield, the nebula, bloom and field of view |
+| Experience · Skills · Education · Testimonials | drag to reorder, edit in place, hide without deleting |
+| Blog | write markdown, save a draft, publish |
+| Profile | name, contact details, both descriptions, the résumé link |
+
+Content is read database-first with the records in `src/data/portfolio.ts` as the fallback, so an
+empty table or an unreachable database never blanks a page. `bun run db:seed` copies those records in
+and is safe to re-run.
+
+## Analytics and visitor profiles
+
+Alongside Vercel's own dashboard, the site keeps its own tables. A profile is a salted SHA-256 of
+IP + user agent + language: the same person on the same device and network is one profile, the raw IP
+is never stored, and without `ANALYTICS_SALT` the table cannot be turned back into addresses. No
+cookies, so no consent banner. Bots are dropped at the door.
+
+The browser batches events, measures **engaged** time rather than wall time, records scroll depth, and
+flushes 2.5 s after the first event, then every 12 s, on tab hide and on unload. Sessions roll over
+after a 30-minute gap; daily counters are rolled up so the dashboard never scans the events table.
+
+```bash
+bun run db:push        # apply the schema
+bun run db:seed        # load the current content
+bun run admin:hash pw  # print a bcrypt hash for ADMIN_PASSWORD_HASH
+```
+
 ## Environment
 
 ```bash
@@ -84,7 +122,19 @@ CONTACT_FROM=…      # optional: needs a domain verified at resend.com/domains
 NTFY_TOPIC=…        # optional: pushes each submission to your phone via ntfy.sh
 NTFY_URL=…          # optional: a self-hosted ntfy server instead of ntfy.sh
 NTFY_TOKEN=…        # optional: for a protected ntfy topic
+
+DATABASE_URL=…            # Neon, pooled — the app
+DATABASE_URL_UNPOOLED=…   # Neon, direct — migrations only
+SESSION_SECRET=…          # 32+ characters, signs the admin cookie
+ANALYTICS_SALT=…          # salts the visitor hash; changing it resets every profile
+ADMIN_USERNAME=…
+ADMIN_PASSWORD_HASH=…     # bcrypt; see the warning below
+BLOB_READ_WRITE_TOKEN=…   # Vercel Blob, for uploads
 ```
+
+**A bcrypt hash needs escaping in `.env.local`.** Next expands `$2b` and `$12` as variables, so the
+hash arrives truncated and every correct password fails. Write it as `\$2b\$12\$…` locally. Vercel's
+dashboard takes the raw, unescaped value.
 
 A contact submission emails you through Resend and, when `NTFY_TOPIC` is set, also pushes to your
 phone: install the ntfy app, subscribe to that topic, done. The push never blocks the email.

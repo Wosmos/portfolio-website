@@ -5,9 +5,9 @@
 
 import { gsap } from "gsap";
 import { ev } from "@/lib/analytics";
-import { person, projects, experience, skills, LANG_COLORS, type Project } from "@/data/portfolio";
+import { person, projects as staticProjects, experience, skills, LANG_COLORS, type Project } from "@/data/portfolio";
 import { createAudio, MUTE_KEY, storedMuted } from "@/lib/audio";
-import type { FlightEventInfo, FlightEventName, SystemApi, SystemOptions } from "@/lib/three/types";
+import type { FlightEventInfo, FlightEventName, SceneSettings, SystemApi, SystemOptions } from "@/lib/three/types";
 
 // ── public contract ─────────────────────────────────────
 export interface LastPush { repo: string; at: string }
@@ -16,6 +16,12 @@ export interface DeckOptions {
   initialTarget?: string;
   /** Most recent public push, resolved on the server. `null` renders the "…" placeholder. */
   lastPush?: LastPush | null;
+  /** Projects from the database; the static records are the fallback. */
+  projects?: readonly Project[];
+  /** Distance from the sun per project, in the same order. */
+  orbits?: readonly number[];
+  /** The sun, sky, belt and camera values the admin edits. */
+  scene?: SceneSettings;
 }
 
 /** Root-scoped querySelector that throws instead of returning null. */
@@ -52,7 +58,7 @@ const LANG_DESC: Readonly<Record<string, string>> = {
   Shell: "installers, ci", PowerShell: "windows installer", HTML: "docs site", CSS: "styling", Ruby: "homebrew formula", SQL: "schema, queries",
   Nix: "dev env", Other: "config, misc", crust: "surface · the product",
 };
-const ORBIT_AU: readonly number[] = [17, 25, 34, 45, 58, 73, 90, 110];
+const ORBIT_AU_DEFAULT: readonly number[] = [17, 25, 34, 45, 58, 73, 90, 110];
 const KONAMI: readonly string[] = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
 const BLACKBOX_KEY = "wsf-blackbox";
 const DOOR_KEY = "v3-door";
@@ -106,6 +112,9 @@ const dur = (m: number): string => (m >= 12 ? `${Math.floor(m / 12)}y ${m % 12 ?
 const fmt = (s: string | null): string => (s ? s.replace("-", ".") : "now");
 
 export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
+  const projects: readonly Project[] = opts.projects?.length ? opts.projects : staticProjects;
+  const ORBIT_AU: readonly number[] = opts.orbits?.length ? opts.orbits : ORBIT_AU_DEFAULT;
+
   // ── lifecycle bookkeeping ─────────────────────────────
   let disposed = false;
   const disposers: Cleanup[] = [];
@@ -744,7 +753,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (disposed) return false;
     const labels = document.createElement("div"); labels.className = "orbit__labels"; deck.prepend(labels); labelsEl = labels;
     let flightFrom = "system", flightStart = 0;
-    const sys = mod.createSystem({ canvas: orbitCanvas, labelsEl: labels, projects, onSelect: select, onSunSelect: selectSun, reducedMotion: reduced,
+    const sys = mod.createSystem({ canvas: orbitCanvas, labelsEl: labels, projects, scene: { ...opts.scene, orbits: ORBIT_AU }, onSelect: select, onSunSelect: selectSun, reducedMotion: reduced,
       onFlightEvent: (name: FlightEventName, info: FlightEventInfo) => {
         if (name === "launch") { audio.warp(2.6 / (info.dur || 2.6)); energy = clamp(energy - clamp(info.dist / 260, 0.06, 0.32), 0, 1); flightStart = performance.now(); }
         if (name === "launchBack") { audio.retro(2.6 / (info.dur || 2.6)); flightStart = performance.now(); }

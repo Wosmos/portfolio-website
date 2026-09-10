@@ -253,3 +253,30 @@ canvas.planet { touch-action: pan-y; }
   .sec__h { grid-template-columns: 1fr; gap: 6px; } .sec__h i { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .eq b, .k .live { animation: none; } .rv { opacity: 1; transform: none; transition: none; } }
+
+/* blog */
+.posts { display: grid; gap: 12px; }
+.post > .sf__in { padding: 20px 22px; display: grid; gap: 10px; }
+.post h2 { font-size: clamp(17px, 2vw, 22px); font-weight: 700; letter-spacing: -.01em; color: var(--fg); }
+.post:hover h2 { color: var(--cy); }
+.post__ex { color: var(--fg-2); font-size: 14px; max-width: 72ch; }
+.post__meta { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg-3); }
+.post__meta em { font-style: normal; color: var(--cy); opacity: .8; }
+.post__go { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg-3); }
+.post:hover .post__go { color: var(--cy); }
+.post__body { margin-top: clamp(32px, 6vh, 56px); font-size: 15px; }
+
+/* article body — extends .prose from the project page */
+.prose h2 { font-size: clamp(17px, 2vw, 21px); font-weight: 700; letter-spacing: -.01em; text-transform: none; color: var(--fg); margin-top: 18px; }
+.prose h2::before { content: "// "; color: var(--cy); font-weight: 400; }
+.prose ol { display: grid; gap: 8px; counter-reset: pr; }
+.prose ol li { padding-left: 22px; position: relative; counter-increment: pr; }
+.prose ol li::before { content: counter(pr) "."; position: absolute; left: 0; color: var(--cy); font-variant-numeric: tabular-nums; }
+.prose pre { overflow-x: auto; padding: 14px 16px; border: 1px solid var(--line); background: rgba(4,8,12,.7); clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
+.prose pre code { display: block; font-size: 12.5px; line-height: 1.6; color: var(--fg-2); background: none; padding: 0; white-space: pre; }
+.prose blockquote { padding: 4px 0 4px 18px; border-left: 2px solid var(--cy); color: var(--fg); }
+.prose blockquote p { color: var(--fg); font-style: italic; }
+.prose img { display: block; width: 100%; height: auto; border: 1px solid var(--line); }
+.prose hr { border: 0; height: 1px; background: var(--line); margin: 6px 0; }
+.prose strong { color: var(--fg); font-weight: 500; }
+.prose em { color: var(--fg-2); }

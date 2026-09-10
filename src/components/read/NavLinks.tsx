@@ -8,6 +8,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 interface Item { label: string; href: string; section?: string; page?: string }
+const BLOG: Item = { label: "blog", href: "/read/blog", page: "/read/blog" };
 const NAV: readonly Item[] = [
   { label: "projects", href: "/read/projects", page: "/read/projects" },
   { label: "experience", href: "/read#experience", section: "experience" },
@@ -16,7 +17,9 @@ const NAV: readonly Item[] = [
 ];
 const SECTIONS = NAV.filter((n) => n.section).map((n) => n.section as string);
 
-export default function NavLinks() {
+// `hasBlog` comes from the layout: the link only appears once a post is published.
+export default function NavLinks({ hasBlog = false }: { hasBlog?: boolean }) {
+  const items = hasBlog ? [...NAV.slice(0, 1), BLOG, ...NAV.slice(1)] : NAV;
   const path = usePathname();
   const router = useRouter();
   const [inView, setInView] = useState<string | null>(null);
@@ -51,7 +54,7 @@ export default function NavLinks() {
 
   return (
     <nav className="top__nav" aria-label="Sections">
-      {NAV.map((n) => {
+      {items.map((n) => {
         const active = n.page ? path.startsWith(n.page) : path === "/read" && inView === n.section;
         return n.section ? (
           <a key={n.label} href={n.href} aria-current={active ? "true" : undefined} onClick={(e) => goToSection(e, n.section as string)}>{n.label}</a>

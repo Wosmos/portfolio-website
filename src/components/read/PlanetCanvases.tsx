@@ -5,7 +5,7 @@
 // builds the layer callouts from the view's own layer data.
 
 import { useEffect } from "react";
-import { projects } from "@/data/portfolio";
+import { projects as staticProjects, type Project } from "@/data/portfolio";
 import { ev } from "@/lib/analytics";
 import { getAudio } from "@/lib/sound-client";
 import { hex } from "@/lib/text";
@@ -17,7 +17,8 @@ const LANG_DESC: Readonly<Record<string, string>> = {
   HTML: "markup", CSS: "styling", Ruby: "homebrew formula", SQL: "schema + queries", Other: "everything else",
 };
 
-export default function PlanetCanvases({ cutaway = false }: { cutaway?: boolean }) {
+// `projects` comes from the server page (the database); the static records are the fallback.
+export default function PlanetCanvases({ cutaway = false, projects = staticProjects }: { cutaway?: boolean; projects?: readonly Project[] }) {
   useEffect(() => {
     const canvases = Array.from(document.querySelectorAll<HTMLCanvasElement>("canvas[data-planet]"));
     if (!canvases.length) return;
@@ -88,7 +89,7 @@ export default function PlanetCanvases({ cutaway = false }: { cutaway?: boolean 
     for (const c of canvases) io.observe(c);
 
     return () => { cancelled = true; io.disconnect(); for (const off of offs) off(); dispose?.(); };
-  }, [cutaway]);
+  }, [cutaway, projects]);
 
   return null;
 }

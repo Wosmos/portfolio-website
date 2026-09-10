@@ -1,19 +1,19 @@
 import Link from "next/link";
-import { person } from "@/data/portfolio";
+import type { Person } from "@/data/portfolio";
 import NavLinks from "./NavLinks";
 import SoundToggle from "./SoundToggle";
 import FlyLink from "./FlyLink";
 import { WMark, Wordmark } from "@/components/Mark";
 import ResumeLink from "./ResumeLink";
 
-export default function SiteHeader() {
+export default function SiteHeader({ person, hasBlog = false }: { person: Person; hasBlog?: boolean }) {
   return (
     <header className="top">
       <Link className="top__brand" href="/read" aria-label={`${person.name} — home`}>
         <WMark className="top__w" />
         <Wordmark className="top__mark" />
       </Link>
-      <NavLinks />
+      <NavLinks hasBlog={hasBlog} />
       <div className="top__tools">
         <ResumeLink href={person.cv} from="header"><span className="sf__in">résumé ↓</span></ResumeLink>
         <SoundToggle />

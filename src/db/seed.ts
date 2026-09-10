@@ -10,7 +10,9 @@ import { getDb } from "./client";
 import * as t from "./schema";
 import type { PlanetConfigJson } from "./schema";
 import {
+  DEFAULT_ORBITS,
   education as staticEducation,
+  eggFacts as staticFacts,
   experience as staticExperience,
   featured,
   highlights,
@@ -20,8 +22,6 @@ import {
   testimonials as staticTestimonials,
 } from "@/data/portfolio";
 
-/** The orbits the flight deck has always used, outward from the sun. */
-const ORBITS = [17, 25, 34, 45, 58, 73, 90, 110] as const;
 
 async function main(): Promise<void> {
   const db = getDb();
@@ -51,7 +51,7 @@ async function main(): Promise<void> {
       stack: [...p.stack], extraLinks: (h?.extraLinks ?? []).map(([l, u]) => [l, u] as [string, string]),
       category: p.category, context: p.context, status: p.status ?? "", year: p.year, weight: p.weight,
       github: p.github, live: p.live ?? "", langs: p.langs.map(([n, v]) => [n, v] as [string, number]),
-      planet, orbit: ORBITS[i] ?? 17 + i * 12,
+      planet, orbit: DEFAULT_ORBITS[i] ?? 17 + i * 12,
       featured: featured.includes(p.id), visible: true, sortOrder: i, updatedAt: new Date(),
     };
     const found = await db.select({ id: t.projects.id }).from(t.projects).where(eq(t.projects.slug, p.id)).limit(1);
@@ -97,6 +97,12 @@ async function main(): Promise<void> {
     );
     console.log(`testimonials ✓ (${staticTestimonials.length} samples)`);
   } else console.log("testimonials — left alone (already has rows)");
+
+  const haveFacts = await db.select({ id: t.eggFacts.id }).from(t.eggFacts).limit(1);
+  if (!haveFacts[0]) {
+    await db.insert(t.eggFacts).values(staticFacts.map((f, i) => ({ kind: f.kind, text: f.text, visible: true, sortOrder: i })));
+    console.log(`secret facts ✓ (${staticFacts.length})`);
+  } else console.log("secret facts — left alone (already has rows)");
 
   console.log("\nseed complete.");
 }

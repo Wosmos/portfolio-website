@@ -108,6 +108,15 @@ export const education = pgTable("education", {
   sortOrder: integer("sort_order").default(0).notNull(),
 });
 
+/** Lines the cockpit whispers when a visitor finds a secret. `kind` groups them: space · me · random. */
+export const eggFacts = pgTable("egg_facts", {
+  id: serial("id").primaryKey(),
+  kind: varchar("kind", { length: 12 }).default("random").notNull(),
+  text: text("text").notNull(),
+  visible: boolean("visible").default(true).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+});
+
 export const testimonials = pgTable("testimonials", {
   id: serial("id").primaryKey(),
   quote: text("quote").notNull(),

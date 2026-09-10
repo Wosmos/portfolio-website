@@ -269,3 +269,39 @@ export function repoSlug(p: Project): string { return repoPath(p).split("/")[1] 
 export function projectById(id: string): Project | undefined { return projects.find((p) => p.id === id); }
 export const featuredProjects: readonly Project[] = featured.map((id) => projectById(id)).filter((p): p is Project => p !== undefined);
 export const SITE_URL = "https://wosmos.vercel.app";
+/** Distance from the sun per project, outward. The database overrides these per row. */
+export const DEFAULT_ORBITS: readonly number[] = [17, 25, 34, 45, 58, 73, 90, 110];
+
+/** A line the cockpit can whisper when someone finds a secret. Editable from the admin. */
+export interface EggFact { kind: "space" | "me" | "random"; text: string }
+/** The starting pool. The admin owns the table; these seed it and stand in when the database is away. */
+export const eggFacts: readonly EggFact[] = [
+  { kind: "space", text: "A day on Venus is longer than its year. It turns backwards, too." },
+  { kind: "space", text: "Saturn's rings are younger than some dinosaurs — perhaps 100 million years old." },
+  { kind: "space", text: "Neutron star material: one sugar cube would weigh about a billion tonnes." },
+  { kind: "space", text: "Jupiter has no surface to land on. You would just keep falling until you were crushed." },
+  { kind: "space", text: "Space smells, apparently, of seared steak and hot metal. Ask the astronauts." },
+  { kind: "space", text: "It rains diamonds on Neptune. Carbon, squeezed hard enough, has no other option." },
+  { kind: "space", text: "The Voyager 1 probe still answers. Its computer has about 70 kilobytes of memory." },
+  { kind: "space", text: "There are more stars in the sky than grains of sand on every beach on Earth." },
+  { kind: "space", text: "Olympus Mons on Mars is so wide that standing on it, you could not tell it was a mountain." },
+  { kind: "space", text: "The sun's light took 8 minutes to reach you and 100,000 years to escape the sun." },
+  { kind: "space", text: "Every atom heavier than iron in your body was forged in a dying star." },
+  { kind: "space", text: "Sound cannot cross a vacuum, so every explosion in every space film is a lie." },
+  { kind: "me", text: "wosmo is not a company. It is one engineer, a keyboard and too much coffee." },
+  { kind: "me", text: "I write Go for the parts that must not fall over, and TypeScript for the parts people touch." },
+  { kind: "me", text: "zcrypt encrypts in your browser. I cannot read your files, and that is the whole point." },
+  { kind: "me", text: "furniZsh ships to Homebrew, npm and the PowerShell Gallery. Three package managers, one toolkit." },
+  { kind: "me", text: "This cockpit renders in raw GLSL. No model files, no textures — every planet is maths." },
+  { kind: "me", text: "I prefer the boring deploy. Excitement in production is a bug report waiting to happen." },
+  { kind: "me", text: "Ask me about concurrency and you will not get a short answer." },
+  { kind: "me", text: "Yes, the résumé is one click away. No, I could not resist building the solar system first." },
+  { kind: "random", text: "There is no reverse gear on this ship. There is, however, an escape key." },
+  { kind: "random", text: "Honey never spoils. Archaeologists have eaten 3,000-year-old honey and lived." },
+  { kind: "random", text: "Bananas are mildly radioactive. So is everyone reading this." },
+  { kind: "random", text: "The word 'debug' predates computers. Bugs got into machinery first." },
+  { kind: "random", text: "Octopuses have three hearts and a preference for the colour blue. Same." },
+  { kind: "random", text: "Wombat droppings are cubic. Nobody asked for this, and yet, here we are." },
+  { kind: "random", text: "The first computer bug was an actual moth, taped into a logbook in 1947." },
+  { kind: "random", text: "If you are reading this, you found something most visitors never will." },
+];

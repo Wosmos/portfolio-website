@@ -3,7 +3,6 @@ import ReadShell from "@/components/read/ReadShell";
 import SiteHeader from "@/components/read/SiteHeader";
 import SiteFooter from "@/components/read/SiteFooter";
 import "@/styles/read.css";
-import ReadDepth from "@/components/read/ReadDepth";
 import HashScroll from "@/components/read/HashScroll";
 import { getPerson, getPosts } from "@/lib/content";
 
@@ -15,7 +14,6 @@ export default async function ReadLayout({ children }: { children: ReactNode }) 
       <div className="page">
         <SiteHeader person={person} hasBlog={posts.length > 0} />
         {children}
-        <ReadDepth />
         <HashScroll />
         <SiteFooter person={person} />
       </div>

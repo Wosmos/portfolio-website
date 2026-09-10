@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import ShipLoader from "@/components/ship/ShipLoader";
-import { getLastPush } from "@/lib/github";
-import { getPerson, getProjects, getScene } from "@/lib/content";
+import { getContributions, getLastPush } from "@/lib/github";
+import { getEggFacts, getPerson, getProjects, getScene } from "@/lib/content";
 import "@/styles/ship.css";
 
 export const revalidate = 3600;
@@ -17,7 +17,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ShipPage() {
-  const [person, projects, scene, lastPush] = await Promise.all([getPerson(), getProjects(), getScene(), getLastPush()]);
+  const [person, projects, scene, lastPush, activity, facts] = await Promise.all([
+    getPerson(), getProjects(), getScene(), getLastPush(), getContributions(), getEggFacts(),
+  ]);
   // the deck needs the plain project shape plus the orbit each one sits on
   const bodies = projects.map((p) => ({
     id: p.id, title: p.title, tagline: p.tagline, description: p.description, stack: p.stack,
@@ -32,7 +34,7 @@ export default async function ShipPage() {
       <p className="sr-only">
         An interactive solar system of the projects listed on the reading site. Prefer plain pages? <a href="/read">Read the résumé site</a>.
       </p>
-      <ShipLoader lastPush={lastPush ? { repo: lastPush.repo, at: lastPush.at } : null} projects={bodies} orbits={orbits} scene={scene} />
+      <ShipLoader lastPush={lastPush ? { repo: lastPush.repo, at: lastPush.at } : null} projects={bodies} orbits={orbits} scene={scene} activity={activity} facts={facts} />
     </>
   );
 }

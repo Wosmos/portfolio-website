@@ -126,3 +126,36 @@ export function mdLite(md: string, maxBlocks = 10): string {
   const kept = blocks.filter((b, i) => !(b.k === "h" && (i + 1 >= blocks.length || blocks[i + 1]?.k === "h")));
   return kept.slice(0, maxBlocks).map((b) => b.h).join("");
 }
+
+// ── contribution calendar ────────────────────────────────────────────────────
+// GitHub's REST API has no contributions endpoint and the GraphQL one needs a token, so this reads
+// the same public fragment the profile page uses. Parsed defensively: anything unexpected returns
+// null and the caller simply omits the heatmap.
+export interface ContribDay { date: string; level: number; count: number }
+export interface Contributions { days: readonly ContribDay[]; total: number; from: string; to: string }
+
+const CELL = /data-date="(\d{4}-\d{2}-\d{2})"\s+id="(contribution-day-component-[\d-]+)"\s+data-level="([0-4])"/g;
+const TIP = /<tool-tip[^>]*\bfor="(contribution-day-component-[\d-]+)"[^>]*>([^<]*)<\/tool-tip>/g;
+
+export async function getContributions(user = "Wosmos"): Promise<Contributions | null> {
+  try {
+    const r = await fetch(`https://github.com/users/${encodeURIComponent(user)}/contributions`, {
+      headers: { "x-requested-with": "XMLHttpRequest", "user-agent": "wosmos-portfolio", accept: "text/html" },
+      next: { revalidate: REVALIDATE },
+    });
+    if (!r.ok) return null;
+    const html = await r.text();
+    const counts = new Map<string, number>();
+    for (const m of html.matchAll(TIP)) {
+      const n = /^\s*(\d+)\s+contribution/.exec(m[2]);
+      counts.set(m[1], n ? Number(n[1]) : 0);
+    }
+    const days: ContribDay[] = [];
+    for (const m of html.matchAll(CELL)) days.push({ date: m[1], level: Number(m[3]), count: counts.get(m[2]) ?? 0 });
+    if (days.length < 90) return null;              // markup changed — drop it rather than show a broken grid
+    days.sort((a, b) => a.date.localeCompare(b.date));
+    const first = days[0], last = days[days.length - 1];
+    if (!first || !last) return null;
+    return { days, total: days.reduce((s, d) => s + d.count, 0), from: first.date, to: last.date };
+  } catch { return null; }
+}

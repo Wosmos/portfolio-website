@@ -93,16 +93,28 @@ export function runMotion({ curtain, audio }: MotionDeps): () => void {
     if (finePointer() && !reduced) $$(".proj__card, .card, .proof .sf").forEach((card) => card.addEventListener("pointermove", (e) => { const r = card.getBoundingClientRect(); card.style.setProperty("--mx", `${((e.clientX - r.left) / r.width) * 100}%`); card.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`); }));
     ScrollTrigger.refresh();
   });
-  // internal navigation: sweep the curtain in before the route changes (the router does the rest)
+  // Internal navigation: sweep the curtain in, and the next page's entrance timeline lifts it. Two
+  // things must never start it, or the screen stays black with nothing to lift it: a link to the page
+  // we are already on, and a link the router will not handle.
+  let failsafe = 0;
   const onClick = (e: MouseEvent): void => {
     const a = e.target instanceof Element ? e.target.closest<HTMLAnchorElement>("a[href]") : null;
-    if (!a || a.target === "_blank" || e.metaKey || e.ctrlKey || e.button !== 0 || reduced) return;
+    if (!a || a.target === "_blank" || a.hasAttribute("download") || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0 || reduced) return;
     const url = new URL(a.href, location.href);
-    if (url.origin !== location.origin || (url.pathname === location.pathname && url.hash)) return;
-    if (url.pathname.startsWith("/ship")) return; // full navigation; let the browser go
+    if (url.origin !== location.origin) return;
+    if (url.pathname === location.pathname) return;          // same page: nothing will navigate
+    if (url.pathname.startsWith("/ship") || url.pathname.startsWith("/admin")) return;   // full page load
     gsap.set(curtain, { display: "block", yPercent: 101 });
     gsap.to(curtain, { yPercent: 0, duration: 0.45, ease: "power3.inOut" });
+    // if the navigation is cancelled or fails, lift it rather than leaving a black screen
+    clearTimeout(failsafe);
+    failsafe = window.setTimeout(() => { gsap.to(curtain, { yPercent: -101, duration: 0.4, onComplete: () => { gsap.set(curtain, { display: "none" }); } }); }, 2500);
   };
   document.addEventListener("click", onClick, true);
-  return () => { ctx.revert(); document.removeEventListener("click", onClick, true); };
+  return () => {
+    clearTimeout(failsafe);
+    gsap.set(curtain, { display: "none" });   // never leave a curtain behind on unmount
+    ctx.revert();
+    document.removeEventListener("click", onClick, true);
+  };
 }

@@ -17,10 +17,11 @@ const Experience = dynamic(() => import("./panels/Experience"), { loading: () =>
 const Skills = dynamic(() => import("./panels/Skills"), { loading: () => <Skeleton rows={4} />, ssr: false });
 const Education = dynamic(() => import("./panels/Education"), { loading: () => <Skeleton rows={4} />, ssr: false });
 const Testimonials = dynamic(() => import("./panels/Testimonials"), { loading: () => <Skeleton rows={4} />, ssr: false });
+const Facts = dynamic(() => import("./panels/Facts"), { loading: () => <Skeleton rows={3} />, ssr: false });
 const Posts = dynamic(() => import("./panels/Posts"), { loading: () => <Skeleton rows={4} />, ssr: false });
 const Profile = dynamic(() => import("./panels/Profile"), { loading: () => <Skeleton rows={4} />, ssr: false });
 
-type TabId = "overview" | "inbox" | "visitors" | "projects" | "scene" | "experience" | "skills" | "education" | "testimonials" | "posts" | "profile";
+type TabId = "overview" | "inbox" | "visitors" | "projects" | "scene" | "experience" | "skills" | "education" | "testimonials" | "facts" | "posts" | "profile";
 interface Tab { id: TabId; label: string; icon: string; blurb: string }
 
 const TABS: readonly Tab[] = [
@@ -33,6 +34,7 @@ const TABS: readonly Tab[] = [
   { id: "skills", label: "Skills", icon: "⬒", blurb: "The groups the skills matrix renders." },
   { id: "education", label: "Education", icon: "⌂", blurb: "Degrees and grades." },
   { id: "testimonials", label: "Testimonials", icon: "❝", blurb: "Quotes. Anything marked as a sample is labelled as one on the site." },
+  { id: "facts", label: "Secrets", icon: "✦", blurb: "The lines the flight deck whispers when a visitor finds one of its twenty secrets." },
   { id: "posts", label: "Blog", icon: "✎", blurb: "Write, draft and publish." },
   { id: "profile", label: "Profile", icon: "☺", blurb: "Name, contact details, the summary and the résumé link." },
 ];
@@ -48,6 +50,7 @@ function Panel({ id }: { id: TabId }) {
     case "skills": return <Skills />;
     case "education": return <Education />;
     case "testimonials": return <Testimonials />;
+    case "facts": return <Facts />;
     case "posts": return <Posts />;
     case "profile": return <Profile />;
   }

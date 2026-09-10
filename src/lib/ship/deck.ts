@@ -5,7 +5,8 @@
 
 import { gsap } from "gsap";
 import { ev } from "@/lib/analytics";
-import { person, projects as staticProjects, experience, skills, LANG_COLORS, type Project } from "@/data/portfolio";
+import { DEFAULT_ORBITS, eggFacts as staticFacts, person, projects as staticProjects, experience, skills, LANG_COLORS, type EggFact, type Project } from "@/data/portfolio";
+import type { Contributions } from "@/lib/github";
 import { createAudio, MUTE_KEY, storedMuted } from "@/lib/audio";
 import type { FlightEventInfo, FlightEventName, SceneSettings, SystemApi, SystemOptions } from "@/lib/three/types";
 
@@ -22,6 +23,10 @@ export interface DeckOptions {
   orbits?: readonly number[];
   /** The sun, sky, belt and camera values the admin edits. */
   scene?: SceneSettings;
+  /** A year of public commit activity, or null when GitHub could not be read. */
+  activity?: Contributions | null;
+  /** The lines the cockpit whispers when a secret is found. Falls back to the static pool. */
+  facts?: readonly EggFact[];
 }
 
 /** Root-scoped querySelector that throws instead of returning null. */
@@ -35,8 +40,8 @@ export function qa<T extends Element>(sel: string, root: ParentNode = document):
 }
 
 // ── local types ─────────────────────────────────────────
-type PanelName = "pilot" | "log" | "comms" | "diag" | "bbox" | "next";
-const PANEL_TITLES: Record<PanelName, string> = { pilot: "about me", log: "experience", comms: "contact", diag: "diagnostics", bbox: "flight log", next: "what i am building" };
+type PanelName = "pilot" | "log" | "comms" | "diag" | "bbox" | "next" | "secrets";
+const PANEL_TITLES: Record<PanelName, string> = { pilot: "about me", log: "experience", comms: "contact", diag: "diagnostics", bbox: "flight log", next: "what i am building", secrets: "secrets" };
 const isPanelName = (s: string | undefined): s is PanelName => s !== undefined && s in PANEL_TITLES;
 
 interface Live { on: boolean; rtt: number | null }
@@ -58,7 +63,33 @@ const LANG_DESC: Readonly<Record<string, string>> = {
   Shell: "installers, ci", PowerShell: "windows installer", HTML: "docs site", CSS: "styling", Ruby: "homebrew formula", SQL: "schema, queries",
   Nix: "dev env", Other: "config, misc", crust: "surface · the product",
 };
-const ORBIT_AU_DEFAULT: readonly number[] = [17, 25, 34, 45, 58, 73, 90, 110];
+
+/** Every hidden thing, with the hint the manifest shows before it is found. */
+interface Secret { id: string; name: string; hint: string }
+const SECRETS: readonly Secret[] = [
+  { id: "cmdline", name: "command line", hint: "one key opens a prompt. it is the one that asks questions" },
+  { id: "diag", name: "diagnostics", hint: "the first letter of what an engineer does to a broken thing" },
+  { id: "blackbox", name: "black box", hint: "every aircraft carries one. press its initial" },
+  { id: "fact", name: "cosmic radio", hint: "press for a fact. f, for the obvious reason" },
+  { id: "manifest", name: "this list", hint: "you are reading it" },
+  { id: "konami", name: "hyperdrive", hint: "the oldest cheat code there is" },
+  { id: "flare", name: "solar flare", hint: "hold the sun. do not let go" },
+  { id: "beacon", name: "distress beacon", hint: "something drifts past, rarely. catch it" },
+  { id: "next", name: "project 09", hint: "there are eight planets and nine projects" },
+  { id: "dossier", name: "personnel file", hint: "knock three times on the ship's nameplate" },
+  { id: "callsign", name: "callsign", hint: "type the pilot's handle. five letters, starts with w" },
+  { id: "grandtour", name: "the grand tour", hint: "stand on all eight worlds in one visit" },
+  { id: "geologist", name: "geologist", hint: "cut three different planets open" },
+  { id: "sunstare", name: "heliophile", hint: "go back to the sun three times. it notices" },
+  { id: "silence", name: "vacuum", hint: "flip the sound switch five times" },
+  { id: "deepspace", name: "beyond the ecliptic", hint: "pull the zoom rocker all the way back" },
+  { id: "npx", name: "the card", hint: "click the wordmark. there is a package behind it" },
+  { id: "noreverse", name: "no reverse gear", hint: "try the right mouse button on open space" },
+  { id: "radio", name: "long silence", hint: "touch nothing for ninety seconds" },
+  { id: "midnight", name: "night shift", hint: "fly between midnight and five in the morning" },
+];
+const SECRETS_KEY = "wsf-secrets";
+
 const KONAMI: readonly string[] = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
 const BLACKBOX_KEY = "wsf-blackbox";
 const DOOR_KEY = "v3-door";
@@ -113,7 +144,9 @@ const fmt = (s: string | null): string => (s ? s.replace("-", ".") : "now");
 
 export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   const projects: readonly Project[] = opts.projects?.length ? opts.projects : staticProjects;
-  const ORBIT_AU: readonly number[] = opts.orbits?.length ? opts.orbits : ORBIT_AU_DEFAULT;
+  const facts: readonly EggFact[] = opts.facts?.length ? opts.facts : staticFacts;
+  const activity: Contributions | null = opts.activity ?? null;
+  const ORBIT_AU: readonly number[] = opts.orbits?.length ? opts.orbits : DEFAULT_ORBITS;
 
   // ── lifecycle bookkeeping ─────────────────────────────
   let disposed = false;
@@ -175,8 +208,10 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   const blackBox = readBlackBox();
   const fps: Fps = { frames: 0, last: performance.now(), value: 0 };
 
-  function showToast(msg: string, ms = 2600): void {
-    toast.textContent = msg; toast.classList.add("is-on");
+  function showToast(msg: string, ms = 2600, fact = false): void {
+    if (fact) toast.innerHTML = msg; else toast.textContent = msg;
+    toast.classList.toggle("toast--fact", fact);
+    toast.classList.add("is-on");
     clear(toastTimer); toastTimer = timer(() => toast.classList.remove("is-on"), ms);
   }
   function scramble(el: HTMLElement, text: string, d = 0.7): gsap.core.Tween {
@@ -223,7 +258,10 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   const log = (line: string, cls?: string): void => { const s = document.createElement("span"); s.textContent = line + "\n"; if (cls) s.className = cls; bootLog.appendChild(s); };
   async function start(): Promise<void> {
     if (started || disposed) return; started = true; ev("deck_start");
-    audio.resume(); audio.click(); void audio.startAmbient(); void audio.startLoop("belt");
+    audio.resume();
+    // the short cuts (hover, click, arrive, warp …) are fetched here — the loops below stream on their own
+    void audio.load().then(() => { if (!disposed) audio.click(); });
+    void audio.startAmbient(); void audio.startLoop("belt");
     startBtn.disabled = true;
     const lines = ["> WSF-01 flight deck", "> loading system … 8 bodies, 1 star, 1 belt", "> pilot · wasif malik · software engineer", "> go · systems · next.js"];
     for (const l of lines) { log(l); await wait(reduced ? 0 : 160); audio.tick(); }
@@ -234,6 +272,10 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     anim(gsap.to(boot, { opacity: 0, duration: 0.7, ease: "power2.inOut", onComplete: () => { boot.style.display = "none"; } }));
     const ok = await initDeck();
     if (!ok || disposed) return;
+    setThrottle(throttle);
+    stirred();
+    const hour = new Date().getHours();
+    if (hour < 5) timer(() => findEgg("midnight", "me"), 4000);
     // deep link from the reading site: /ship?to=<project id> jumps there once the deck is up
     const to = projects.find((p) => p.id === opts.initialTarget);
     if (to) timer(() => select(to), reduced ? 100 : 1400);
@@ -247,6 +289,44 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     timer(() => { void start(); }, reduced ? 0 : 600);
   }
   for (const a of $$<HTMLAnchorElement>("[data-door]")) listen(a, "click", () => storageSet("local", DOOR_KEY, a.dataset.door ?? "read"));
+
+  // ── secrets ───────────────────────────────────────────
+  // Twenty hidden things. Finding one is remembered locally and counted in the manifest panel, so a
+  // returning visitor keeps their collection. Nothing here is required to use the site.
+  function readFound(): string[] {
+    try {
+      const raw: unknown = JSON.parse(localStorage.getItem(SECRETS_KEY) ?? "[]");
+      return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string") : [];
+    } catch { return []; }
+  }
+  const found = new Set<string>(readFound());
+  const KIND_LABEL: Record<EggFact["kind"], string> = { space: "cosmic trivia", me: "personnel note", random: "unfiled" };
+
+  /** A random line from the pool, shown in plain sentence case rather than as a system message. */
+  function whisper(kind?: EggFact["kind"]): void {
+    const pool = kind ? facts.filter((f) => f.kind === kind) : facts;
+    const f = pool[Math.floor(Math.random() * pool.length)] ?? facts[0];
+    if (!f) return;
+    showToast(`<b>${KIND_LABEL[f.kind]}</b>${esc(f.text)}`, 7000, true);
+  }
+
+  function findEgg(id: string, kind?: EggFact["kind"]): void {
+    const secret = SECRETS.find((x) => x.id === id);
+    if (!secret || found.has(id)) return;
+    found.add(id);
+    storageSet("local", SECRETS_KEY, JSON.stringify([...found]));
+    ev("easter_egg", { egg: id });
+    audio.chord();
+    showToast(`<b>secret ${pad2(found.size)} of ${pad2(SECRETS.length)} · ${esc(secret.name)}</b>${esc(pickFact(kind))}`, 7000, true);
+  }
+  function pickFact(kind?: EggFact["kind"]): string {
+    const pool = kind ? facts.filter((f) => f.kind === kind) : facts;
+    return (pool[Math.floor(Math.random() * pool.length)] ?? facts[0])?.text ?? "";
+  }
+
+  // counters the triggers below read
+  const visited = new Set<string>(), cutOpen = new Set<string>();
+  let sunVisits = 0, sndFlips = 0, idFlips = 0, idTimer = 0, typed = "";
 
   // ── targets ───────────────────────────────────────────
   function renderTargets(): void {
@@ -445,11 +525,17 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (energy < 0.08) { showToast("out of energy · head toward the sun to recharge", 3000); audio.tick(); return; }
     current = p; coreOpen = false; closePanel(); closeHud(false); markCurrent(); deck.classList.add("is-flying");
     ev("deck_flight", { id: p.id });
-    system.flyTo(p.id, () => { deck.classList.remove("is-flying"); openHud(p); });
+    system.flyTo(p.id, () => {
+      deck.classList.remove("is-flying"); openHud(p);
+      visited.add(p.id);
+      if (visited.size >= projects.length) findEgg("grandtour", "me");
+    });
   }
   function selectSun(): void {
     if (!system || system.isFlying()) return;
     current = null; coreOpen = true; closePanel(); closeHud(false); markCurrent(); deck.classList.add("is-flying");
+    sunVisits++;
+    if (sunVisits >= 3) findEgg("sunstare", "space");
     system.flyToSun(() => { deck.classList.remove("is-flying"); openCore(); });
   }
   function compositionHtml(p: Project): string {
@@ -518,6 +604,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     system.cutaway(current.id, on);
     $(".hud__cut", hud).classList.toggle("is-on", on);
     showToast(on ? `${current.title} opened up · ${current.langs.length} layers · drag to look around` : "closed", 1800);
+    if (on) { cutOpen.add(current.id); if (cutOpen.size >= 3) findEgg("geologist", "me"); }
     if (on) audio.chord(); else audio.click();
   }
   listen($(".hud__cut", hud), "click", toggleCutaway);
@@ -525,11 +612,46 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   listen($(".hud__next", hud), "click", () => step(1));
   listen($(".hud__prev", hud), "click", () => step(-1));
 
+  /** A year of public commits as a 7-row calendar. Omitted entirely when GitHub could not be read. */
+  function heatmapHtml(): string {
+    if (!activity || activity.days.length < 90) return "";
+    // pad to a Sunday so the rows line up as weekdays, the way the profile page shows them
+    const lead = new Date(`${activity.days[0]?.date ?? ""}T00:00:00Z`).getUTCDay();
+    const pad = Number.isNaN(lead) ? 0 : lead;
+    const cells = [
+      ...Array.from({ length: pad }, () => `<i data-l="0" aria-hidden="true"></i>`),
+      ...activity.days.map((d) => `<i data-l="${d.level}" title="${d.count === 1 ? "1 commit" : `${d.count} commits`} · ${d.date}"></i>`),
+    ].join("");
+    const busiest = activity.days.reduce((a, d) => (d.count > a.count ? d : a), activity.days[0] ?? { date: "", count: 0, level: 0 });
+    return `<div class="heat">
+      <div class="heat__top"><span>commits · last 12 months</span><span><b>${activity.total.toLocaleString("en-GB")}</b> total · busiest day <b>${busiest.count}</b></span></div>
+      <div class="heat__grid">${cells}</div>
+      <div class="heat__key"><span>quiet</span><i data-l="0"></i><i data-l="1"></i><i data-l="2"></i><i data-l="3"></i><i data-l="4"></i><span>busy</span></div>
+    </div>`;
+  }
+
   // ── panels: pilot · log · comms · diagnostics · black box · next mission ──
   const PANELS: Record<PanelName, () => string> = {
-    pilot: () => `<div class="pilot"><div><p class="pilot__bio">I build the whole thing — schema, Go services, Next.js clients, deploy. Security-first: a zero-knowledge cloud platform, a concurrent WebSocket system across web and mobile, and client products spanning e-commerce, POS, HRMS and real estate.</p>
-      <div class="pilot__meta"><span>goes by · <b>wosmo</b></span><span>base · <b>${person.location}</b></span><span>status · <b style="color:var(--cy)">available for hire</b></span><span>experience · <b>${dur(experience.reduce((a, x) => a + months(x), 0))}</b> across ${experience.length} jobs</span></div></div>
-    <div>${skills.map((g) => `<div class="skills__g"><span class="hud__k" style="margin:0">${g.group}</span><ul>${g.items.map((i) => `<li class="sf sf--chip"><span class="sf__in">${i}</span></li>`).join("")}</ul></div>`).join("")}</div></div>`,
+    pilot: () => {
+      const served = dur(experience.reduce((a, x) => a + months(x), 0));
+      const langs = new Set(projects.flatMap((p) => p.langs.map(([n]) => n)));
+      const stats: readonly (readonly [string, string])[] = [
+        [served, "in the industry"], [pad2(projects.length), "projects shipped"],
+        [pad2(projects.filter((p) => p.live).length), "running live"], [pad2(langs.size), "languages used"],
+      ];
+      return `<div class="dossier">
+      <div class="dossier__id">
+        <span class="dossier__badge" data-w></span>
+        <div class="dossier__who"><b>${esc(person.name)}</b><span>callsign <em>wosmo</em> · ${esc(person.role)}</span></div>
+        <span class="dossier__st"><i></i> available for hire</span>
+      </div>
+      <p class="pilot__bio">I build the whole thing — schema, Go services, Next.js clients, deploy. Security-first: a <em>zero-knowledge cloud platform</em>, a concurrent WebSocket system across web and mobile, and client products spanning e-commerce, POS, HRMS and real estate.</p>
+      <div class="dossier__stats">${stats.map(([v, k]) => `<div><b>${esc(v)}</b><span>${k}</span></div>`).join("")}</div>
+      ${heatmapHtml()}
+      <div class="loadout">${skills.map((g, i) => `<div class="loadout__g"><span class="loadout__n">${pad2(i + 1)}</span><span class="loadout__k">${esc(g.group)}</span><ul>${g.items.map((x) => `<li class="sf sf--chip"><span class="sf__in">${esc(x)}</span></li>`).join("")}</ul></div>`).join("")}</div>
+      <div class="dossier__foot"><span>base · <b>${esc(person.location)}</b></span><span>${esc(person.tzLabel)}</span><a href="${esc(person.cv)}" target="_blank" rel="noopener">résumé ↓</a><a href="${esc(person.github)}" target="_blank" rel="noopener">github ↗</a><a href="mailto:${esc(person.email)}">email ↗</a></div>
+    </div>`;
+    },
     log: () => `<div class="log">${experience.map((x, i) => `<div class="mission sf sf--thin"><div class="sf__in">
       <div class="mission__top"><span>job ${pad2(experience.length - i)}</span><span>${fmt(x.start)} → ${fmt(x.end)}</span><span>${dur(months(x))}</span><span class="mission__st ${x.end ? "" : "on"}">${x.end ? "complete" : "active"}</span></div>
       <h3 class="mission__co">${x.company}</h3><span class="mission__role">${x.title}</span><p class="mission__note">${x.note}</p>
@@ -548,6 +670,13 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     bbox: () => blackBox.length
       ? `<div class="bbox">${[...blackBox].reverse().map((f) => `<div><span>${esc(f.at)}</span><span>${esc(f.from)} → ${esc(f.to)}</span><span>${esc(f.dur)}s</span></div>`).join("")}</div>`
       : `<p style="color:var(--fg-3)">no trips yet this visit.</p>`,
+    secrets: () => `<div class="secrets">
+      <div class="secrets__top"><span>found <b>${pad2(found.size)}</b> of ${pad2(SECRETS.length)}</span><span>press ? any time</span></div>
+      ${SECRETS.map((x, i) => {
+        const got = found.has(x.id);
+        return `<div class="secrets__row ${got ? "is-got" : ""}"><i>${got ? "✦" : pad2(i + 1)}</i><div><b>${got ? esc(x.name) : "▮▮▮▮▮▮"}</b><small>${esc(x.hint)}</small></div></div>`;
+      }).join("")}
+    </div>`,
     next: () => `<div class="comms"><span class="hud__k">project 09 · being built right now</span><p class="pilot__bio">This site. A v3 rewrite of wosmos.vercel.app in Next 16 + React Three Fiber — the solar system you're flying through, the flight deck you're sitting in, the real WebSocket presence layer the door promises. You're looking at the prototype.</p>
       <div class="comms__links"><a href="https://github.com/Wosmos/portfolio-website" target="_blank" rel="noopener">github · portfolio-website ↗</a></div></div>`,
   };
@@ -555,21 +684,23 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (panelOpen === name) { closePanel(); return; }
     ev("deck_panel", { panel: name });
     panelOpen = name; $("#panel-title").textContent = PANEL_TITLES[name]; $("#panel-body").innerHTML = PANELS[name]();
-    for (const k of $$(".key[data-panel]")) k.classList.toggle("is-on", k.dataset.panel === name);
+    for (const k of $$(".sw[data-panel]")) k.classList.toggle("is-on", k.dataset.panel === name);
     panel.setAttribute("aria-hidden", "false"); panel.classList.add("is-on"); audio.arrive();
     anim(gsap.fromTo(panel, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: reduced ? 0 : 0.45, ease: "power3.out" }));
     const items = $$("#panel-body > * > *"); if (items.length) anim(gsap.from(items, { opacity: 0, y: 8, duration: reduced ? 0 : 0.5, stagger: 0.05, ease: "power2.out", delay: 0.1 }));
+    const badge = panel.querySelector("[data-w]");
+    if (badge) { const w = $(".deck__w").cloneNode(true); if (w instanceof HTMLElement) { w.removeAttribute("class"); w.removeAttribute("style"); badge.appendChild(w); } }
     const copy = panel.querySelector<HTMLButtonElement>("[data-copy]");
     copy?.addEventListener("click", () => {
       void navigator.clipboard?.writeText(person.email).then(() => { copy.dataset.copied = "true"; timer(() => { delete copy.dataset.copied; }, 1400); });
     });
   }
   function closePanel(): void {
-    if (!panelOpen) return; panelOpen = null; for (const k of $$(".key[data-panel]")) k.classList.remove("is-on");
+    if (!panelOpen) return; panelOpen = null; for (const k of $$(".sw[data-panel]")) k.classList.remove("is-on");
     panel.setAttribute("aria-hidden", "true");
     anim(gsap.to(panel, { opacity: 0, y: 10, duration: reduced ? 0 : 0.25, ease: "power2.in", onComplete: () => panel.classList.remove("is-on") }));
   }
-  for (const k of $$<HTMLButtonElement>(".key[data-panel]")) listen(k, "click", () => { const name = k.dataset.panel; if (isPanelName(name)) openPanel(name); });
+  for (const k of $$<HTMLButtonElement>(".sw[data-panel]")) listen(k, "click", () => { const name = k.dataset.panel; if (isPanelName(name)) openPanel(name); });
   listen($(".panel__close"), "click", closePanel);
   listen($("[data-tour]"), "click", () => tour());
 
@@ -590,7 +721,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
 
   // ── command line ──────────────────────────────────────
   const COMMANDS: Record<string, (arg: string) => string> = {
-    help: () => "jump <name|n>  fly to a project · open  cut the planet open · list  every project · me  about me\ntour  visit all eight · experience · contact · status · diag · log · home · clear · exit",
+    help: () => "jump <name|n>  fly to a project · cutaway  cut the planet open · scan  every project · whoami  about me\ntour  visit all eight · zoom <n> · fact · secrets · status · diag · bbox · sun · home · clear · exit",
     status: () => {
       if (!system) return "systems offline";
       const h = system.heading();
@@ -610,6 +741,13 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     hyperdrive: () => { hyper(); return "engaged"; },
     cutaway: () => { if (!current) return "hold at a planet first"; hideCmd(); toggleCutaway(); return "cutaway"; },
     flare: () => { if (!system) return "systems offline"; system.flare(); audio.chord(); return "flare"; },
+    fact: () => { hideCmd(); whisper(); findEgg("fact", "space"); return ""; },
+    secrets: () => { hideCmd(); findEgg("manifest", "random"); openPanel("secrets"); return ""; },
+    zoom: (arg) => {
+      const v = Number(arg);
+      if (!Number.isFinite(v)) return "zoom <-0.6 … 1>";
+      setThrottle(v); return `zoom ${throttle.toFixed(2)}`;
+    },
   };
   function showCmd(): void { cmd.hidden = false; cmdIn.value = ""; cmdIn.focus(); }
   function hideCmd(): void { cmd.hidden = true; cmdIn.blur(); }
@@ -621,7 +759,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (out) cmdOut.textContent = `› ${cmdIn.value}\n${out}\n` + (cmdOut.textContent ?? "").slice(0, 1200);
     cmdIn.value = ""; audio.tick();
   });
-  listen($("[data-cmd]"), "click", showCmd);
+  listen($("[data-cmd]"), "click", () => { showCmd(); findEgg("cmdline", "random"); });
 
   // ── beacon ────────────────────────────────────────────
   function scheduleBeacon(): void { timer(spawnBeacon, 40_000 + Math.random() * 60_000); }
@@ -630,7 +768,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     const y = 120 + Math.random() * (innerHeight * 0.45);
     anim(gsap.fromTo(beacon, { left: -40, top: y }, { left: innerWidth + 40, duration: 26, ease: "none", onComplete: () => { beacon.hidden = true; scheduleBeacon(); } }));
   }
-  listen(beacon, "click", () => { gsap.killTweensOf(beacon); beacon.hidden = true; audio.chord(); openPanel("next"); showToast("beacon picked up · project 09 decoded", 3200); ev("easter_egg", { egg: "beacon" }); scheduleBeacon(); });
+  listen(beacon, "click", () => { gsap.killTweensOf(beacon); beacon.hidden = true; openPanel("next"); findEgg("beacon", "random"); scheduleBeacon(); });
 
   // ── hyperdrive ────────────────────────────────────────
   function hyper(): void {
@@ -639,8 +777,17 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   }
 
   // ── sound toggle ──────────────────────────────────────
-  const renderSnd = (): void => { snd.setAttribute("aria-pressed", String(!audio.muted)); snd.innerHTML = `<b>S</b> sound · ${audio.muted ? "off" : "on"}`; };
-  listen(snd, "click", () => { audio.setMuted(!audio.muted); storageSet("local", MUTE_KEY, audio.muted ? "1" : "0"); renderSnd(); });
+  const renderSnd = (): void => {
+    snd.setAttribute("aria-pressed", String(!audio.muted));
+    snd.classList.toggle("sw--off", audio.muted);
+    snd.classList.toggle("is-on", !audio.muted);
+    const label = snd.querySelector("span");
+    if (label) label.textContent = audio.muted ? "sound off" : "sound on";
+  };
+  listen(snd, "click", () => {
+    audio.setMuted(!audio.muted); storageSet("local", MUTE_KEY, audio.muted ? "1" : "0"); renderSnd();
+    if (++sndFlips >= 5) findEgg("silence", "space");
+  });
   renderSnd();
 
   // ── gyro (mobile tilt) ────────────────────────────────
@@ -673,8 +820,8 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     lastPing = performance.now(); showToast("re-pinging uplink…", 1400);
     void connect(() => {}).then((ok) => { if (!disposed) showToast(ok ? `uplink · ${live.rtt} ms` : "uplink · no answer", 1600); });
   }
-  function recharge(): void { throttle = 1; system?.setThrottle(1); showToast("recharging · flying toward the sun", 2000); }
-  function toBelt(): void { throttle = 0.42; system?.setThrottle(throttle); showToast("holding at the asteroid belt", 1600); }
+  function recharge(): void { setThrottle(1); showToast("recharging · flying toward the sun", 2000); }
+  function toBelt(): void { setThrottle(0.42); showToast("holding at the asteroid belt", 1600); }
   listen($("#lamp-link"), "click", reping);
   listen($("#lamp-belt"), "click", toBelt);
   listen($("#lamp-lock"), "click", () => {
@@ -695,6 +842,38 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (act === "push") window.open(lastPush ? `https://github.com/Wosmos/${encodeURIComponent(lastPush.repo)}` : person.github, "_blank", "noopener");
     if (act === "clock") { clockLocal = !clockLocal; renderTele(); }
   });
+  // ── zoom: the console rocker owns it, and it is the only widget the wheel talks to ──
+  const zoomTrack = $("#zoom-track");
+  function setThrottle(v: number): void {
+    throttle = clamp(v, -0.6, 1);
+    system?.setThrottle(throttle);
+    zoomTrack.style.setProperty("--v", `${(((throttle + 0.6) / 1.6) * 100).toFixed(1)}%`);
+    if (throttle <= -0.595) findEgg("deepspace", "space");
+  }
+  {
+    const holds = new Map<number, number>();
+    for (const b of $$<HTMLButtonElement>("[data-zoom]")) {
+      const dir = Number(b.dataset.zoom) || 1;
+      listen(b, "pointerdown", (e) => {
+        setThrottle(throttle + dir * 0.07);   // the click sound comes from the shared handler
+        const id = window.setInterval(() => setThrottle(throttle + dir * 0.05), 90);
+        intervals.add(id); holds.set(e.pointerId, id);
+      });
+    }
+    const release = (e: PointerEvent): void => {
+      const id = holds.get(e.pointerId);
+      if (id !== undefined) { window.clearInterval(id); intervals.delete(id); holds.delete(e.pointerId); }
+    };
+    listen(window, "pointerup", release);
+    listen(window, "pointercancel", release);
+    // drag along the track for a direct set
+    let dragging = false;
+    const fromX = (x: number): number => { const r = zoomTrack.getBoundingClientRect(); return ((x - r.left) / Math.max(1, r.width)) * 1.6 - 0.6; };
+    listen(zoomTrack, "pointerdown", (e) => { dragging = true; zoomTrack.setPointerCapture(e.pointerId); setThrottle(fromX(e.clientX)); });
+    listen(zoomTrack, "pointermove", (e) => { if (dragging) setThrottle(fromX(e.clientX)); });
+    listen(window, "pointerup", () => { dragging = false; });
+  }
+
   // dash canvas: drag the heading tape to turn, tap the horizon to level, drag the THR gauge, tap NRG to recharge
   {
     const c = dashCanvas; let mode: DashDrag = null, lastX = 0;
@@ -704,13 +883,13 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
       const { x, y } = pt(e), W = c.width, H = c.height;
       if (y < 40) { mode = "tape"; lastX = x; c.setPointerCapture(e.pointerId); }
       else if (Math.hypot(x - W * 0.27, y - H * 0.66) < 44) { system?.level(); showToast("view levelled", 1200); audio.tick(); }
-      else if (x > W * 0.74 - 8 && x < W * 0.74 + 18 && y > H * 0.4) { mode = "thr"; throttle = thrFromY(y); system?.setThrottle(throttle); c.setPointerCapture(e.pointerId); }
+      else if (x > W * 0.74 - 8 && x < W * 0.74 + 18 && y > H * 0.4) { mode = "thr"; setThrottle(thrFromY(y)); c.setPointerCapture(e.pointerId); }
       else if (x > W * 0.74 + 38 && x < W * 0.74 + 64 && y > H * 0.4) recharge();
     });
     listen(c, "pointermove", (e) => {
       if (!mode) return; const { x, y } = pt(e);
       if (mode === "tape") { system?.nudge((x - lastX) / 3.6 * Math.PI / 180); lastX = x; }
-      if (mode === "thr") { throttle = thrFromY(y); system?.setThrottle(throttle); }
+      if (mode === "thr") setThrottle(thrFromY(y));
     });
     listen(window, "pointerup", () => { mode = null; });
   }
@@ -721,26 +900,68 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (!started || e.metaKey || e.ctrlKey || e.altKey) return;
     if (!cmd.hidden) { if (e.key === "Escape") hideCmd(); return; }
     kIdx = e.key === KONAMI[kIdx] ? kIdx + 1 : e.key === KONAMI[0] ? 1 : 0;
-    if (kIdx === KONAMI.length) { kIdx = 0; hyper(); return; }
+    if (kIdx === KONAMI.length) { kIdx = 0; hyper(); findEgg("konami", "random"); return; }
     const k = e.key.toLowerCase();
-    if (e.key === "/") { e.preventDefault(); showCmd(); return; }
+    if (e.key === "/") { e.preventDefault(); showCmd(); findEgg("cmdline", "random"); return; }
     if (e.key === "Escape") { if (panelOpen) { closePanel(); return; } abortTour(); if (system?.focusedId()) closeHud(true); }
     if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1);
     if (k === "x") toggleCutaway();
     if (/^[1-8]$/.test(e.key)) { const p = projects[Number(e.key) - 1]; if (p) select(p); }
-    if (e.key === "9") openPanel("next");
-    if (k === "p") openPanel("pilot"); if (k === "m") openPanel("log"); if (k === "c") openPanel("comms"); if (k === "d") openPanel("diag"); if (k === "b") openPanel("bbox");
+    if (e.key === "9") { findEgg("next", "me"); openPanel("next"); }
+    if (k === "p") openPanel("pilot"); if (k === "m") openPanel("log"); if (k === "c") openPanel("comms");
+    if (k === "d") { findEgg("diag", "random"); openPanel("diag"); }
+    if (k === "b") { findEgg("blackbox", "random"); openPanel("bbox"); }
+    if (k === "f") { whisper(); findEgg("fact", "space"); }
+    if (e.key === "?") { findEgg("manifest", "random"); openPanel("secrets"); }
+    // typing the pilot's handle anywhere
+    typed = (typed + k).slice(-5);
+    if (typed === "wosmo") findEgg("callsign", "me");
     if (k === "t") tour(); if (k === "s") snd.click(); if (k === "0") selectSun();
   });
-  listen(window, "wheel", (e) => { if (!system) return; throttle = clamp(throttle + e.deltaY * -0.0009, -0.6, 1); system.setThrottle(throttle); }, { passive: true });
+  // A wheel over a panel, the readout or the dashboard scrolls that thing. Only the open view and the
+  // zoom rocker move the ship, and nothing moves it while a panel or the command line is up.
+  const COCKPIT = ".dash, .hud, .panel, .cmd, .toast, .deck__id, .callout-labels, .beacon";
+  listen(window, "wheel", (e) => {
+    if (!system || panelOpen !== null || !cmd.hidden) return;
+    const el = e.target instanceof Element ? e.target : null;
+    if (el?.closest("#zoom")) { setThrottle(throttle + (e.deltaY < 0 ? 0.05 : -0.05)); return; }
+    if (el?.closest(COCKPIT)) return;
+    setThrottle(throttle + e.deltaY * -0.0009);
+  }, { passive: true });
   // long-press the sun → solar flare
   listen(orbitCanvas, "pointerdown", () => {
     const onSun = system?.pick()?.sun === true; clear(pressTimer);
-    if (onSun) pressTimer = timer(() => { system?.flare(); audio.chord(); showToast("solar flare", 1800); ev("easter_egg", { egg: "flare" }); }, 650);
+    if (onSun) pressTimer = timer(() => { system?.flare(); showToast("solar flare", 1800); findEgg("flare", "space"); }, 650);
   });
   listen(window, "pointerup", () => clear(pressTimer));
-  listen(document, "pointerenter", (e) => { if (started && finePointer && e.target instanceof Element && e.target.closest("a, button, .lab")) audio.tick(); }, true);
-  listen(document, "click", (e) => { if (started && e.target instanceof Element && e.target.closest("a, button:not(#start)")) audio.click(); }, true);
+  // three knocks on the nameplate
+  listen($(".deck__id"), "click", () => {
+    idFlips++; clear(idTimer); idTimer = timer(() => { idFlips = 0; }, 1400);
+    if (idFlips >= 3) { idFlips = 0; openPanel("pilot"); findEgg("dossier", "me"); }
+  });
+  // the wordmark hides the npm card
+  listen($(".deck__mark"), "click", () => { showToast(`<b>the card</b>run npx ${esc(person.npmCard)} in any terminal.`, 6000, true); findEgg("npx", "me"); });
+  // no reverse gear
+  listen(orbitCanvas, "contextmenu", (e) => { e.preventDefault(); findEgg("noreverse", "random"); });
+  // ninety seconds of nothing and the radio speaks up
+  let quiet = 0;
+  const stirred = (): void => {
+    clear(quiet);
+    quiet = timer(() => { if (started && panelOpen === null) { whisper(); findEgg("radio", "random"); } }, 90_000);
+  };
+  for (const type of ["pointerdown", "keydown", "wheel"] as const) listen(window, type, stirred, { passive: true });
+
+  // every part of the cockpit a pointer can touch: links, buttons, switches, gauges, lamps, rows, labels
+  const TOUCHABLE = "a, button:not(#start), .sw, .zoom__btn, .tele__row[data-act], .lamp, .tgt, .lab, .co";
+  listen(document, "pointerenter", (e) => {
+    if (started && finePointer && e.target instanceof Element && e.target.closest(TOUCHABLE)) audio.tick();
+  }, true);
+  listen(document, "click", (e) => {
+    if (started && e.target instanceof Element && e.target.closest(TOUCHABLE)) audio.click();
+  }, true);
+  // the instrument canvases are one element each, so a pointer moving between their widgets never
+  // re-enters; tick on the press instead so tapping a gauge still answers
+  for (const el of [radarCanvas, dashCanvas]) listen(el, "pointerdown", () => { if (started) audio.click(); });
 
   // ── deck init ─────────────────────────────────────────
   async function initDeck(): Promise<boolean> {
@@ -781,7 +1002,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     loop(performance.now());
     scheduleBeacon();
     console.log("%c wosmo · flight deck ", "background:#050508;color:#00e5ff;font:12px/1.6 ui-monospace,monospace;border:1px solid #00e5ff;padding:4px 8px",
-      "\n  1–8  jump · 0  the sun · 9  next mission · t  tour · /  command line · p m c d b  panels\n  long-press the sun · watch for a beacon · ↑↑↓↓←→←→ba\n");
+      `\n  1–8  jump · 0  the sun · t  tour · /  command line · p m c  panels · ? the secrets manifest\n  ${SECRETS.length} secrets are hidden in here and you have found ${found.size}. try f, and try holding the sun.\n`);
     return true;
   }
 

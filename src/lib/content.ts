@@ -10,7 +10,9 @@ import { asc, eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db/client";
 import {
   education as staticEducation,
+  eggFacts as staticEggFacts,
   experience as staticExperience,
+  DEFAULT_ORBITS,
   featured as staticFeatured,
   highlights as staticHighlights,
   person as staticPerson,
@@ -18,6 +20,7 @@ import {
   skills as staticSkills,
   testimonials as staticTestimonials,
   type Education,
+  type EggFact,
   type Experience,
   type Highlight,
   type LangShare,
@@ -28,6 +31,9 @@ import {
   type SkillGroup,
   type Testimonial,
 } from "@/data/portfolio";
+
+const EGG_KINDS: readonly string[] = ["space", "me", "random"];
+const isEggKind = (k: string): k is EggFact["kind"] => EGG_KINDS.includes(k);
 
 export const CONTENT_TAG = "content";
 /** Call after any admin write so the public pages pick the change up on the next request. */
@@ -53,7 +59,6 @@ export interface Post {
   tags: readonly string[]; readingMinutes: number; publishedAt: string | null;
 }
 
-const ORBITS = [17, 25, 34, 45, 58, 73, 90, 110] as const;
 const isProjectId = (s: string): s is ProjectId => staticProjects.some((p) => p.id === s);
 
 // ── person ──
@@ -77,7 +82,7 @@ function fallbackProjects(): ContentProject[] {
   return staticProjects.map((p, i) => {
     const h = staticHighlights[p.id];
     return {
-      ...p, orbit: ORBITS[i] ?? 17 + i * 12, heading: h?.heading ?? "", bullets: h?.bullets ?? [],
+      ...p, orbit: DEFAULT_ORBITS[i] ?? 17 + i * 12, heading: h?.heading ?? "", bullets: h?.bullets ?? [],
       tech: h?.tech ?? [], extraLinks: h?.extraLinks ?? [], coverImage: "", featured: staticFeatured.includes(p.id),
     };
   });
@@ -149,6 +154,15 @@ export const getTestimonials = cached("testimonials", async (): Promise<readonly
     const rows = await db.select().from(t.testimonials).where(eq(t.testimonials.visible, true)).orderBy(asc(t.testimonials.sortOrder));
     return rows.map((r) => ({ quote: r.quote, name: r.name, role: r.role, company: r.company, link: r.link || null, placeholder: r.placeholder }));
   } catch (e) { console.error("[content] testimonials", e); return staticTestimonials; }
+});
+export const getEggFacts = cached("eggFacts", async (): Promise<readonly EggFact[]> => {
+  const db = getDb();
+  if (!db) return staticEggFacts;
+  try {
+    const rows = await db.select().from(t.eggFacts).where(eq(t.eggFacts.visible, true)).orderBy(asc(t.eggFacts.sortOrder));
+    const out = rows.map((r) => ({ kind: isEggKind(r.kind) ? r.kind : "random", text: r.text }));
+    return out.length ? out : staticEggFacts;
+  } catch (e) { console.error("[content] eggFacts", e); return staticEggFacts; }
 });
 export const getScene = cached("scene", async (): Promise<SceneConfig> => {
   const db = getDb();

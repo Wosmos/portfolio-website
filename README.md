@@ -88,12 +88,24 @@ source and every attempt is recorded.
 | Projects | content, links, and **each project's planet** — type, size, the four-colour ramp, atmosphere rim, surface sliders, ring, and the orbit it sits on, with a live preview using the real renderer |
 | Solar system | the sun's radius, colours and brightness, orbit scale, the belt, the starfield, the nebula, bloom and field of view |
 | Experience · Skills · Education · Testimonials | drag to reorder, edit in place, hide without deleting |
+| Secrets | the lines the flight deck whispers when a visitor finds one of its twenty hidden things |
 | Blog | write markdown, save a draft, publish |
 | Profile | name, contact details, both descriptions, the résumé link |
 
 Content is read database-first with the records in `src/data/portfolio.ts` as the fallback, so an
 empty table or an unreachable database never blanks a page. `bun run db:seed` copies those records in
 and is safe to re-run.
+
+## Hidden things
+
+The flight deck hides twenty of them. Each one is remembered in `localStorage` and shows a line from
+the **Secrets** admin table; `?` opens the manifest, which lists what is left as a hint rather than an
+answer. In order: the command line (`/`), diagnostics (`d`), the black box (`b`), a fact (`f`), the
+manifest itself (`?`), the konami code, a long press on the sun, the drifting distress beacon, project
+09 (`9`), three knocks on the nameplate, typing the callsign, standing on all eight worlds in one
+visit, cutting three planets open, three returns to the sun, five flips of the sound switch, the zoom
+rocker at its stop, the wordmark's npm card, a right-click on open space, ninety seconds of silence,
+and flying between midnight and five.
 
 ## Analytics and visitor profiles
 

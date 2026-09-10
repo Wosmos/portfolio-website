@@ -9,7 +9,7 @@ import { WMark, Wordmark } from "@/components/Mark";
 
 export type ShipDeckProps = DeckOptions;
 
-export default function ShipDeck({ initialTarget, lastPush = null, projects, orbits, scene }: ShipDeckProps) {
+export default function ShipDeck({ initialTarget, lastPush = null, projects, orbits, scene, activity = null, facts }: ShipDeckProps) {
   const root = useRef<HTMLDivElement>(null);
   // `?to=<id>` deep links from the reading site; read here so /ship can be prerendered
   const target = initialTarget ?? new URLSearchParams(typeof window === "undefined" ? "" : window.location.search).get("to") ?? undefined;
@@ -21,10 +21,10 @@ export default function ShipDeck({ initialTarget, lastPush = null, projects, orb
     let cancelled = false;
     void import("@/lib/ship/deck").then(({ mountDeck }) => {
       if (cancelled) return;
-      cleanup = mountDeck(el, { initialTarget: target, lastPush, projects, orbits, scene });
+      cleanup = mountDeck(el, { initialTarget: target, lastPush, projects, orbits, scene, activity, facts });
     });
     return () => { cancelled = true; cleanup?.(); };
-  }, [target, lastPush, projects, orbits, scene]);
+  }, [target, lastPush, projects, orbits, scene, activity, facts]);
 
   return (
     <div ref={root}>
@@ -89,6 +89,27 @@ export default function ShipDeck({ initialTarget, lastPush = null, projects, orb
             </div>
           </div>
 
+          {/* control console: the switch bank + the zoom rocker, set into the dashboard */}
+          <div className="screen screen--ctl">
+            <span className="screen__k">console</span>
+            <div className="bank">
+              <button className="sw" type="button" data-panel="pilot"><i className="sw__led" /><b>P</b><span>about me</span></button>
+              <button className="sw" type="button" data-panel="log"><i className="sw__led" /><b>M</b><span>experience</span></button>
+              <button className="sw" type="button" data-panel="comms"><i className="sw__led" /><b>C</b><span>contact</span></button>
+              <button className="sw" type="button" data-tour><i className="sw__led" /><b>T</b><span>tour ×8</span></button>
+              <button className="sw" type="button" data-cmd><i className="sw__led" /><b>/</b><span>commands</span></button>
+              <button id="snd" className="sw" type="button" aria-pressed="true"><i className="sw__led" /><b>S</b><span>sound</span></button>
+              <button id="gyro" className="sw sw--wide" type="button" hidden><i className="sw__led" /><b>◎</b><span>tilt view</span></button>
+            </div>
+            {/* the only place a scroll wheel or a drag changes the zoom */}
+            <div id="zoom" className="zoom" title="Move the ship in and out">
+              <button className="zoom__btn" type="button" data-zoom="-1" aria-label="zoom out">−</button>
+              <div id="zoom-track" className="zoom__track" role="presentation"><i /></div>
+              <button className="zoom__btn" type="button" data-zoom="1" aria-label="zoom in">+</button>
+              <span className="zoom__k">zoom</span>
+            </div>
+          </div>
+
           <div className="screen screen--right">
             <canvas id="radar" width="200" height="200" />
             <div className="tele">
@@ -113,17 +134,7 @@ export default function ShipDeck({ initialTarget, lastPush = null, projects, orb
         <svg id="callouts" className="callouts" aria-hidden="true" />
         <div id="callout-labels" className="callout-labels" aria-hidden="true" />
 
-        {/* console keys */}
-        <div className="keys">
-          <button className="key" type="button" data-panel="pilot"><b>P</b> about</button>
-          <button className="key" type="button" data-panel="log"><b>M</b> experience</button>
-          <button className="key" type="button" data-panel="comms"><b>C</b> contact</button>
-          <button className="key" type="button" data-tour><b>T</b> tour all 8</button>
-          <button className="key" type="button" data-cmd><b>/</b> commands</button>
-          <button id="snd" className="key" type="button" aria-pressed="true"><b>S</b> sound</button>
-          <button id="gyro" className="key key--gyro" type="button" hidden><b>◎</b> tilt view</button>
-        </div>
-        <span className="hint">each planet is a project i built · click one to fly to it · drag to look around · scroll to move in and out · every gauge does something, tap it</span>
+        <span className="hint">each planet is a project · click one to fly · drag to look · zoom from the console rocker</span>
 
         {/* readout */}
         <aside id="hud" className="hud sf" aria-label="Readout" aria-hidden="true">

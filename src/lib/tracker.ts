@@ -20,6 +20,7 @@ let engagedMs = 0;
 let lastTick = 0;
 let active = false;
 let maxScroll = 0;
+let depthSent = new Set<number>();
 let timer = 0;
 let firstFlush = 0;
 let started = false;
@@ -85,7 +86,7 @@ export function track(name: string, opts: { target?: string; value?: number; met
   // rather than waiting for the interval or for a beacon that a closing tab may not deliver
   if (!firstFlush) firstFlush = window.setTimeout(() => { firstFlush = 0; flush(); }, 2500);
 }
-export const pageview = (): void => { maxScroll = 0; track("pageview"); };
+export const pageview = (): void => { maxScroll = 0; depthSent = new Set(); track("pageview"); };
 
 function tick(): void {
   const now = performance.now();
@@ -109,6 +110,13 @@ export function startTracker(): () => void {
     const scrollable = doc.scrollHeight - innerHeight;
     const pct = scrollable > 40 ? Math.round(((scrollY + innerHeight) / doc.scrollHeight) * 100) : 100;
     if (pct > maxScroll) maxScroll = Math.min(100, pct);
+    // one event per quarter, once per page: "landed" and "read to the end" are different visits
+    for (const mark of [25, 50, 75, 100]) {
+      if (maxScroll >= mark && !depthSent.has(mark)) {
+        depthSent.add(mark);
+        track("read_depth", { value: mark, vercel: "read_depth", meta: { depth: mark } });
+      }
+    }
   };
   // one click event covers every button and link, so nothing needs wiring per component
   const onClick = (e: MouseEvent): void => {

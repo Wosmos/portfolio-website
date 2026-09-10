@@ -8,7 +8,7 @@ import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import { LANG_COLORS } from "@/data/portfolio";
+import { DEFAULT_ORBITS, LANG_COLORS } from "@/data/portfolio";
 import type { PlanetConfig, PlanetType, Project, RingConfig } from "@/data/portfolio";
 import type { FlightEventName, Heading, Layer, LayerAnchor, Pick, SystemApi, SystemOptions, Vec3 } from "./types";
 
@@ -20,7 +20,7 @@ const UP = new THREE.Vector3(0, 1, 0);
 
 const SUN_R_DEFAULT = 6.0;
 export const PLANET_SCALE = 1.0;
-const ORBITS_DEFAULT = [17, 25, 34, 45, 58, 73, 90, 110] as const;
+
 const BELT_R_DEFAULT = 65.5;
 const FOV_DEFAULT = 42;
 export const TYPE: Readonly<Record<PlanetType, number>> = { gas: 0, rocky: 1, lava: 2, ice: 3 };
@@ -585,7 +585,7 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, onSelect,
   const BELT_R = cfg?.beltRadius ?? BELT_R_DEFAULT;
   const FOV = cfg?.fov ?? FOV_DEFAULT;
   const orbitScale = cfg?.orbitScale ?? 1;
-  const ORBITS = (cfg?.orbits?.length ? cfg.orbits : ORBITS_DEFAULT).map((r) => r * orbitScale);
+  const ORBITS = (cfg?.orbits?.length ? cfg.orbits : DEFAULT_ORBITS).map((r) => r * orbitScale);
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: "high-performance" });
   renderer.setClearColor(BG, 1);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));

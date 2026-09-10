@@ -3,6 +3,7 @@
 // breaks a page. Set GITHUB_TOKEN in the environment to raise the limit and read private repos.
 
 import { LANG_COLORS, projects, repoPath, repoSlug, type LangShare, type Project } from "@/data/portfolio";
+import type { MoonConfigJson } from "@/db/schema";
 import { escapeHtml } from "@/lib/text";
 
 const API = "https://api.github.com";
@@ -186,6 +187,134 @@ export async function getRepoStars(): Promise<readonly RepoStar[]> {
       stars: r.stars,
       language,
       colour: LANG_COLORS[language] ?? NEUTRAL,
+    };
+  });
+}
+
+// ── moons ───────────────────────────────────────────────────────────────────
+// A repository's meaningful top-level folders become the planet's moons: zcrypt's backend, frontend,
+// mobile and core; learnity's single app. Detection is deterministic — every value comes from a hash
+// of "<project>/<folder>", never from Math.random — so the same repository always produces the same
+// moons and re-running detection never reshuffles the sky.
+
+/** One top-level directory. `entries` is what the tree reported, 0 when it reported nothing. */
+export interface RepoFolder { name: string; path: string; entries: number }
+/** All detection needs of a project: an id to key the hash on, and the repository URL. */
+export interface MoonSource { id: string; github: string }
+
+/** Build output, dependencies, docs and test scaffolding are not parts of the product. */
+export const MOON_SKIP: readonly string[] = [
+  "node_modules", "dist", "build", "out", "target", "vendor", "public", "assets", "docs",
+  ".github", "test", "tests", "__tests__", "scripts", "examples", "coverage", "tmp",
+];
+const SKIPPED = new Set(MOON_SKIP);
+/** Dot-directories go too: tooling, never a module. */
+export function isMoonNoise(name: string): boolean {
+  return name.startsWith(".") || SKIPPED.has(name.toLowerCase());
+}
+
+/** At most this many moons per planet, so a monorepo does not turn into a swarm. */
+export const MAX_MOONS = 6;
+
+interface GhTreeEntry { path: string; type: string; size?: number }
+interface GhTree { tree?: GhTreeEntry[] }
+
+/**
+ * Every top-level directory, unfiltered, so the preview endpoint can also show what was skipped.
+ * `HEAD` is the tree-ish rather than a branch name because GitHub resolves it to the default branch
+ * whatever that branch is called — one request instead of two. Not recursive: the top level is all a
+ * moon is made of, and a recursive tree on a monorepo is megabytes.
+ */
+export async function getRepoTree(p: MoonSource, branch = "HEAD"): Promise<readonly RepoFolder[]> {
+  const repo = moonRepo(p);
+  if (!repo) return [];
+  const j = await gh<GhTree>(`/repos/${repo}/git/trees/${encodeURIComponent(branch)}`);
+  if (!j || !Array.isArray(j.tree)) return [];
+  return j.tree
+    .filter((e) => e.type === "tree" && typeof e.path === "string" && e.path !== "")
+    .map((e) => ({ name: e.path, path: e.path, entries: typeof e.size === "number" ? e.size : 0 }));
+}
+/** The directories a moon may be made from. Degrades to an empty list, like every reader here. */
+export async function getRepoFolders(p: MoonSource, branch?: string): Promise<readonly RepoFolder[]> {
+  return (await getRepoTree(p, branch)).filter((f) => !isMoonNoise(f.name));
+}
+
+/** `repoPath` wants a whole Project; detection has only the URL. */
+function moonRepo(p: MoonSource): string {
+  const parts = p.github.replace(/\.git$/, "").replace("https://github.com/", "").split("/").filter(Boolean);
+  return parts.length >= 2 ? `${parts[0]}/${parts[1]}` : "";
+}
+
+export interface MoonLook { type: MoonConfigJson["type"]; colour: number }
+/** `folders` are matched lower-cased, exactly or as one token of a name like "mobile-app". */
+export interface MoonKind extends MoonLook { folders: readonly string[] }
+
+/** Folder → what it looks like. One table, in match order, so the mapping stays editable. */
+export const MOON_KINDS: readonly MoonKind[] = [
+  { type: "rocky", colour: 0x8b95a3, folders: ["backend", "api", "server", "service", "services", "cmd", "gateway", "worker"] },
+  { type: "liquid", colour: 0x3b82f6, folders: ["frontend", "web", "app", "apps", "ui", "client", "www", "site", "dashboard", "admin"] },
+  { type: "ice", colour: 0xbfe3f2, folders: ["mobile", "android", "ios", "flutter", "native", "expo"] },
+  { type: "lava", colour: 0xd9542b, folders: ["core", "crypto", "lib", "libs", "packages", "engine", "kernel", "shared", "common"] },
+];
+/** Anything the table has no opinion about. */
+export const MOON_OTHER: MoonLook = { type: "muddy", colour: 0x9c7a4b };
+
+export function moonKindFor(folder: string): MoonLook {
+  const name = folder.toLowerCase();
+  const exact = MOON_KINDS.find((k) => k.folders.includes(name));
+  if (exact) return { type: exact.type, colour: exact.colour };
+  // "mobile-app", "core_lib" and "web2" still say what they are
+  for (const token of name.split(/[^a-z0-9]+/).filter(Boolean)) {
+    const hit = MOON_KINDS.find((k) => k.folders.includes(token));
+    if (hit) return { type: hit.type, colour: hit.colour };
+  }
+  return MOON_OTHER;
+}
+
+const SIZE_MIN = 0.12, SIZE_MAX = 0.3;
+const ORBIT_MIN = 1.8, ORBIT_MAX = 4.2;
+/** Turns per minute at one planet radius; the r^1.5 fall-off is Kepler's third law, so inner moons run faster. */
+const SPEED_AT_ONE = 14;
+const TILT_MAX = 12;
+
+/** FNV-1a. Short, stable, and the reason the same repository always produces the same moons. */
+function hash(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h >>> 0;
+}
+const round = (n: number, dp = 3): number => Math.round(n * 10 ** dp) / 10 ** dp;
+
+/** Folders → moons: geometry from the hash, look from MOON_KINDS, capped at MAX_MOONS. */
+export function moonsFor(p: MoonSource, folders: readonly RepoFolder[]): MoonConfigJson[] {
+  const picked = [...folders]
+    // biggest folders survive the cap — a monorepo keeps its real modules, not its odds and ends
+    .sort((a, b) => b.entries - a.entries || a.name.localeCompare(b.name))
+    .slice(0, MAX_MOONS)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const n = picked.length;
+  const slot = n > 0 ? 360 / n : 360;
+  return picked.map((f, i) => {
+    const h = hash(`${p.id}/${f.name}`);
+    const look = moonKindFor(f.name);
+    // a lone moon sits mid-band rather than hugging the planet
+    const orbit = n === 1 ? (ORBIT_MIN + ORBIT_MAX) / 2 : ORBIT_MIN + ((ORBIT_MAX - ORBIT_MIN) * i) / (n - 1);
+    return {
+      name: f.name,
+      path: f.path,
+      size: round(SIZE_MIN + (((h >>> 8) % 1000) / 1000) * (SIZE_MAX - SIZE_MIN)),
+      orbit: round(orbit),
+      speed: round(SPEED_AT_ONE / orbit ** 1.5),
+      tilt: round(((h >>> 18) % (TILT_MAX * 2 + 1)) - TILT_MAX),
+      // one slot each, jittered inside it, so two moons can never bunch
+      phase: round((i * slot + (h % Math.max(1, Math.floor(slot)))) % 360, 1),
+      colour: look.colour,
+      type: look.type,
+      auto: true,
+      visible: true,
     };
   });
 }

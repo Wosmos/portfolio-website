@@ -1,0 +1,76 @@
+/* The help reference. Tokens come from globals.css and admin.css; nothing here names a new colour.
+   Two columns with a sticky contents list, collapsing to one at 900px. */
+
+.hlp { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 24px; align-items: start; }
+
+/* ── contents ──────────────────────────────────────── */
+.hlp__nav { position: sticky; top: 14px; max-height: calc(100dvh - 40px); overflow: auto; overscroll-behavior: contain; }
+.hlp__nav > summary { display: none; }
+.hlp__navg { margin: 0 0 6px; padding-left: 9px; font-size: 8.5px; letter-spacing: .2em; text-transform: uppercase; color: rgba(242, 245, 255, .26); }
+.hlp__navg + .hlp__navg { margin-top: 4px; }
+.hlp__nav ul { display: grid; gap: 1px; margin: 0 0 14px; }
+.hlp__nav button {
+  display: block; width: 100%; padding: 6px 9px; text-align: left; font-size: 11px; line-height: 1.45;
+  letter-spacing: .04em; color: var(--fg-3); border-left: 1px solid var(--fg-4); transition: color .18s, border-color .18s, background .18s;
+}
+.hlp__nav button:hover { color: var(--fg); border-color: var(--cy); background: rgba(0, 229, 255, .06); }
+.hlp__nav button.is-on { color: var(--cy); border-color: var(--cy); }
+
+/* ── sections ──────────────────────────────────────── */
+.hlp__body { display: grid; gap: 10px; min-width: 0; }
+.hlp__sec { scroll-margin-top: 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+.hlp__sec > summary {
+  display: flex; align-items: baseline; gap: 10px; padding: 8px 0; cursor: pointer;
+  font-size: 13px; letter-spacing: .02em; color: var(--fg); list-style: none;
+}
+.hlp__sec > summary::-webkit-details-marker { display: none; }
+.hlp__sec > summary::before { content: "+"; width: 12px; flex: 0 0 auto; color: var(--cy); font-size: 12px; }
+.hlp__sec[open] > summary::before { content: "−"; }
+.hlp__sec > summary:hover { color: var(--cy); }
+.hlp__sec > summary b { font-weight: 500; }
+.hlp__sec > summary small { margin-left: auto; font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--fg-4); }
+
+.hlp__blocks { display: grid; gap: 12px; padding: 6px 0 10px 22px; max-width: 82ch; }
+.hlp__blocks p { font-size: 12.5px; line-height: 1.75; color: var(--fg-2); }
+.hlp__blocks code { padding: 1px 5px; font-size: 11.5px; color: var(--cy); background: rgba(0, 229, 255, .08); white-space: nowrap; }
+.hlp__blocks b { font-weight: 500; color: var(--fg); }
+
+.hlp__ul { display: grid; gap: 6px; }
+.hlp__ul li { position: relative; padding-left: 16px; font-size: 12.5px; line-height: 1.7; color: var(--fg-2); }
+.hlp__ul li::before { content: "·"; position: absolute; left: 4px; color: var(--cy); }
+
+.hlp__dl { display: grid; grid-template-columns: 16ch minmax(0, 1fr); gap: 8px 16px; }
+.hlp__dl dt { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-3); padding-top: 3px; }
+.hlp__dl dd { margin: 0; font-size: 12.5px; line-height: 1.7; color: var(--fg-2); }
+
+.hlp__tw { overflow-x: auto; }
+.hlp__tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.hlp__tbl th { text-align: left; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; font-weight: 400; color: var(--fg-3); padding: 0 10px 7px 0; border-bottom: 1px solid var(--line); }
+.hlp__tbl td { padding: 6px 10px 6px 0; border-bottom: 1px solid rgba(242, 245, 255, .05); color: var(--fg-2); vertical-align: top; }
+.hlp__tbl td:last-child { padding-right: 0; font-variant-numeric: tabular-nums; color: var(--fg); white-space: nowrap; }
+.hlp__tbl th:last-child { text-align: right; }
+.hlp__tbl td:last-child { text-align: right; }
+
+.hlp__warn { padding: 10px 12px; font-size: 12px; line-height: 1.7; color: var(--fg-2); box-shadow: inset 2px 0 0 var(--mg); background: rgba(255, 43, 214, .05); }
+.hlp__warn b { color: var(--mg); font-weight: 500; }
+
+.hlp__acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+@media (max-width: 900px) {
+  .hlp { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .hlp__nav { position: static; max-height: none; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .hlp__nav > summary {
+    display: flex; align-items: center; gap: 9px; padding: 9px 0; cursor: pointer; list-style: none;
+    font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg-3);
+  }
+  .hlp__nav > summary::-webkit-details-marker { display: none; }
+  .hlp__nav > summary::before { content: "☰"; color: var(--cy); }
+  .hlp__nav ul { margin-bottom: 10px; }
+  .hlp__blocks { padding-left: 0; }
+  .hlp__dl { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .hlp__dl dd { margin-bottom: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hlp__nav button { transition: none; }
+}

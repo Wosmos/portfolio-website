@@ -9,9 +9,12 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { DEFAULT_ORBITS, LANG_COLORS } from "@/data/portfolio";
-import type { PlanetType, Project, RingConfig } from "@/data/portfolio";
+import type { PlanetType, RingConfig } from "@/data/portfolio";
 import { arrange, clampPlanetSize, type Arrangement, type ScaleMode } from "@/lib/scale";
-import type { FlightEventName, Heading, Layer, LayerAnchor, Pick, PlanetFull, SystemApi, SystemOptions, Vec3 } from "./types";
+import type {
+  FlightEventName, Heading, HeadingMoon, Layer, LayerAnchor, MoonConfig, Pick, PlanetFull,
+  ProjectFull, SystemApi, SystemOptions, Vec3,
+} from "./types";
 
 const BG = 0x06060a;
 const WHITE = new THREE.Color(0xfafafa);
@@ -24,7 +27,7 @@ export const PLANET_SCALE = 1.0;
 
 const BELT_R_DEFAULT = 65.5;
 const FOV_DEFAULT = 42;
-// The order is the order of the branch chain in PLANET_FRAG; adding a family means appending here.
+// The order is the order of the branch chain in planetFrag and MOON_FRAG; a new family is appended here.
 export const TYPE: Readonly<Record<PlanetType, number>> = { gas: 0, rocky: 1, lava: 2, ice: 3, liquid: 4, muddy: 5 };
 
 // camera poses along the page — [phi (elevation), radius]; theta comes from the user's drag
@@ -85,12 +88,19 @@ bool inWedge(vec3 w){
   return ang > -0.0001 && ang < uCut * 1.5707963;
 }`;
 
-const PLANET_FRAG = /* glsl */ `
+/**
+ * The planet surface. `moons` is how many moons cast a shadow on this body: at zero the shader
+ * declares no moon uniforms and contains no moon code at all, so a planet without moons compiles to
+ * exactly the program it did before moons existed (and, three.js caching programs by source, every
+ * such planet still shares one).
+ */
+const planetFrag = (moons: number) => /* glsl */ `
 uniform vec3 uC0; uniform vec3 uC1; uniform vec3 uC2; uniform vec3 uC3; uniform vec3 uRim;
 uniform float uType; uniform float uSeed; uniform float uTime; uniform float uHot;
 uniform float uOcean; uniform float uCloud; uniform float uCrater; uniform float uVein;
 uniform float uGlow; uniform float uBands; uniform float uBandSharp;
 uniform float uRingOn; uniform vec3 uRingN; uniform vec3 uPlanetC; uniform float uRingIn; uniform float uRingOut;
+${moons > 0 ? `uniform vec4 uMoons[${moons}];    // xyz world centre, w radius — zeroed while hidden` : ""}
 varying vec3 vN; varying vec3 vW; varying vec3 vL;
 ${NOISE}
 ${CUT_GLSL}
@@ -102,7 +112,8 @@ float bandEdge(float b, float s){
 }
 void main(){
   if (inWedge(vW)) discard;
-  vec3 N = normalize(vN);
+  vec3 Ng = normalize(vN);                                  // geometric normal: limb, fresnel, rim
+  vec3 N = Ng;                                              // shading normal: bent by the crust below
   vec3 V = normalize(cameraPosition - vW);
   vec3 L = normalize(-vW);
   vec3 p = normalize(vL);
@@ -110,10 +121,18 @@ void main(){
   float w1 = fbm(q + vec3(0.0, uTime * 0.01, 0.0));
   vec3 warp = vec3(fbm(q + 1.7), fbm(q + 9.2), fbm(q + 4.1));
   float n = fbm(q * 1.6 + warp * 0.9);
+  // one tangent frame on the sphere, shared by the crust relief and the ocean swell
+  vec3 t1 = normalize(cross(Ng, vec3(0.0, 1.0, 0.0)) + vec3(1e-3, 0.0, 0.0));
+  vec3 t2 = cross(Ng, t1);
   vec3 albedo = uC0; vec3 emissive = vec3(0.0); float rough = 0.6;
   // Ns is the normal the specular lobe uses — only the ocean bends it, so every other family is
   // untouched. sheen lifts the limb where a surface is wet enough to mirror the sky.
   vec3 Ns = N; float sheen = 0.0; float night = 0.0;
+  // glint is how mirror-like the surface is. Only water and ice ever raise it, so rock, dust and gas
+  // no longer catch a highlight they have no business catching.
+  float glint = 0.0;
+  // relief is how hard the crust bends the shading normal — 0 on a body with no crust to bend.
+  float relief = 0.0;
   if (uType < 0.5) {
     float lat = p.y + n * 0.07 + w1 * 0.04;
     // the second set is always 17 cycles finer than the first, so uBands moves both together
@@ -134,6 +153,7 @@ void main(){
     land *= 1.0 - cr * 0.4;
     albedo = mix(land, uC0, ocean);
     rough = mix(0.75, 0.12, ocean);
+    glint = ocean; relief = 0.55 * (1.0 - ocean);
   } else if (uType < 2.5) {
     float rock = n * 0.5 + 0.5;
     albedo = mix(uC0, uC1, rock);
@@ -141,13 +161,13 @@ void main(){
     float vein = 1.0 - smoothstep(0.0, 0.07, abs(snoise(q * 2.6 + warp * 0.6)));
     vein *= smoothstep(0.35, 0.7, fbm(q * 1.2 + 3.0) * 0.5 + 0.5);
     emissive = uC3 * vein * (1.1 + 0.35 * sin(uTime * 1.4 + n * 7.0)) * uVein;
-    rough = 0.8;
+    rough = 0.8; relief = 0.5;
   } else if (uType < 3.5) {
     float lat = p.y + n * 0.1;
     float band = bandEdge(sin(lat * uBands * 0.5 + uSeed) * 0.5 + 0.5, uBandSharp);
     albedo = mix(uC0, uC1, band * 0.55 + n * 0.2);
     albedo = mix(albedo, uC2, smoothstep(0.6, 0.9, fbm(q * 2.0 + warp) * 0.5 + 0.5) * 0.7);
-    rough = 0.3;
+    rough = 0.3; glint = 0.6; relief = 0.3;
   } else if (uType < 4.5) {
     // ocean world. uOcean is the sea level, uCrater raises archipelagos, uVein lights the night side.
     float sea = uOcean > 0.005 ? uOcean : 0.62;                       // an ocean world is mostly ocean by default
@@ -161,14 +181,13 @@ void main(){
     albedo = mix(land, mix(deep, mix(uC0, uC1, 0.55), shelf * 0.85), water);
     // wind-driven swell: sample the wave field at three points and tilt the normal along the gradient,
     // which is what turns the sun into a moving glint instead of a static hot spot
-    vec3 t1 = normalize(cross(N, vec3(0.0, 1.0, 0.0)) + vec3(1e-3, 0.0, 0.0));
-    vec3 t2 = cross(N, t1);
     vec3 wq = p * 34.0 + vec3(uTime * 0.3, 0.0, uTime * -0.2);
     float s0 = snoise(wq), s1 = snoise(wq + t1 * 0.6), s2 = snoise(wq + t2 * 0.6);
     Ns = normalize(N - (t1 * (s1 - s0) + t2 * (s2 - s0)) * 0.5 * water);
     albedo *= 1.0 + 0.05 * s0 * water;
     rough = mix(0.85, 0.05, water);
     sheen = water; night = 1.0;
+    glint = water; relief = 0.42 * (1.0 - water);
     emissive = uC3 * uVein * (1.0 - water) * smoothstep(0.45, 0.82, fbm(q * 6.0 + 21.0) * 0.5 + 0.5);
   } else {
     // silt world. Iron-oxide bands, dune fields combed along the latitudes, dry channels, no shine.
@@ -184,14 +203,28 @@ void main(){
     albedo *= 1.0 - uCrater * smoothstep(0.58, 0.88, snoise(p * 11.0 + uSeed)) * 0.45;
     // the ocean knob has nothing to flood on a dry world, so it sets the polar frost instead
     albedo = mix(albedo, uC3, smoothstep(1.0 - uOcean * 0.4, 1.04 - uOcean * 0.4, abs(p.y) + n * 0.04));
-    rough = 0.96;
+    rough = 0.96; relief = 0.62;
+  }
+  // Crust relief. One octave of height differenced along the two tangents, which tilts the shading
+  // normal into the slope: the terrain then lights itself instead of reading as paint on a ball. The
+  // cloud deck below is deliberately applied after it, because cloud sits above the crust.
+  if (relief > 0.001) {
+    vec3 hq = p * 11.0 + uSeed * 1.31;
+    float e = 0.55;
+    float h0 = snoise(hq), h1 = snoise(hq + t1 * e), h2 = snoise(hq + t2 * e);
+    N = normalize(Ng - (t1 * (h1 - h0) + t2 * (h2 - h0)) * relief * 0.7);
+    albedo *= 0.94 + 0.12 * (h0 * 0.5 + 0.5);
   }
   // dust rolls over a silt world where cloud would sit on the others, so the haze is tinted, not white
   bool dusty = uType > 4.5;
   float cl = uCloud * smoothstep(0.48, 0.78, fbm(p * 3.5 + vec3(uTime * 0.025, 0.0, 0.0) + warp * 0.5 + 11.0) * 0.5 + 0.5);
   albedo = mix(albedo, dusty ? mix(uC1, uC2, 0.6) * 1.18 : vec3(0.96), cl * (dusty ? 0.7 : 1.0));
+  // cloud is smooth and flat, so it undoes the relief and the glint underneath it
+  N = normalize(mix(N, Ng, cl)); glint *= 1.0 - cl;
   float nl = dot(N, L);
   float d = smoothstep(-0.12, 0.55, nl);
+  // planetshine: what the night side gets back from whatever else is in the system
+  float shine = 0.0;
   if (uRingOn > 0.5) {                                        // the ring's shadow falls across the planet
     float denom = dot(L, uRingN);
     if (abs(denom) > 1e-3) {
@@ -204,14 +237,44 @@ void main(){
         d *= 1.0 - 0.78 * inRing * clamp(prof, 0.0, 1.0);
       }
     }
+    // ringshine: from the night side the lit face of the ring is a bright arc overhead, brightest
+    // over the equator where the ring subtends most sky
+    shine += 0.11 * (1.0 - abs(dot(Ng, uRingN))) * (1.0 - d);
   }
-  float spec = pow(max(dot(reflect(-L, Ns), V), 0.0), mix(72.0, 8.0, rough)) * (1.0 - rough) * 0.7;
-  float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);
-  vec3 sunCol = vec3(1.0, 0.86, 0.76);
+${moons > 0 ? `  // Moons, analytically, against the sun direction — no shadow map, no second pass.
+  for (int mi = 0; mi < ${moons}; mi++) {
+    vec4 mo = uMoons[mi];
+    if (mo.w <= 0.0) continue;                              // hidden moon: no shadow, no shine
+    vec3 rel = mo.xyz - vW;
+    float along = dot(rel, L);
+    float md = max(length(rel), 1e-3);
+    if (along > 0.0) {
+      // the transit: how far this fragment's line to the sun passes from the moon's centre. The sun
+      // is not a point, so the umbra gets a penumbra a little wider than the moon itself.
+      float perp = length(rel - L * along);
+      d *= mix(1.0, 0.12, 1.0 - smoothstep(mo.w * 0.6, mo.w * 1.45, perp));
+    }
+    vec3 mdir = rel / md;
+    float mLit = clamp(0.5 - 0.5 * dot(normalize(-mo.xyz), mdir), 0.0, 1.0);
+    shine += max(dot(N, mdir), 0.0) * (mo.w * mo.w) / (md * md) * mLit * 1.3;
+  }
+` : ""}  // Terminator. The beam that grazes the surface has lost its blue to the long path through the air,
+  // so the light warms as it dims instead of stepping from white day to black night.
+  float graze = 1.0 - smoothstep(0.0, 0.5, nl);
+  vec3 sunCol = mix(vec3(1.0, 0.86, 0.76), vec3(1.0, 0.5, 0.27), graze * 0.82);
+  // glint: a mirror lobe, and only where there is something to mirror — water or ice
+  float spec = pow(max(dot(reflect(-L, Ns), V), 0.0), mix(150.0, 26.0, rough)) * glint * 0.9;
+  float limb = 1.0 - max(dot(Ng, V), 0.0);
+  float fres = pow(limb, 3.0);
   vec3 col = albedo * (0.035 + d * 1.15) * sunCol + spec * sunCol;
+  // limb reddening: near the edge the line of sight crosses far more atmosphere than at the centre
+  col = mix(col, col * vec3(1.1, 0.82, 0.6), pow(limb, 2.0) * 0.5 * d);
+  // and a thin bright rim of forward-scattered light, day side only
+  col += uRim * pow(limb, 6.0) * 0.65 * smoothstep(-0.04, 0.34, nl);
   col += uRim * fres * (0.32 + uHot * 0.8) * (0.35 + 0.65 * d);
   col += uRim * fres * sheen * 0.22 * (0.25 + 0.75 * d);            // wet limb mirrors the sky
-  col += uRim * pow(1.0 - max(dot(N, V), 0.0), 6.0) * 0.12;
+  col += uRim * pow(limb, 6.0) * 0.12;
+  col += albedo * shine;                                            // ring- and moonlight on the dark side
   col += emissive * uGlow * mix(1.0, clamp(1.0 - d * 1.6, 0.0, 1.0), night);
   // above 1, glow also lights the night side, so a planet without lava veins can still burn
   col += uRim * max(0.0, uGlow - 1.0) * 0.12 * (1.0 - d) * (0.4 + 0.6 * fres);
@@ -224,11 +287,90 @@ varying vec3 vN; varying vec3 vW;
 ${CUT_GLSL}
 void main(){
   if (inWedge(vW)) discard;
+  vec3 N = normalize(vN);
   vec3 V = normalize(cameraPosition - vW);
   vec3 L = normalize(-vW);
-  float f = pow(1.0 - abs(dot(normalize(vN), V)), 2.6);
-  float day = 0.45 + 0.55 * smoothstep(-0.3, 0.5, dot(normalize(vN), L));
-  gl_FragColor = vec4(uRim, f * (uAlpha + uHot * 0.6) * day);
+  float mu = abs(dot(N, V));
+  float f = pow(1.0 - mu, 2.6);                                     // air mass along this ray
+  float nl = dot(N, L);
+  float day = 0.45 + 0.55 * smoothstep(-0.3, 0.5, nl);
+  // Rayleigh: the longest paths are the ones grazing the terminator, and they arrive red. The shell
+  // keeps its own colour high on the day side and turns to sunset where it thins into night.
+  float sunset = (1.0 - smoothstep(-0.22, 0.46, nl)) * pow(1.0 - mu, 1.4);
+  vec3 tint = mix(uRim, vec3(1.0, 0.44, 0.21), clamp(sunset, 0.0, 1.0) * 0.85);
+  // forward scattering: looking into the sun through the shell lights the whole limb
+  float fwd = pow(max(0.0, -dot(V, L)) * 0.5 + 0.5, 3.0);
+  float a = f * (uAlpha + uHot * 0.6) * day * (0.78 + 0.85 * fwd);
+  a += pow(1.0 - mu, 7.0) * smoothstep(-0.02, 0.3, nl) * (0.5 + 0.5 * fwd) * uAlpha * 1.7;   // thin day rim
+  gl_FragColor = vec4(tint, a);
+}`;
+
+// A moon: one small sphere, tidally locked, lit by the sun at the origin. Everything that makes it
+// read as a moon rather than a pebble is here — cratered relief with a real normal, a narrow airless
+// terminator, the planet's shadow when it passes behind, and the planet's own light on its dark side.
+// No cutaway code: a moon is hidden outright while its planet is open, so it never needs the wedge.
+const MOON_FRAG = /* glsl */ `
+uniform vec3 uC0; uniform vec3 uC1; uniform vec3 uShine;
+uniform float uType; uniform float uSeed; uniform float uTime; uniform float uHot;
+uniform vec3 uPlanet; uniform float uPlanetR;
+varying vec3 vN; varying vec3 vW; varying vec3 vL;
+${NOISE}
+// One height field, three samples: two crater scales over a low swell. Differenced along the tangents
+// it gives the bowls a normal, which is the difference between craters and a speckled ball.
+float mRelief(vec3 p, float sd){
+  float big = smoothstep(0.04, 0.50, snoise(p * 5.0 + sd));
+  float small = smoothstep(0.22, 0.64, snoise(p * 15.0 + sd * 1.7));
+  return 0.26 * snoise(p * 2.2 + sd * 0.5) - 0.70 * big - 0.32 * small;
+}
+void main(){
+  vec3 Ng = normalize(vN);
+  vec3 V = normalize(cameraPosition - vW);
+  vec3 L = normalize(-vW);
+  vec3 p = normalize(vL);
+  vec3 t1 = normalize(cross(Ng, vec3(0.0, 1.0, 0.0)) + vec3(1e-3, 0.0, 0.0));
+  vec3 t2 = cross(Ng, t1);
+  // the step has to stay inside one cell of the finest octave, or the difference is noise, not a slope
+  float e = 0.04;
+  float h0 = mRelief(p, uSeed), h1 = mRelief(p + t1 * e, uSeed), h2 = mRelief(p + t2 * e, uSeed);
+  vec3 N = normalize(Ng - (t1 * (h1 - h0) + t2 * (h2 - h0)) * 2.6);
+  float basin = clamp(-h0 * 1.4, 0.0, 1.0);                   // crater floors are the dark maria
+  float ridge = clamp((h1 + h2 - 2.0 * h0) * 10.0, 0.0, 1.0); // and their walls the bright ejecta
+  vec3 albedo = mix(uC0, uC1, clamp(0.5 + 0.9 * h0, 0.0, 1.0)) * (1.0 - 0.34 * basin) + uC1 * ridge * 0.28;
+  float rough = 0.95, glint = 0.0;
+  vec3 emissive = vec3(0.0);
+  // the same chain as the planet's, so one type table serves both: rocky · lava · ice · liquid · muddy
+  if (uType < 1.5) {                                          // rocky: bare regolith, the default above
+    rough = 0.96;
+  } else if (uType < 2.5) {                                   // lava: cracks still glowing
+    emissive = uC1 * (1.0 - smoothstep(0.0, 0.09, abs(h0 + 0.18))) * (0.8 + 0.3 * sin(uTime * 1.7));
+    rough = 0.85;
+  } else if (uType < 3.5) {                                   // ice
+    albedo = mix(albedo, uC1 * 1.3, 0.4); rough = 0.32; glint = 0.55;
+  } else if (uType < 4.5) {                                   // liquid
+    albedo = mix(albedo, uC0 * 0.8, 0.5); rough = 0.1; glint = 0.9;
+  } else {                                                    // muddy: dust smooths the craters over
+    albedo = mix(albedo, mix(uC0, uC1, 0.65), 0.35); rough = 0.98;
+    N = normalize(mix(N, Ng, 0.4));
+  }
+  float nl = dot(N, L);
+  float d = smoothstep(-0.05, 0.24, nl);                      // no air, so a narrow terminator
+  // Eclipse: sphere against sphere along the sun direction. If the planet lies between this fragment
+  // and the sun the moon falls into its shadow, with a penumbra a little wider than the planet.
+  vec3 rel = uPlanet - vW;
+  float along = dot(rel, L);
+  float pdist = max(length(rel), uPlanetR * 1.001);
+  if (along > 0.0) d *= 0.04 + 0.96 * smoothstep(uPlanetR * 0.7, uPlanetR * 1.15, length(rel - L * along));
+  // the last light before night has crossed the most regolith and comes back the reddest
+  vec3 sunCol = mix(vec3(1.0, 0.9, 0.82), vec3(1.0, 0.48, 0.26), (1.0 - smoothstep(0.0, 0.34, nl)) * 0.8);
+  float spec = pow(max(dot(reflect(-L, N), V), 0.0), mix(120.0, 22.0, rough)) * glint * 0.7;
+  // Planetshine: the lit face of the planet lights the moon's night side, dimming as the planet's own
+  // phase wanes — a moon between the sun and its planet sees a new planet and gets nothing back.
+  vec3 pdir = rel / pdist;
+  float phase = clamp(0.5 - 0.5 * dot(normalize(-uPlanet), normalize(vW - uPlanet)), 0.0, 1.0);
+  float shine = max(dot(N, pdir), 0.0) * ((uPlanetR * uPlanetR) / (pdist * pdist)) * phase;
+  vec3 col = albedo * (0.02 + d * 1.1) * sunCol + spec * sunCol + uShine * shine * 2.2 + emissive;
+  col += uC1 * pow(1.0 - max(dot(Ng, V), 0.0), 4.0) * (0.04 + 0.4 * uHot) * (0.3 + 0.7 * d);
+  gl_FragColor = vec4(col, 1.0);
 }`;
 
 // planetary ring. RingGeometry UVs are Cartesian, so the radius is rebuilt from the local
@@ -319,6 +461,7 @@ void main(){
 const SUN_FRAG = /* glsl */ `
 uniform vec3 uCore; uniform vec3 uMid; uniform vec3 uEdge; uniform float uTime; uniform float uFade;
 uniform float uGran; uniform float uLimb; uniform float uSpots; uniform float uSpin; uniform float uFlare; uniform float uPulse;
+uniform float uR;
 varying vec3 vN; varying vec3 vW; varying vec3 vL;
 ${NOISE}
 void main(){
@@ -326,14 +469,28 @@ void main(){
   vec3 V = normalize(cameraPosition - vW);
   float mu = max(dot(normalize(vN), V), 0.0);                 // 1 at the centre of the disc, 0 at the limb
 
+  // How large the star is in the frame — its radius over the distance to it, so roughly its angular
+  // radius in radians. Granulation cells smaller than a pixel do not average out, they shimmer, so the
+  // fine octaves fade with apparent size instead of always being drawn. In the true-to-scale mode, where
+  // the star is a speck, this is what keeps it a clean dot.
+  float app = uR / max(length(cameraPosition - vW), 1e-3);
+  float fine = smoothstep(0.018, 0.11, app);
+  float near = smoothstep(0.12, 0.30, app);
+
   float lat = asin(clamp(p.y, -1.0, 1.0));
   float cl = cos(lat);
   float lon = atan(p.z, p.x) + uTime * uSpin * (0.020 + 0.034 * cl * cl);
   vec3 q = vec3(cl * cos(lon), p.y, cl * sin(lon));
 
-  float cell = pow(clamp(1.0 - abs(snoise(q * 22.0 + vec3(0.0, 0.0, uTime * 0.16))), 0.0, 1.0), 2.2);
   float coarse = fbm(q * 5.0 + vec3(0.0, uTime * 0.05, 0.0)) * 0.5 + 0.5;
-  float gran = mix(1.0, 0.66 + 0.54 * cell + 0.26 * coarse, clamp(uGran, 0.0, 2.0));
+  float cell = pow(clamp(1.0 - abs(snoise(q * 22.0 + vec3(0.0, 0.0, uTime * 0.16))), 0.0, 1.0), 2.2);
+  // both terms average to about 1, so fading between them changes the texture and not the brightness
+  float detail = 0.66 + 0.54 * cell + 0.26 * coarse;
+  float gran = mix(1.0, mix(0.80 + 0.34 * coarse, detail, fine), clamp(uGran, 0.0, 2.0));
+  if (near > 0.01) {                                          // close in, the cells split further
+    float fcell = pow(clamp(1.0 - abs(snoise(q * 62.0 + vec3(0.0, 0.0, uTime * 0.4))), 0.0, 1.0), 2.0);
+    gran *= 1.0 + near * (0.20 * fcell - 0.09);
+  }
 
   // sunspots keep to two mid-latitude belts, each umbra wrapped in a lighter penumbra
   float off = (abs(lat) - 0.28) / 0.17;                       // pow() is undefined on a negative base
@@ -349,10 +506,17 @@ void main(){
   vec3 ramp = x < 0.5 ? mix(uCore, uMid, x * 2.0) : mix(uMid, uEdge, (x - 0.5) * 2.0);
   vec3 col = ramp * gran * max(ld, 0.0) * dark;
 
-  // chromosphere: a thin hotter rim, combed into spicules that flicker on the flare pulse
+  // faculae: the magnetic network that surrounds an active region is hotter than the quiet sun, and
+  // shows most at the limb where you are looking along the bright walls of the granules
+  float fac = smoothstep(0.40, 0.55, sn) * (1.0 - smoothstep(0.0, 0.4, pen)) * spotF;
+  col *= 1.0 + fac * (0.10 + 0.5 * (1.0 - mu));
+
+  // chromosphere: a thin hotter rim, combed into spicules that resolve into finer jets close up and
+  // flicker on the flare pulse
   float rim = smoothstep(0.4, 0.0, mu);
   float spic = 0.5 + 0.5 * snoise(q * 24.0 + vec3(0.0, uTime * 0.7, 0.0));
-  col += mix(uEdge, vec3(1.0, 0.34, 0.2), 0.55) * rim * (0.14 + 0.4 * spic) * (0.55 + 0.9 * uFlare * (0.3 + 2.0 * uPulse));
+  spic = mix(spic, spic * (0.5 + 0.9 * (0.5 + 0.5 * snoise(q * 96.0 + vec3(0.0, uTime * 2.1, 0.0)))), near);
+  col += mix(uEdge, vec3(1.0, 0.34, 0.2), 0.55) * rim * (0.14 + 0.42 * spic) * (0.55 + 0.9 * uFlare * (0.3 + 2.0 * uPulse));
   gl_FragColor = vec4(col * 0.95 * uFade, 1.0);
 }`;
 
@@ -371,11 +535,20 @@ void main(){
   if (d < -0.004) discard;                                    // the photosphere owns the disc
   vec3 rp = normalize(vW - V * dot(vW, V));                   // out from the centre, in the plane of the sky
   float breathe = 0.9 + 0.1 * sin(uTime * 0.33) + 0.06 * sin(uTime * 0.87 + 1.7);
-  float streamer = fbm(rp * 3.0 + vec3(0.0, uTime * 0.02, 0.0)) * 0.5 + 0.5;
+  float streamer = clamp(fbm(rp * 2.6 + vec3(0.0, uTime * 0.02, 0.0)) * 0.5 + 0.5, 0.0, 1.0);
+  float sharp = pow(streamer, 2.3);
+  // helmet streamers gather over the active belts, so the corona is fat at the equator and thin at
+  // the poles — and each streamer reaches much further out than the gap beside it, which is the whole
+  // difference between a corona and a uniform ball of light around the star
+  float eq = 1.0 - 0.5 * abs(rp.y);
+  float reach = mix(4.4, 1.15, clamp(sharp * eq, 0.0, 1.0));
+  float halo = exp(-max(d, 0.0) * reach) * (0.20 + 1.05 * sharp) * eq * breathe;
+  // polar plumes: short, fine, and only over the poles
+  float plume = exp(-max(d, 0.0) * 8.0) * pow(clamp(0.5 + 0.5 * snoise(rp * 20.0 + uTime * 0.03), 0.0, 1.0), 3.0)
+              * smoothstep(0.5, 0.95, abs(rp.y)) * 0.55;
   float wisp = clamp(0.55 + 0.45 * snoise(rp * 9.0 + uTime * 0.05), 0.0, 1.0);
-  float halo = exp(-max(d, 0.0) * 1.9) * (0.26 + 0.6 * streamer) * breathe;
   float prom = exp(-max(d, 0.0) * 15.0) * pow(wisp, 3.0) * uFlare * (0.45 + 2.6 * uPulse);
-  vec3 col = mix(uEdge, uMid, 0.35) * halo * 0.55 + mix(uEdge, vec3(1.0, 0.42, 0.28), 0.6) * prom;
+  vec3 col = mix(uEdge, uMid, 0.35) * (halo + plume) * 0.55 + mix(uEdge, vec3(1.0, 0.42, 0.28), 0.6) * prom;
   gl_FragColor = vec4(col * uCorona * uFade, 1.0);
 }`;
 
@@ -477,14 +650,23 @@ export type PlanetUniforms = CutUniforms & {
   uOcean: U<number>; uCloud: U<number>; uCrater: U<number>; uVein: U<number>;
   uGlow: U<number>; uBands: U<number>; uBandSharp: U<number>;
   uRingOn: U<number>; uRingN: U<THREE.Vector3>; uPlanetC: U<THREE.Vector3>; uRingIn: U<number>; uRingOut: U<number>;
+  /** `vec4[n]`, flat: one xyz world centre + w radius per moon. `NO_MOONS` when the body has none, in
+   *  which case the compiled shader never declares it and three.js never looks at it. */
+  uMoons: U<Float32Array>;
 };
 export type AtmoUniforms = CutUniforms & { uRim: U<THREE.Color>; uHot: U<number>; uAlpha: U<number> };
+export type MoonUniforms = {
+  uC0: U<THREE.Color>; uC1: U<THREE.Color>; uShine: U<THREE.Color>;
+  uType: U<number>; uSeed: U<number>; uTime: U<number>; uHot: U<number>;
+  uPlanet: U<THREE.Vector3>; uPlanetR: U<number>;
+};
 export type RingUniforms = { uMap: U<THREE.Texture>; uInner: U<number>; uOuter: U<number>; uHot: U<number>; uPlanet: U<THREE.Vector3>; uPlanetR: U<number>; uSeed: U<number> };
 export type ShellUniforms = CutUniforms & { uColor: U<THREE.Color>; uSeed: U<number>; uTime: U<number>; uAlpha: U<number>; uHi: U<number> };
 export type FaceUniforms = { uMap: U<THREE.Texture>; uR: U<number>; uSeed: U<number>; uAlpha: U<number>; uSpan: U<number> };
 type SunUniforms = {
   uCore: U<THREE.Color>; uMid: U<THREE.Color>; uEdge: U<THREE.Color>; uTime: U<number>; uFade: U<number>;
   uGran: U<number>; uLimb: U<number>; uSpots: U<number>; uSpin: U<number>; uFlare: U<number>; uPulse: U<number>;
+  uR: U<number>;
 };
 type CoronaUniforms = {
   uMid: U<THREE.Color>; uEdge: U<THREE.Color>; uR: U<number>; uTime: U<number>; uFade: U<number>;
@@ -571,7 +753,7 @@ export interface Cutaway {
   group: THREE.Group; shells: ShellMesh[]; faces: FaceMesh[]; faceH: FaceMesh; faceB: FaceMesh; layers: Layer[];
   /** eased 0→1 wedge opening */ amount: number; /** 0 closed · 1 open */ target: number; /** linear time 0→1 */ tm: number;
 }
-function buildCutaway(p: Project, size: number, i: number): Cutaway {
+function buildCutaway(p: ProjectFull, size: number, i: number): Cutaway {
   const group = new THREE.Group(); group.visible = false;
   const source = p.langs.length > 0 ? p.langs : ([["Other", 100]] as const);
   const langs = source.slice().sort((a, b) => b[1] - a[1]);
@@ -613,6 +795,10 @@ export interface Body {
   extent: number;
   /** The resolved atmosphere thickness, for views that frame the shell rather than the ring. */
   atmoT: number;
+  /** Moons, in row order. Empty on a body with none: no geometry, no group, no uniforms, no frame work. */
+  moons: readonly MoonBody[];
+  /** What they hang from, so one flag hides the lot while the cutaway wedge is open. */
+  moonRoot: THREE.Group | null;
 }
 
 const DEG = Math.PI / 180;
@@ -637,6 +823,77 @@ export function planetDefaults(i: number): { seed: number; spinRate: number; str
   };
 }
 
+// ── moons ───────────────────────────────────────────────
+// One per meaningful nested child folder in the repository. Everything about a moon is relative to its
+// planet — `size` and `orbit` are multiples of the planet's radius — so the same row reads correctly
+// under all three scale modes.
+
+/** How many moons a body will draw. Shadow slots and labels both cost per moon, so the row is trimmed. */
+export const MOON_MAX = 6;
+/** A moon may not be more than this fraction of its planet's radius, or it starts hiding the planet. */
+const MOON_SIZE_CAP = 0.32;
+/** Shared, so a planet with no moons allocates nothing for the uniform it never declares. */
+const NO_MOONS = new Float32Array(0);
+
+let moonGeoCache: THREE.SphereGeometry | null = null;
+/** Built by the first moon anywhere and shared from then on; a system with none never builds it. */
+const moonGeometry = (): THREE.SphereGeometry => (moonGeoCache ??= new THREE.SphereGeometry(1, 24, 18));
+
+export interface MoonBody {
+  cfg: MoonConfig;
+  mesh: ShaderMesh<THREE.SphereGeometry, MoonUniforms>;
+  /** Radius and orbit radius, in scene units at the planet's own scale. */
+  size: number; dist: number;
+  /** Radians per second, and where on the orbit it starts. */
+  omega: number; phase: number;
+  /** sin and cos of the inclination, so a frame costs one sin, one cos and three multiplies. */
+  st: number; ct: number;
+}
+
+/** The moons a row asks to draw: visible ones, in the order given, capped at `MOON_MAX`. */
+export function moonsOf(p: ProjectFull): readonly MoonConfig[] {
+  const src = p.moons ?? p.planet.moons;
+  if (!src || src.length === 0) return [];
+  const on = src.filter((m) => m.visible);
+  return on.length > MOON_MAX ? on.slice(0, MOON_MAX) : on;
+}
+
+/**
+ * `floor` is the smallest orbit that clears the atmosphere shell and any ring. A row that leaves
+ * `phase` at zero — which detection has no reason to set — would stack every moon of a repository on
+ * one point, so an unset phase is fanned out by index instead; a phase the admin actually chose wins.
+ */
+function makeMoon(m: MoonConfig, i: number, k: number, of: number, planetSize: number, floor: number, shine: number): MoonBody {
+  const size = planetSize * Math.min(Math.max(m.size, 0.04), MOON_SIZE_CAP);
+  const dist = Math.max(planetSize * Math.min(Math.max(m.orbit, 1.15), 16), floor + size * 1.5);
+  const base = new THREE.Color(m.colour);
+  const mesh: ShaderMesh<THREE.SphereGeometry, MoonUniforms> = new THREE.Mesh(moonGeometry(),
+    new ShaderMat<MoonUniforms>({ vertexShader: V_WORLD, fragmentShader: MOON_FRAG,
+      uniforms: {
+        uC0: { value: base.clone().multiplyScalar(0.7) },
+        uC1: { value: base.clone().offsetHSL(0, -0.08, 0.16) },
+        uShine: { value: new THREE.Color(shine).multiplyScalar(0.5) },
+        uType: { value: TYPE[m.type] }, uSeed: { value: i * 13.7 + k * 4.31 + 1.0 },
+        uTime: { value: 0 }, uHot: { value: 0 },
+        uPlanet: { value: new THREE.Vector3() }, uPlanetR: { value: planetSize },
+      } }));
+  mesh.scale.setScalar(size);
+  const tilt = m.tilt * DEG;
+  const phase = m.phase === 0 ? (k * Math.PI * 2) / Math.max(1, of) : m.phase * DEG;
+  return { cfg: m, mesh, size, dist, omega: m.speed * TURNS, phase, st: Math.sin(tilt), ct: Math.cos(tilt) };
+}
+
+/**
+ * Where a moon sits at time `t`, in its planet's local frame. The orbit is a circle inclined about the
+ * planet's +X axis, so `tilt` 0 is the orbital plane and 90° is polar.
+ */
+export function moonAt(m: MoonBody, t: number, out: THREE.Vector3): number {
+  const a = m.phase + m.omega * t;
+  const c = Math.cos(a), s = Math.sin(a);
+  out.set(c * m.dist, s * m.dist * m.st, s * m.dist * m.ct);
+  return a;
+}
+
 /**
  * What a scale arrangement wants to say about one body instead of the stored row. Only the fields the
  * arrangement actually computes are here; everything else still comes from the project's own config.
@@ -645,11 +902,13 @@ export interface BodyOverride {
   size?: number; tilt?: number; spin?: number; type?: PlanetType; ring?: RingConfig;
   /** The star this body orbits, so no stored size can produce a planet larger than it. */
   sunRadius?: number;
+  /** Draw the row's moons. Off by default, so the reading site's views stay the geometry they were. */
+  moons?: boolean;
 }
 
 // One project → one body: tilt/spin groups, shader planet, atmosphere shell, cutaway group, optional ring.
 // Lighting comes from the world origin (the sun), so the body must sit away from (0,0,0).
-export function makeBody(p: Project, i: number, over?: BodyOverride): Body {
+export function makeBody(p: ProjectFull, i: number, over?: BodyOverride): Body {
   const cfg: PlanetFull = over
     ? { ...p.planet, ...(over.type ? { type: over.type } : {}), ...(over.size === undefined ? {} : { size: over.size }),
         ...(over.tilt === undefined ? {} : { tilt: over.tilt }), ...(over.spin === undefined ? {} : { spin: over.spin }),
@@ -659,19 +918,22 @@ export function makeBody(p: Project, i: number, over?: BodyOverride): Body {
   const size = clampPlanetSize(cfg.size * PLANET_SCALE, over?.sunRadius ?? SUN_R_DEFAULT);
   const d = planetDefaults(i);
   const atmoT = cfg.atmo ?? d.atmo;
+  // the moon count decides the planet's shader variant, so it has to be known before the material
+  const moonCfg = over?.moons ? moonsOf(p) : [];
   const root = new THREE.Group();
 
   const tilt = new THREE.Group(); tilt.rotation.z = cfg.tilt === undefined ? d.tilt : cfg.tilt * DEG;
   const spin = new THREE.Group();
   tilt.add(spin); root.add(tilt);
 
-  const mat = new ShaderMat<PlanetUniforms>({ vertexShader: V_WORLD, fragmentShader: PLANET_FRAG,
+  const mat = new ShaderMat<PlanetUniforms>({ vertexShader: V_WORLD, fragmentShader: planetFrag(moonCfg.length),
     uniforms: {
       uC0: { value: new THREE.Color(cfg.c0) }, uC1: { value: new THREE.Color(cfg.c1) }, uC2: { value: new THREE.Color(cfg.c2) }, uC3: { value: new THREE.Color(cfg.c3) },
       uRim: { value: new THREE.Color(cfg.rim) }, uType: { value: TYPE[cfg.type] }, uSeed: { value: cfg.seed ?? d.seed },
       uTime: { value: 0 }, uHot: { value: 0 }, uOcean: { value: cfg.ocean ?? 0 }, uCloud: { value: cfg.cloud ?? 0 }, uCrater: { value: cfg.crater ?? 0 }, uVein: { value: cfg.vein ?? 0 },
       uGlow: { value: cfg.glow ?? d.glow }, uBands: { value: cfg.bands ?? d.bands }, uBandSharp: { value: cfg.bandSharp ?? d.bandSharp },
       uRingOn: { value: cfg.ring ? 1 : 0 }, uRingN: { value: new THREE.Vector3(0, 1, 0) }, uPlanetC: { value: new THREE.Vector3() }, uRingIn: { value: 0 }, uRingOut: { value: 0 },
+      uMoons: { value: moonCfg.length > 0 ? new Float32Array(moonCfg.length * 4) : NO_MOONS },
       ...cutUniforms(),
     } });
   const planet = new THREE.Mesh(sphereGeo, mat); planet.scale.setScalar(size); spin.add(planet);
@@ -689,8 +951,23 @@ export function makeBody(p: Project, i: number, over?: BodyOverride): Body {
     ring.rotation.x = Math.PI / 2 + cfg.ring.tilt;
     tilt.add(ring);
   }
+
+  // moons hang off `root`, not off `tilt` or `spin`: they travel with the planet but owe nothing to
+  // its axis or its day, and their own orbital inclination is their `tilt`
+  let moonRoot: THREE.Group | null = null;
+  const moons: MoonBody[] = [];
+  if (moonCfg.length > 0) {
+    const floor = size * Math.max(1 + atmoT, cfg.ring ? cfg.ring.outer + 0.12 : 0);
+    moonRoot = new THREE.Group();
+    for (let k = 0; k < moonCfg.length; k++) {
+      const mn = makeMoon(moonCfg[k], i, k, moonCfg.length, size, floor, cfg.rim);
+      moons.push(mn); moonRoot.add(mn.mesh);
+    }
+    root.add(moonRoot);
+  }
+
   return {
-    root, tilt, spin, planet, atmo, ring, cut, size, cfg,
+    root, tilt, spin, planet, atmo, ring, cut, size, cfg, moons, moonRoot,
     spinRate: cfg.spin === undefined ? d.spinRate : cfg.spin * TURNS,
     stripSpinRate: cfg.spin === undefined ? d.stripSpinRate : cfg.spin * TURNS,
     extent: cfg.ring ? cfg.ring.outer : Math.max(1.22, 1 + atmoT + 0.08), atmoT,
@@ -708,12 +985,12 @@ function disposeMaterial(m: THREE.Material): void {
   } else if (m instanceof THREE.SpriteMaterial && m.map) m.map.dispose();
   m.dispose();
 }
-/** Free GPU resources under `root`. The shared unit sphere is kept (other bodies still use it). */
+/** Free GPU resources under `root`. The shared unit and moon spheres are kept — other bodies use them. */
 export function disposeTree(root: THREE.Object3D): void {
   root.traverse((o) => {
     if (o instanceof THREE.Sprite) { disposeMaterial(o.material); return; }   // sprites share one static geometry
     if (o instanceof THREE.Mesh || o instanceof THREE.Line || o instanceof THREE.Points) {
-      const g: THREE.BufferGeometry = o.geometry; if (g !== sphereGeo) g.dispose();
+      const g: THREE.BufferGeometry = o.geometry; if (g !== sphereGeo && g !== moonGeoCache) g.dispose();
       const m: THREE.Material | THREE.Material[] = o.material; (Array.isArray(m) ? m : [m]).forEach(disposeMaterial);
     }
     if (o instanceof THREE.InstancedMesh) o.dispose();
@@ -741,8 +1018,12 @@ const flightDuration = (dist: number) => Math.min(4.6, Math.max(1.5, 0.9 + dist 
 // ───────────────────────── scene ─────────────────────────
 
 interface SceneBody extends Body {
-  p: Project; pick: THREE.Mesh; el: HTMLButtonElement; theta0: number; r: number; omega: number;
+  p: ProjectFull; pick: THREE.Mesh; el: HTMLButtonElement; theta0: number; r: number; omega: number;
   hot: number; mix: number; spinT: number; orbitPos: THREE.Vector3; stackPos: THREE.Vector3; pos: THREE.Vector3;
+  /** One per moon, in the same order. Empty on a body with no moons — no nodes are made. */
+  moonEls: readonly HTMLElement[];
+  /** Eased 0→1: how loudly this body's moon labels are showing. */
+  moonLab: number;
 }
 interface Flight {
   active: boolean; stopped: boolean; t: number; dur: number; kind: "out" | "back";
@@ -751,7 +1032,7 @@ interface Flight {
 interface Comet { active: boolean; t: number; dur: number; from: THREE.Vector3; to: THREE.Vector3; next: number; hist: THREE.Vector3[] }
 
 /** A ring for a body the arrangement says is ringed but whose row never drew one. */
-const arrangedRing = (p: Project): RingConfig => ({ ca: p.planet.c2, cb: p.planet.c3, inner: 1.42, outer: 2.35, tilt: 0.12 });
+const arrangedRing = (p: ProjectFull): RingConfig => ({ ca: p.planet.c2, cb: p.planet.c3, inner: 1.42, outer: 2.35, tilt: 0.12 });
 
 export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars, onSelect, onSunSelect, onFlightEvent, onBeltLevel, reducedMotion = false }: SystemOptions): SystemApi {
   // everything the admin can change; anything it does not set keeps the original constant
@@ -909,7 +1190,7 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
     uniforms: {
       uCore: { value: sunCore }, uMid: { value: sunMid }, uEdge: { value: sunEdge }, uTime: { value: 0 }, uFade,
       uGran: { value: cfg?.sunGranulation ?? 1 }, uLimb: { value: cfg?.sunLimb ?? 1 }, uSpots: { value: cfg?.sunSpots ?? 0 },
-      uSpin: { value: cfg?.sunSpin ?? 1 }, uFlare: uFlareK, uPulse,
+      uSpin: { value: cfg?.sunSpin ?? 1 }, uFlare: uFlareK, uPulse, uR: { value: SUN_R },
     } });
   const sun = new THREE.Mesh(new THREE.SphereGeometry(SUN_R, 96, 96), sunMat);
   scene.add(sun);
@@ -1030,8 +1311,8 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
     // in an arranged mode the layout supplies the body; a ring is only ever added, never taken away,
     // because a stored ring is a drawing decision and its colours are not the arrangement's to guess
     const body = makeBody(p, i, arranged
-      ? { size: L.size, tilt: L.tilt, spin: L.spin, type: L.type, ring: L.ringed ? arrangedRing(p) : undefined, sunRadius: SUN_R }
-      : { sunRadius: SUN_R });
+      ? { size: L.size, tilt: L.tilt, spin: L.spin, type: L.type, ring: L.ringed ? arrangedRing(p) : undefined, sunRadius: SUN_R, moons: true }
+      : { sunRadius: SUN_R, moons: true });
     const pick = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
     // a fat click target, but never so fat that neighbouring orbits overlap (they do at real scale)
     pick.scale.setScalar(Math.max(body.size * 1.3, Math.min(2.4, r * 0.35))); body.root.add(pick);
@@ -1049,7 +1330,21 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
     el.addEventListener("click", (e) => { e.stopPropagation(); if (active && focusIdx < 0 && !sunFocus && !flight.active) onSelect?.(p); });
     labelsEl.appendChild(el);
 
-    return { ...body, p, pick, el, theta0, r, omega, hot: 0, mix: 0, spinT: 0,
+    // Moon labels are the planet's own machinery, one class quieter: same `.lab` markup, no tagline,
+    // no pointer target, and a smaller type size set here so the deck's stylesheet needs no new rule.
+    const moonEls = body.moons.map((mn) => {
+      const ml = document.createElement("div");
+      ml.className = "lab lab--moon";
+      ml.setAttribute("aria-hidden", "true");                   // the planet's own label already names the project
+      ml.style.pointerEvents = "none"; ml.style.fontSize = "8px"; ml.style.letterSpacing = ".2em"; ml.style.opacity = "0";
+      const mname = document.createElement("span"); mname.className = "lab__name"; mname.textContent = mn.cfg.name;
+      mname.style.pointerEvents = "none"; mname.style.padding = "1px 5px";
+      ml.append(mname);
+      labelsEl.appendChild(ml);
+      return ml;
+    });
+
+    return { ...body, p, pick, el, theta0, r, omega, hot: 0, mix: 0, spinT: 0, moonEls, moonLab: 0,
       orbitPos: new THREE.Vector3(), stackPos: new THREE.Vector3(), pos: new THREE.Vector3() };
   });
   bodies.forEach((b, i) => { const t = bodies.length === 1 ? 0.5 : i / (bodies.length - 1); b.stackPos.set(-60, 32 - t * 64, 14); });
@@ -1213,11 +1508,80 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
   }
   const findBody = (id: string) => bodies.find((x) => x.p.id === id);
 
+  /**
+   * The focused planet's moons, with where each one currently is on screen, so the deck can list them
+   * without knowing anything about three.js. Empty whenever nothing is focused or it has no moons.
+   */
+  function moonHeading(): readonly HeadingMoon[] {
+    const b = focusIdx >= 0 ? bodies[focusIdx] : null;
+    if (!b || b.moons.length === 0) return [];
+    const sc = b.root.scale.x, tan2 = 2 * Math.tan(fovRad()), dPlanet = b.pos.distanceTo(camPos);
+    return b.moons.map((mn): HeadingMoon => {
+      moonW.copy(mn.mesh.position).multiplyScalar(sc).add(b.pos);
+      project(moonW);
+      const dist = moonW.distanceTo(camPos);
+      return { id: `${b.p.id}/${mn.cfg.path || mn.cfg.name}`, name: mn.cfg.name, path: mn.cfg.path,
+        x: scr.x, y: scr.y, z: scr.z, px: (mn.size * sc * h) / (tan2 * dist), dist, front: dist < dPlanet };
+    });
+  }
+
   // ── frame loop
   let last = performance.now(), paused = false, raf = 0, t = 0, disposed = false;
   const scr = { x: 0, y: 0, z: 0 };
   function project(v: THREE.Vector3) { tmp2.copy(v).project(camera); scr.x = (tmp2.x * 0.5 + 0.5) * w; scr.y = (-tmp2.y * 0.5 + 0.5) * h; scr.z = tmp2.z; }
   const fovRad = () => (camera.fov * Math.PI) / 360;
+
+  const moonL = new THREE.Vector3(), moonW = new THREE.Vector3();
+  const moonLabXY: number[] = [];   // where this body's moon labels have already landed, x,y pairs
+  /**
+   * One body's moons: advance the orbits, hand the planet their world positions for its shadow pass,
+   * and place the labels. Only ever called for a body that has moons, so a body without any costs the
+   * one array-length test at the call site and nothing else.
+   *
+   * `labX`/`labY` are where the planet's own label sits, because a moon label must never land on it.
+   */
+  function updateMoons(b: SceneBody, i: number, dt: number, labX: number, labY: number): void {
+    // the cutaway opens a wedge into the planet; a moon crossing that would read as debris inside it
+    const hidden = b.cut.amount > 0.002 || b.cut.target > 0;
+    if (b.moonRoot) b.moonRoot.visible = !hidden;
+    const sc = b.root.scale.x;
+    const shadows = b.planet.material.uniforms.uMoons.value;
+    const dcam = b.pos.distanceTo(camPos);
+    // quieter than a planet: only close in, or on the body the deck is holding
+    const near = clamp01(1 - (dcam - b.size * 10) / (b.size * 30));
+    const want = hidden || !active || flight.active ? 0 : i === focusIdx ? 1 : near;
+    b.moonLab += (want - b.moonLab) * Math.min(1, dt * 5);
+    const tan2 = 2 * Math.tan(fovRad());
+    moonLabXY.length = 0;
+    for (let k = 0; k < b.moons.length; k++) {
+      const mn = b.moons[k];
+      const ang = moonAt(mn, t, moonL);
+      mn.mesh.position.copy(moonL);
+      mn.mesh.rotation.y = -ang;                                    // tidally locked: one face to the planet
+      const mu = mn.mesh.material.uniforms;
+      mu.uTime.value = t; mu.uHot.value = b.hot;
+      mu.uPlanet.value.copy(b.pos); mu.uPlanetR.value = b.size * sc;
+      // root carries no rotation on the deck, so the world centre is the local one scaled and offset
+      moonW.copy(moonL).multiplyScalar(sc).add(b.pos);
+      const wr = hidden ? 0 : mn.size * sc;                         // a zero radius switches the shader's slot off
+      shadows[k * 4] = moonW.x; shadows[k * 4 + 1] = moonW.y; shadows[k * 4 + 2] = moonW.z; shadows[k * 4 + 3] = wr;
+      const el = b.moonEls[k];
+      if (b.moonLab < 0.004) { if (el.style.opacity !== "0") el.style.opacity = "0"; continue; }
+      project(moonW);
+      const mdist = moonW.distanceTo(camPos);
+      const mpx = (mn.size * sc * h) / (tan2 * mdist);
+      const x = scr.x, y = scr.y - mpx - 4;
+      // give way to the planet's own label, and to any moon label already placed this frame
+      let clear = Math.abs(x - labX) < 52 && Math.abs(y - labY) < 16 ? 0 : 1;
+      for (let j = 0; clear > 0 && j < moonLabXY.length; j += 2) {
+        if (Math.abs(x - moonLabXY[j]) < 44 && Math.abs(y - moonLabXY[j + 1]) < 13) clear = 0;
+      }
+      if (clear > 0) moonLabXY.push(x, y);
+      el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
+      // a moon round the back is still named, just fainter, so the list and the view agree
+      el.style.opacity = String(b.moonLab * clear * (mdist < dcam ? 1 : 0.4) * (scr.z < 1 ? 1 : 0) * (1 - Math.max(warp, tunnel)) * (1 - b.mix));
+    }
+  }
 
   function frame(now: number) {
     if (disposed) return;
@@ -1303,13 +1667,15 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
 
       project(b.pos);
       const px = (b.size * (b.ring ? 1.9 : 1.15) * h) / (2 * Math.tan(fovRad()) * b.pos.distanceTo(camPos));
-      b.el.style.transform = `translate(${scr.x.toFixed(1)}px, ${(scr.y + px).toFixed(1)}px) translate(-50%, 8px)`;
+      const labX = scr.x, labY = scr.y + px;
+      b.el.style.transform = `translate(${labX.toFixed(1)}px, ${labY.toFixed(1)}px) translate(-50%, 8px)`;
       const show = orbiting && active && scr.z < 1 ? 1 : 0;
       const dcam = b.pos.distanceTo(camPos);
       const depth = i === hotIdx ? 1 : 1 - 0.5 * clamp01((dcam - view.radius * 0.95) / (view.radius * 0.5));
       b.el.style.opacity = String((1 - b.mix) * show * (1 - Math.max(warp, tunnel)) * depth);
 
       b.el.classList.toggle("is-hot", i === hotIdx);
+      if (b.moons.length > 0) updateMoons(b, i, dt, labX, labY);
     }
     rings.forEach((rg, i) => {
       const src = bodies[i];
@@ -1414,7 +1780,7 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
     setThrottle(k) { view.throttle = Math.min(1, Math.max(-0.6, k)); },
     heading(): Heading {
       return { theta: view.theta, phi: view.phi, roll: camera.rotation.z, speed: warp, flying: flight.active, flightT: flight.t, flightDur: flight.dur, hot: hotIdx, sunHot,
-        auPerUnit: layout.auPerUnit,
+        auPerUnit: layout.auPerUnit, moons: moonHeading(),
         pos: { x: camPos.x, y: camPos.y, z: camPos.z }, bodies: bodies.map((b) => ({ id: b.p.id, x: b.pos.x, y: b.pos.y, z: b.pos.z, r: b.r, size: b.size })) };
     },
     project(v: Vec3): Vec3 { const q = new THREE.Vector3(v.x, v.y, v.z).project(camera); return { x: (q.x * 0.5 + 0.5) * w, y: (-q.y * 0.5 + 0.5) * h, z: q.z }; },
@@ -1456,7 +1822,7 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
       stage.removeEventListener("pointermove", onStageMove); stage.removeEventListener("pointerleave", onStageLeave);
       canvas.removeEventListener("pointerdown", onCanvasDown); canvas.removeEventListener("click", onCanvasClick);
       window.removeEventListener("pointerup", onWindowUp);
-      for (const b of bodies) b.el.remove();
+      for (const b of bodies) { b.el.remove(); for (const ml of b.moonEls) ml.remove(); }
       canvas.style.cursor = ""; canvas.classList.remove("is-dragging");
       disposeTree(scene); disc.dispose(); streakTex.dispose();
       for (const pass of composer.passes) pass.dispose();

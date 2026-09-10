@@ -12,7 +12,8 @@ export interface PlanetConfig {
 export type LangShare = readonly [name: string, percent: number];
 export type ProjectId = "zcrypt" | "learnity" | "furnizsh" | "netlink" | "docxo" | "devtoolshq" | "scrappo" | "resumeright";
 export interface Project {
-  id: ProjectId; title: string; year: number | null; weight: number; tagline: string; description: string;
+  /** The URL segment. The eight static records use `ProjectId`; a project added in the admin may use any slug. */
+  id: string; title: string; year: number | null; weight: number; tagline: string; description: string;
   stack: readonly string[]; context: string; category: string; status?: string;
   github: string; live: string | null; langs: readonly LangShare[]; planet: PlanetConfig;
 }
@@ -250,7 +251,7 @@ export const testimonials: readonly Testimonial[] = [
 ];
 
 // The four the reading site leads with (the résumé's selected projects + furniZsh); the rest live on /read/projects.html.
-export const featured: readonly ProjectId[] = ["zcrypt", "learnity", "netlink", "furnizsh"];
+export const featured: readonly string[] = ["zcrypt", "learnity", "netlink", "furnizsh"];
 
 
 // GitHub language colours (github/linguist), used for the cutaway layers and the composition bar
@@ -260,7 +261,7 @@ export const LANG_COLORS: Readonly<Record<string, number>> = {
 };
 
 /** GitHub repo slug (lower-case) → project id. */
-export const repoIndex: Readonly<Record<string, ProjectId>> = Object.fromEntries(
+export const repoIndex: Readonly<Record<string, string>> = Object.fromEntries(
   projects.map((p) => [repoSlug(p).toLowerCase(), p.id] as const),
 );
 /** "Wosmos/zcrypt" from the repo URL. */

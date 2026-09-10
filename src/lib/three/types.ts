@@ -1,7 +1,7 @@
 // Shared contracts between the WebGL scene (scene.ts), the small planet views (planet-view.ts) and the
 // flight-deck controller (deck.ts). Kept free of three.js types so UI code never imports three.
 
-import type { PlanetConfig, Project } from "@/data/portfolio";
+import type { PlanetConfig, PlanetType, Project } from "@/data/portfolio";
 import type { RepoStar } from "@/lib/github";
 import type { ScaleMode } from "@/lib/scale";
 
@@ -26,15 +26,46 @@ export interface PlanetExtras {
   /** Band count (gas and ice), and how hard the band edges are. */
   bands?: number; bandSharp?: number;
 }
-export type PlanetFull = PlanetConfig & PlanetExtras;
+/** A moon's surface family. The gas branch of the planet shader has no small-body equivalent. */
+export type MoonType = Exclude<PlanetType, "gas">;
+
+/**
+ * One moon — a repository's nested child folder (zcrypt's backend, frontend, mobile, core). Mirrors
+ * `MoonConfigJson` on the row; the scene is the only reader, so the units are the scene's: `size` and
+ * `orbit` are multiples of the planet's radius, `speed` is turns per minute, angles are degrees.
+ */
+export interface MoonConfig {
+  name: string; path: string; size: number; orbit: number; speed: number;
+  tilt: number; phase: number; colour: number; type: MoonType; auto: boolean; visible: boolean;
+}
+/**
+ * Moons arrived as their own column, after both `PlanetConfig` and `Project` were written, and the
+ * admin may hang them off either shape. Optional on both, so a record from before the column still
+ * satisfies these types and draws a planet with no moons at all.
+ */
+export interface WithMoons { moons?: readonly MoonConfig[] }
+export type PlanetFull = PlanetConfig & PlanetExtras & WithMoons;
+export type ProjectFull = Omit<Project, "planet"> & WithMoons & { planet: PlanetFull };
 
 export interface Vec3 { x: number; y: number; z: number }
 export interface HeadingBody { id: string; x: number; y: number; z: number; r: number; size: number }
+/** One moon of the focused planet, ready for the deck to list: name, screen position, screen radius. */
+export interface HeadingMoon {
+  id: string; name: string; path: string;
+  /** Screen pixels, and the projected depth — above 1 the moon is behind the camera. */
+  x: number; y: number; z: number;
+  /** On-screen radius in pixels, and the world distance to the camera. */
+  px: number; dist: number;
+  /** True while the moon is on the near side of its planet. */
+  front: boolean;
+}
 export interface Heading {
   theta: number; phi: number; roll: number; pos: Vec3; flying: boolean; flightT: number; flightDur: number;
   speed: number; hot: number; sunHot: boolean; bodies: readonly HeadingBody[];
   /** Astronomical units per scene unit, so a distance readout stays honest at any span. */
   auPerUnit: number;
+  /** The focused planet's moons. Empty whenever nothing is focused, or the planet has none. */
+  moons: readonly HeadingMoon[];
 }
 export interface LayerAnchor { name: string; pct: number; color: number; x: number; y: number; z: number; amount: number }
 export interface Layer { name: string; pct: number; r0: number; r1: number; color: number }
@@ -69,7 +100,7 @@ export interface SceneSettings {
   constellations?: boolean; constellationGain?: number;
 }
 export interface SystemOptions {
-  canvas: HTMLCanvasElement; labelsEl: HTMLElement; projects: readonly Project[]; scene?: SceneSettings;
+  canvas: HTMLCanvasElement; labelsEl: HTMLElement; projects: readonly ProjectFull[]; scene?: SceneSettings;
   onSelect?: (p: Project) => void; onSunSelect?: () => void;
   onFlightEvent?: (name: FlightEventName, info: FlightEventInfo) => void; onBeltLevel?: (k: number) => void;
   reducedMotion?: boolean;
@@ -88,7 +119,7 @@ export interface SystemApi {
   dispose(): void;
 }
 export interface PlanetViewOptions {
-  canvas: HTMLCanvasElement; project: Project; index?: number; interactive?: boolean; cutaway?: boolean; fit?: number;
+  canvas: HTMLCanvasElement; project: ProjectFull; index?: number; interactive?: boolean; cutaway?: boolean; fit?: number;
   onCut?: (on: boolean) => void; onHover?: (on: boolean) => void;
 }
 export interface PlanetViewApi {
@@ -96,7 +127,7 @@ export interface PlanetViewApi {
   setCut(on: boolean): void; toggleCut(): void; setHot(v: boolean): void; highlightLayer(k: number): void; dispose(): void;
 }
 export interface PlanetStripOptions {
-  canvas: HTMLCanvasElement; projects: readonly Project[];
+  canvas: HTMLCanvasElement; projects: readonly ProjectFull[];
   onPick?: (p: Project, i: number) => void; onHover?: (p: Project | null, i: number) => void;
 }
 export interface PlanetStripApi { setHot(i: number): void; readonly count: number; dispose(): void }

@@ -34,6 +34,29 @@ export const profile = pgTable("profile", {
 });
 
 export interface RingConfigJson { ca: number; cb: number; inner: number; outer: number; tilt: number }
+
+/** One moon. A repository's top-level folders become these: zcrypt's backend, frontend, mobile, core. */
+export interface MoonConfigJson {
+  /** What the label reads. Defaults to the folder name. */
+  name: string;
+  /** The repository path it was detected from, empty when it was added by hand. */
+  path: string;
+  /** Radius as a fraction of the planet's. */
+  size: number;
+  /** Orbit radius in multiples of the planet's radius. */
+  orbit: number;
+  /** Turns per minute around the planet. */
+  speed: number;
+  /** Orbital inclination, degrees. */
+  tilt: number;
+  /** Where it starts on its orbit, degrees, so two moons do not overlap. */
+  phase: number;
+  colour: number;
+  type: "rocky" | "ice" | "muddy" | "liquid" | "lava";
+  /** True while it is still whatever detection produced; a hand edit clears it. */
+  auto: boolean;
+  visible: boolean;
+}
 /** Everything the shader needs for one planet. Colours are stored as integers, as the scene wants them. */
 export interface PlanetConfigJson {
   type: "gas" | "rocky" | "lava" | "ice" | "liquid" | "muddy";
@@ -77,6 +100,10 @@ export const projects = pgTable("projects", {
   planet: jsonb("planet").$type<PlanetConfigJson>().notNull(),
   /** Distance from the sun in scene units — the orbit the planet sits on. */
   orbit: real("orbit").notNull(),
+  /** Moons, one per meaningful top-level folder in the repository. */
+  moons: jsonb("moons").$type<MoonConfigJson[]>().default([]).notNull(),
+  /** Re-detect moons from the repository tree on the next refresh, replacing the untouched ones. */
+  moonsAuto: boolean("moons_auto").default(true).notNull(),
   /** When false the dashboard's own value wins over whatever GitHub reports. */
   useLiveLangs: boolean("use_live_langs").default(true).notNull(),
   useLiveMeta: boolean("use_live_meta").default(true).notNull(),

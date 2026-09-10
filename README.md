@@ -65,15 +65,67 @@ recently pushed, which the deck draws as background constellations. `commits` is
 branch. It therefore misses other branches, and one request per repository is the cheapest number
 GitHub will give without walking the commit list.
 
-**`GITHUB_TOKEN` now does three things.** It raises the API limit from 60 to 5000 requests an hour,
+**`GITHUB_TOKEN` now does four things.** It raises the API limit from 60 to 5000 requests an hour,
 which the repo list and the commit counts need; it switches the repo list to `/user/repos`, so private
-repositories appear in the picker; and without it the picker is public-only. Nothing breaks without a
-token — the lists just come back short or empty.
+repositories appear in the picker; it is the only way to read a private repository's tree, which moon
+detection needs (Learnity and DevToolsHQ are private); and without it the picker is public-only.
+Nothing breaks without a token — the lists just come back short or empty and those two projects
+detect no moons.
 
 Three per-project switches decide who wins when both halves have an answer:
 `useLiveLangs` (off: the stored language split drives the planet cutaway), `useLiveMeta` (off: the
 stored description, live URL and stack stand) and `useLiveReadme` (off: the README is not fetched at
 all). They live on the `projects` row and are edited in the admin.
+
+### Moons
+
+A repository's meaningful top-level folders become the planet's moons: Zcrypt's `backend`, `frontend`,
+`mobile` and `core`; Learnity's single `app`. One request per project —
+`GET /repos/{owner}/{repo}/git/trees/HEAD`, not recursive, cached an hour, degrading to an empty list —
+because the top level is all a moon is made of and a recursive tree on a monorepo is megabytes. `HEAD`
+rather than a branch name so GitHub resolves the default branch itself, whatever it is called.
+
+**Skipped**, because they are not parts of the product: everything beginning with a dot (`.github`
+included), `node_modules`, `dist`, `build`, `out`, `target`, `vendor`, `public`, `assets`, `docs`,
+`test`, `tests`, `__tests__`, `scripts`, `examples`, `coverage`, `tmp`. The list is `MOON_SKIP` in
+`src/lib/github.ts`.
+
+**Capped at six per planet** so a monorepo does not produce a swarm. The largest folders win, by entry
+count when the tree reports one and alphabetically when it does not — a non-recursive tree usually
+reports none.
+
+Every value is derived from an FNV-1a hash of `"<project>/<folder>"`, never from `Math.random`, so the
+same repository always produces the same moons and re-detecting never reshuffles the sky: `size` lands
+in 0.12–0.3 of the planet's radius, `orbit` spreads evenly from 1.8 to 4.2 planet radii in folder
+order (a lone moon sits mid-band, at 3.0), `speed` falls as `r^-1.5` — Kepler, so inner moons run
+faster — `tilt` is within ±12°, and `phase` gets one `360/n` slot each, jittered inside it, so two
+moons can never bunch. Type and colour come from `MOON_KINDS`, one editable table:
+
+| Folder | Moon |
+|---|---|
+| `backend` `api` `server` `service` `services` `cmd` `gateway` `worker` | rocky, slate `0x8b95a3` |
+| `frontend` `web` `app` `apps` `ui` `client` `www` `site` `dashboard` `admin` | liquid, blue `0x3b82f6` |
+| `mobile` `android` `ios` `flutter` `native` `expo` | ice, pale `0xbfe3f2` |
+| `core` `crypto` `lib` `libs` `packages` `engine` `kernel` `shared` `common` | lava, orange `0xd9542b` |
+| anything else | muddy, brown `0x9c7a4b` |
+
+A folder is matched lower-cased, exactly first and then token by token, so `mobile-app` and `core_lib`
+still say what they are.
+
+`GET /api/admin/github/tree?slug=<project>` previews: the folders that survived, the ones that were
+skipped, the moons detection would write, and the moons the row carries now.
+`POST /api/admin/projects/moons` with `{ slug?, all?, replace? }` applies it — one project by slug, or
+every visible project whose `moonsAuto` is still set — and answers with what was added, kept and
+removed per project.
+
+**A hand-edited moon is never overwritten.** A stored moon with `auto: false` is kept exactly as it
+is, and it also claims its `path`, so a detected folder that already has a hand-edited moon does not
+come back as a second one; only `auto: true` moons are replaced by fresh detection, and hand edits sit
+first in the list so the cap can never drop one in favour of a detected folder. Editing a moon in the
+dashboard clears its `auto` flag, and clearing `moonsAuto` on the project takes it out of the sweep
+altogether. `replace: true` is the explicit "throw mine away and re-detect" escape hatch. A detection
+that comes back empty writes nothing at all, so a rate limit or a missing token cannot wipe a planet's
+moons — and `bun run db:seed` only seeds moons on insert, so re-seeding never undoes a dashboard edit.
 
 ## Scale
 
@@ -139,7 +191,7 @@ for the owner, not a lock: the password is the only thing that actually keeps an
 | Overview | traffic per day, top pages, referrers, countries, devices, read-or-fly split, what got clicked |
 | Inbox | every contact submission, with new / read / replied / archived / spam, a private note, and a reply that sends through Resend |
 | Visitors | one row per profile: return visits, pages, attention, and a per-profile history of visits and clicks |
-| Projects | content, links, and **each project's planet** — type, size, the four-colour ramp, atmosphere rim, surface sliders, ring, and the orbit it sits on, with a live preview using the real renderer |
+| Projects | content, links, and **each project's planet** — type, size, the four-colour ramp, atmosphere rim, surface sliders, ring, the orbit it sits on, and its **moons** (detected from the repository's folders, then editable), with a live preview using the real renderer |
 | Solar system | the sun's radius, colours and brightness, orbit scale, the belt, the starfield, the nebula, bloom and field of view |
 | Experience · Skills · Education · Testimonials | drag to reorder, edit in place, hide without deleting |
 | Secrets | the lines the flight deck whispers when a visitor finds one of its twenty hidden things |

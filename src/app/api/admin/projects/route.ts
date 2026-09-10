@@ -6,10 +6,11 @@
 // over is rejected so a typo is reported rather than silently rewritten.
 
 import { getDb, schema as t } from "@/db/client";
-import type { LangShareJson, PlanetConfigJson } from "@/db/schema";
+import type { LangShareJson, MoonConfigJson, PlanetConfigJson } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { build, createCrud, isRecord, reject, type Parse } from "@/lib/admin-crud";
 import { DEFAULT_SCENE } from "@/lib/content";
+import { MAX_MOONS } from "@/lib/github";
 import { clampPlanetSize, maxPlanetSize } from "@/lib/scale";
 
 export const runtime = "nodejs";
@@ -115,6 +116,56 @@ function readLangs(value: unknown): LangShareJson[] {
   });
 }
 
+const MOON_TYPES = ["rocky", "ice", "muddy", "liquid", "lava"] as const;
+type MoonType = (typeof MOON_TYPES)[number];
+const isMoonType = (v: unknown): v is MoonType => MOON_TYPES.some((k) => k === v);
+
+/** A moon's own flags. Absent means the default, not an error — the editor sends partial moons. */
+const flag = (fallback: boolean) => (value: unknown, key: string): boolean => {
+  if (value === undefined) return fallback;
+  if (typeof value !== "boolean") reject(`${key} must be true or false`);
+  return value;
+};
+const label = (max: number, required: boolean) => (value: unknown, key: string): string => {
+  if (value === undefined || value === null) {
+    if (required) reject(`${key} is required`);
+    return "";
+  }
+  if (typeof value !== "string") reject(`${key} must be text`);
+  const trimmed = value.trim();
+  if (required && trimmed === "") reject(`${key} cannot be empty`);
+  if (trimmed.length > max) reject(`${key} is longer than ${max} characters`);
+  return trimmed;
+};
+
+/**
+ * Moons, one per meaningful top-level folder. `auto` defaults to false because a moon arriving through
+ * this endpoint is a hand edit unless it says otherwise — src/app/api/admin/projects/moons writes the
+ * detected ones itself, and only auto moons are ever replaced by a re-detection.
+ */
+function readMoons(value: unknown): MoonConfigJson[] {
+  if (!Array.isArray(value)) reject("moons must be a list");
+  if (value.length > MAX_MOONS) reject(`moons accepts at most ${MAX_MOONS} entries`);
+  return value.map((raw: unknown, i): MoonConfigJson => {
+    if (!isRecord(raw)) reject(`moons[${i}] must be an object`);
+    const k = `moons[${i}]`;
+    if (!isMoonType(raw.type)) reject(`${k}.type must be one of ${MOON_TYPES.join(", ")}`);
+    return {
+      name: label(40, true)(raw.name, `${k}.name`),
+      path: label(200, false)(raw.path, `${k}.path`),
+      size: ranged(0.02, 0.5)(raw.size, `${k}.size`),
+      orbit: ranged(1.2, 8)(raw.orbit, `${k}.orbit`),
+      speed: ranged(0, 20)(raw.speed, `${k}.speed`),
+      tilt: ranged(-90, 90)(raw.tilt, `${k}.tilt`),
+      phase: ranged(0, 360)(raw.phase, `${k}.phase`),
+      colour: colour(raw.colour, `${k}.colour`),
+      type: raw.type,
+      auto: flag(false)(raw.auto, `${k}.auto`),
+      visible: flag(true)(raw.visible, `${k}.visible`),
+    };
+  });
+}
+
 function readLinks(value: unknown): [label: string, url: string][] {
   if (!Array.isArray(value)) reject("extraLinks must be a list of [label, url] pairs");
   if (value.length > 12) reject("extraLinks accepts at most 12 entries");
@@ -163,6 +214,8 @@ const parse = (sunRadius: number): Parse<typeof t.projects> => (input, base) =>
     langs: f.of("langs", base?.langs ?? [], readLangs),
     planet: f.of("planet", base?.planet, readPlanet(sunRadius)),
     orbit: f.of("orbit", base?.orbit, positive),
+    moons: f.of("moons", base?.moons ?? [], readMoons),
+    moonsAuto: f.bool("moonsAuto", base?.moonsAuto ?? true),
     useLiveLangs: f.bool("useLiveLangs", base?.useLiveLangs ?? true),
     useLiveMeta: f.bool("useLiveMeta", base?.useLiveMeta ?? true),
     useLiveReadme: f.bool("useLiveReadme", base?.useLiveReadme ?? true),

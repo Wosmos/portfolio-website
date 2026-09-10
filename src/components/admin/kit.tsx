@@ -5,7 +5,7 @@
 
 import RLSkeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
-import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 
 // ── toasts ──
 interface Toast { id: number; text: string; bad?: boolean }
@@ -170,15 +170,19 @@ export function Colour({ value, onChange }: { value: number; onChange: (v: numbe
   const hex = `#${(value >>> 0).toString(16).padStart(6, "0").slice(-6)}`;
   return <input type="color" value={hex} onChange={(e) => onChange(parseInt(e.target.value.slice(1), 16))} />;
 }
-/** A range with its value in the label and its explanation in a tooltip — the shape every shader knob wants. */
+/**
+ * A range on one line: its name, the track, and the value it currently reads. The explanation is a
+ * tooltip rather than a second line, because a form of thirty knobs cannot afford thirty subtitles.
+ */
 export function Slider({ label, value, onChange, min, max, step = 0.01, tip, unit = "" }: {
   label: string; value: number; onChange: (v: number) => void; min: number; max: number; step?: number; tip?: string; unit?: string;
 }) {
   const decimals = step < 0.1 ? 2 : step < 1 ? 1 : 0;
   return (
     <div className="fld sld">
-      <label>{label}<small>{value.toFixed(decimals)}{unit}</small>{tip && <Tooltip text={tip} />}</label>
+      <label>{label}{tip && <Tooltip text={tip} />}</label>
       <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} aria-label={label} />
+      <b className="sld__v">{value.toFixed(decimals)}{unit}</b>
     </div>
   );
 }
@@ -367,6 +371,81 @@ export function Card({ title, onClose, children, actions }: { title: string; onC
   );
 }
 
+// ── the modal ──
+
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+/**
+ * A page-wide dialog. The scrim and Escape close it, Tab cycles inside it, the page behind it cannot
+ * scroll, and the focus goes back to whatever opened it. Header and footer are pinned and only the body
+ * scrolls, so a form of any length keeps its title and its save button on screen. Full screen on a phone.
+ */
+export function Modal({ title, subtitle, onClose, children, actions, foot, width }: {
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+  children: ReactNode;
+  /** Beside the title, in the pinned header. */
+  actions?: ReactNode;
+  /** The pinned footer: save, undo, delete. */
+  foot?: ReactNode;
+  /** Overrides the box's width; the default is nearly the whole viewport. */
+  width?: string;
+}) {
+  const box = useRef<HTMLDivElement>(null);
+  const id = useId();
+
+  // Lock the page, take the focus, hand it back to the trigger on the way out.
+  useEffect(() => {
+    const from = document.activeElement;
+    box.current?.focus();
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+      if (from instanceof HTMLElement) from.focus();
+    };
+  }, []);
+
+  const trap = (e: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (e.key === "Escape") { e.stopPropagation(); onClose(); return; }
+    if (e.key !== "Tab") return;
+    const el = box.current;
+    if (!el) return;
+    const stops = Array.from(el.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((n) => n.offsetWidth > 0 || n.offsetHeight > 0);
+    const first = stops[0];
+    const last = stops[stops.length - 1];
+    if (!first || !last) return;
+    const at = document.activeElement;
+    if (e.shiftKey && (at === first || at === el)) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && at === last) { e.preventDefault(); first.focus(); }
+  };
+
+  return (
+    <div className="mdl" onKeyDown={trap}>
+      {/* a button, so a pointer close is also a keyboard-reachable one for anything that ignores Escape */}
+      <button type="button" className="mdl__scrim" tabIndex={-1} aria-hidden="true" onClick={onClose} />
+      <div
+        className="sf mdl__box" role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1} ref={box}
+        style={width ? { width } : undefined}
+      >
+        <div className="sf__in">
+          <div className="mdl__top">
+            <h3 id={id}>{title}</h3>
+            {subtitle && <p className="mdl__sub">{subtitle}</p>}
+            <div className="mdl__acts">
+              {actions}
+              <Btn onClick={onClose} aria-label="close this editor">close</Btn>
+            </div>
+          </div>
+          <div className="mdl__body">{children}</div>
+          {foot && <div className="mdl__foot">{foot}</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── table ──
 export interface SortState { key: string; dir: "asc" | "desc" }
 export interface Column<T> {
@@ -546,7 +625,8 @@ export function LogSlider({ label, value, onChange, min, max, stops = [], tip, f
   const shown = format ? format(at) : String(tidy(at));
   return (
     <div className="fld sld sld--log">
-      <label>{label}<small>{shown}</small>{tip && <Tooltip text={tip} />}</label>
+      <label>{label}{tip && <Tooltip text={tip} />}</label>
+      <b className="sld__v">{shown}</b>
       <input
         type="range" min={0} max={1000} step={1} value={pos} aria-label={label} aria-valuetext={shown}
         onChange={(e) => onChange(tidy(min * Math.exp((Number(e.target.value) / 1000) * span)))}
@@ -728,4 +808,236 @@ export function useSunRadius(): { sunRadius: number; loading: boolean } {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void refresh(); }, [refresh]);
   return { sunRadius, loading };
+}
+
+// ── remembered ui state ──
+
+const FOLD_KEY = "adm.fold.";
+const foldSubs = new Set<() => void>();
+/** Reads the primitive straight out of storage: a boolean compares by value, so no snapshot cache. */
+function readFold(id: string, fallback: boolean): boolean {
+  try {
+    const raw = localStorage.getItem(FOLD_KEY + id);
+    return raw === "1" ? true : raw === "0" ? false : fallback;
+  } catch { return fallback; }   // private mode, or storage switched off
+}
+const subFold = (fn: () => void): (() => void) => { foldSubs.add(fn); return () => { foldSubs.delete(fn); }; };
+
+/**
+ * A remembered open/shut flag. Storage is read through `useSyncExternalStore` rather than in an effect,
+ * so the value is right on the first client paint and nothing sets state while an effect runs.
+ */
+export function useFold(id: string, initial = true): [boolean, (v: boolean) => void] {
+  const open = useSyncExternalStore(subFold, () => readFold(id, initial), () => initial);
+  const set = useCallback((v: boolean) => {
+    try { localStorage.setItem(FOLD_KEY + id, v ? "1" : "0"); } catch { /* cosmetic only */ }
+    for (const fn of foldSubs) fn();
+  }, [id]);
+  return [open, set];
+}
+
+/**
+ * `Section` that folds, and remembers whether it was folded. Give the least-used blocks `open={false}`
+ * and a form of a hundred controls opens as a page of headings.
+ */
+export function Fold({ id, title, tip, note, actions, children, open: initial = true }: {
+  /** The storage key. Stable per section, not per row. */
+  id: string;
+  title: string;
+  tip?: string;
+  /** A word or two about what is inside, shown while it is shut. */
+  note?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  open?: boolean;
+}) {
+  const [open, setOpen] = useFold(id, initial);
+  const bodyId = useId();
+  return (
+    <section className={`fold${open ? " is-on" : ""}`}>
+      <div className="fold__top">
+        <button type="button" className="fold__t" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen(!open)}>
+          <i aria-hidden="true">{open ? "▾" : "▸"}</i>{title}
+        </button>
+        {tip && <Tooltip text={tip} />}
+        {note && !open && <span className="fold__note">{note}</span>}
+        {actions && <div className="fold__acts">{actions}</div>}
+      </div>
+      <div id={bodyId} className="fold__body" hidden={!open}>{children}</div>
+    </section>
+  );
+}
+
+/** Label on the left, control on the right, one line — `Field` for the knobs that do not need a column. */
+export function Row({ label, hint, tip, children }: { label: string; hint?: string; tip?: string; children: ReactNode }) {
+  return (
+    <div className="fld rw">
+      <label>{label}{hint && <small>{hint}</small>}{tip && <Tooltip text={tip} />}</label>
+      <div className="rw__in">{children}</div>
+    </div>
+  );
+}
+
+/** Colour stops as a row of swatches, each captioned — the dense form of four `Field`s of `Colour`. */
+export function Swatches({ items }: { items: readonly RampStop[] }) {
+  return (
+    <div className="swatches">
+      {items.map((s) => (
+        <label key={s.label} className="swatch">
+          <Colour value={s.value} onChange={s.onChange} />
+          <span>{s.label}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+// ── moons ──
+
+export const MOON_TYPES = ["rocky", "ice", "muddy", "liquid", "lava"] as const;
+export type MoonType = (typeof MOON_TYPES)[number];
+/** The stored shape of one moon — `MoonConfigJson` in src/db/schema.ts, mirrored for the client. */
+export interface Moon {
+  name: string;
+  /** The repository folder it came from; empty when it was added by hand. */
+  path: string;
+  size: number; orbit: number; speed: number; tilt: number; phase: number;
+  colour: number;
+  type: MoonType;
+  /** True while it is still exactly what detection produced; any edit clears it. */
+  auto: boolean;
+  visible: boolean;
+}
+/** How many moons one planet may carry, in the admin and in the scene both. */
+export const MOON_CAP = 6;
+export const MOON_CAP_TIP = `six is the cap: past that the labels collide and the moons hide the planet they orbit. Detection keeps the ${MOON_CAP} biggest folders and drops the rest.`;
+
+const MOON_DEFAULTS: Omit<Moon, "name" | "path"> = { size: 0.26, orbit: 2.2, speed: 6, tilt: 8, phase: 0, colour: 0x9fb4c7, type: "rocky", auto: false, visible: true };
+const asType = (v: unknown): MoonType => (typeof v === "string" && (MOON_TYPES as readonly string[]).includes(v) ? (v as MoonType) : "rocky");
+
+/** A moon the way the endpoint or the row happens to spell it; anything unreadable is dropped. */
+export function toMoon(v: unknown): Moon | null {
+  if (typeof v === "string") return v.trim() ? { ...MOON_DEFAULTS, name: v.trim(), path: v.trim(), auto: true } : null;
+  if (typeof v !== "object" || v === null) return null;
+  const o: Record<string, unknown> = { ...v };
+  const path = asText(pick(o, ["path", "folder", "dir", "directory"]));
+  const name = asText(pick(o, ["name", "label", "title"])) || path.split("/").filter(Boolean).pop() || "";
+  if (!name) return null;
+  const num = (keys: readonly string[], fallback: number): number => {
+    const raw = pick(o, keys);
+    return typeof raw === "number" && Number.isFinite(raw) ? raw : fallback;
+  };
+  return {
+    name, path,
+    size: num(["size", "radius"], MOON_DEFAULTS.size),
+    orbit: num(["orbit", "distance"], MOON_DEFAULTS.orbit),
+    speed: num(["speed", "spin", "rate"], MOON_DEFAULTS.speed),
+    tilt: num(["tilt", "inclination"], MOON_DEFAULTS.tilt),
+    phase: num(["phase", "offset"], MOON_DEFAULTS.phase),
+    colour: num(["colour", "color", "c0"], MOON_DEFAULTS.colour),
+    type: asType(pick(o, ["type", "surface"])),
+    auto: pick(o, ["auto", "detected"]) !== false,
+    visible: pick(o, ["visible", "shown"]) !== false,
+  };
+}
+/** The row's `moons` column, read by shape — the API may not be sending it yet. */
+export const readMoons = (v: unknown): Moon[] => (Array.isArray(v) ? v.map(toMoon).filter((m): m is Moon => m !== null) : []);
+/** A hand-made moon, named after nothing in the repository. */
+export const newMoon = (n: number): Moon => ({ ...MOON_DEFAULTS, name: `moon ${n}`, path: "", phase: (n * 60) % 360, orbit: 2.2 + n * 0.5, auto: false });
+
+export interface MoonTree {
+  /** Every top-level folder the repository has, whether or not it became a moon. */
+  folders: string[];
+  /** What detection would write. */
+  moons: Moon[];
+  error: string;
+}
+/**
+ * What the repository's top level would produce. Another agent owns the route, so a 404 is a sentence
+ * rather than a throw and the caller still renders.
+ */
+export async function detectMoons(slug: string): Promise<MoonTree> {
+  const res = await call(`/api/admin/github/tree?slug=${encodeURIComponent(slug)}`);
+  if (!res.ok) {
+    return { folders: [], moons: [], error: /40[34]/.test(res.error ?? "") ? "the repository tree endpoint is not there yet — nothing was detected" : res.error ?? "could not read the repository" };
+  }
+  const o: Record<string, unknown> = typeof res.data === "object" && res.data !== null ? { ...res.data } : {};
+  const moons = readMoons(Array.isArray(res.data) ? res.data : pick(o, ["moons", "detected", "bodies"]));
+  const rawFolders = pick(o, ["folders", "dirs", "directories", "tree", "paths"]);
+  const folders = Array.isArray(rawFolders)
+    ? rawFolders.map((f) => (typeof f === "string" ? f : typeof f === "object" && f !== null ? asText(pick({ ...f }, ["path", "name", "folder"])) : "")).filter((f) => f !== "")
+    : moons.map((m) => m.path || m.name);
+  return { folders, moons, error: moons.length === 0 && folders.length === 0 ? "no top-level folders worth a moon in that repository" : "" };
+}
+
+/**
+ * Detects and writes, server-side. `all` does every project, `slug` does one, `replace` drops the moons
+ * detection no longer finds; a moon whose `auto` is false is never touched either way. The reply is
+ * summarised for a toast, because the counts are what the owner actually wants to read.
+ */
+export async function writeMoons(body: { slug?: string; all?: boolean; replace?: boolean }): Promise<{ ok: boolean; text: string }> {
+  const res = await call("/api/admin/projects/moons", { method: "POST", body: JSON.stringify(body) });
+  if (!res.ok) {
+    return { ok: false, text: /40[34]/.test(res.error ?? "") ? "the moon detection endpoint is not there yet — nothing was written" : res.error ?? "could not detect the moons" };
+  }
+  const o: Record<string, unknown> = typeof res.data === "object" && res.data !== null && !Array.isArray(res.data) ? { ...res.data } : {};
+  const per = Array.isArray(res.data) ? res.data : Array.isArray(o["projects"]) ? o["projects"] : [];
+  const tally = (keys: readonly string[]): number | null => {
+    const top = pick(o, keys);
+    if (typeof top === "number") return top;
+    if (Array.isArray(top)) return top.length;
+    if (per.length === 0) return null;
+    let sum = 0;
+    let seen = false;
+    for (const p of per) {
+      if (typeof p !== "object" || p === null) continue;
+      const v = pick({ ...p }, keys);
+      if (typeof v === "number") { sum += v; seen = true; }
+      else if (Array.isArray(v)) { sum += v.length; seen = true; }
+    }
+    return seen ? sum : null;
+  };
+  const parts = ([["added", ["added", "created"]], ["kept", ["kept", "unchanged"]], ["removed", ["removed", "deleted"]]] as const)
+    .map(([label, keys]) => { const n = tally(keys); return n === null ? null : `${n} ${label}`; })
+    .filter((s): s is string => s !== null);
+  const where = body.all ? `${per.length || "every"} project${per.length === 1 ? "" : "s"}` : body.slug ?? "the project";
+  return { ok: true, text: parts.length ? `${where}: ${parts.join(" · ")}` : `${where}: detection ran` };
+}
+
+/**
+ * One moon, editable on one line: name, folder, the five numbers, its surface, its colour and whether
+ * the scene draws it. Every change clears `auto`, so the next detection leaves this moon alone — which
+ * is the whole contract between "auto detected" and "flexible to set manually".
+ */
+export function MoonRow({ moon, onChange, onRemove }: { moon: Moon; onChange: (m: Moon) => void; onRemove: () => void }) {
+  const set = <K extends keyof Moon>(k: K, v: Moon[K]): void => onChange({ ...moon, [k]: v, auto: false });
+  return (
+    <div className={`moon${moon.visible ? "" : " is-off"}`}>
+      <div className="moon__id">
+        <input
+          type="text" value={moon.name} aria-label="moon name" placeholder="name"
+          onChange={(e) => set("name", e.target.value)}
+        />
+        <small title={moon.path || "added by hand"}>{moon.path || "by hand"}</small>
+      </div>
+      <label className="moon__n"><span>size</span><input type="number" step={0.02} min={0.02} value={moon.size} onChange={(e) => set("size", Number(e.target.value))} /></label>
+      <label className="moon__n"><span>orbit</span><input type="number" step={0.1} min={0.2} value={moon.orbit} onChange={(e) => set("orbit", Number(e.target.value))} /></label>
+      <label className="moon__n"><span>speed</span><input type="number" step={0.5} value={moon.speed} onChange={(e) => set("speed", Number(e.target.value))} /></label>
+      <label className="moon__n"><span>tilt</span><input type="number" step={1} value={moon.tilt} onChange={(e) => set("tilt", Number(e.target.value))} /></label>
+      <label className="moon__n"><span>phase</span><input type="number" step={5} value={moon.phase} onChange={(e) => set("phase", Number(e.target.value))} /></label>
+      <label className="moon__n moon__n--wide">
+        <span>type</span>
+        <select value={moon.type} onChange={(e) => set("type", asType(e.target.value))}>
+          {MOON_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </label>
+      <label className="moon__c"><span className="vh">colour</span><Colour value={moon.colour} onChange={(v) => set("colour", v)} /></label>
+      <span className="moon__tag">{moon.auto ? <Badge tone="cool">auto</Badge> : <Badge tone="warn">edited</Badge>}</span>
+      <label className="moon__see">
+        <input type="checkbox" checked={moon.visible} onChange={(e) => set("visible", e.target.checked)} />
+        <span>show</span>
+      </label>
+      <Btn onClick={onRemove} aria-label={`remove ${moon.name}`}>×</Btn>
+    </div>
+  );
 }

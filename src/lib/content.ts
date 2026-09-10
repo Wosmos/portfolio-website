@@ -2,12 +2,16 @@
 // src/data/portfolio.ts whenever a table is empty or the database is unreachable, so the site is never
 // blank and the types the pages already use do not change.
 //
+// Testimonials are the one exception, deliberately: hiding every quote must remove the section from the
+// site rather than resurrect the sample quotes, so that reader returns an empty list.
+//
 // Results are cached per request and revalidated on a tag, so an admin save can drop the cache
 // immediately (see revalidateContent) instead of waiting for the hourly window.
 
 import { revalidateTag, unstable_cache } from "next/cache";
 import { asc, eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db/client";
+import type { MoonConfigJson } from "@/db/schema";
 import { isScaleMode, type ScaleMode } from "@/lib/scale";
 import {
   education as staticEducation,
@@ -28,7 +32,6 @@ import {
   type Person,
   type PlanetConfig,
   type Project,
-  type ProjectId,
   type SkillGroup,
   type Testimonial,
 } from "@/data/portfolio";
@@ -77,6 +80,10 @@ export const DEFAULT_SCENE: SceneConfig = {
 export interface ContentProject extends Project {
   orbit: number; heading: string; bullets: readonly string[]; tech: readonly string[];
   extraLinks: readonly (readonly [string, string])[]; coverImage: string; featured: boolean;
+  /** One per meaningful top-level folder in the repository. Empty is normal: detection is opt-in. */
+  moons: readonly MoonConfigJson[];
+  /** True while re-detection is allowed to replace the moons it produced itself. */
+  moonsAuto: boolean;
   /** False means the dashboard's stored value wins over whatever GitHub reports. */
   useLiveLangs: boolean; useLiveMeta: boolean; useLiveReadme: boolean;
 }
@@ -84,8 +91,6 @@ export interface Post {
   slug: string; title: string; excerpt: string; body: string; coverImage: string;
   tags: readonly string[]; readingMinutes: number; publishedAt: string | null;
 }
-
-const isProjectId = (s: string): s is ProjectId => staticProjects.some((p) => p.id === s);
 
 // ── person ──
 export const getPerson = cached("person", async (): Promise<Person> => {
@@ -110,6 +115,8 @@ function fallbackProjects(): ContentProject[] {
     return {
       ...p, orbit: DEFAULT_ORBITS[i] ?? 17 + i * 12, heading: h?.heading ?? "", bullets: h?.bullets ?? [],
       tech: h?.tech ?? [], extraLinks: h?.extraLinks ?? [], coverImage: "", featured: staticFeatured.includes(p.id),
+      // the static records carry no moons — only a repository tree can produce them
+      moons: [], moonsAuto: true,
       useLiveLangs: true, useLiveMeta: true, useLiveReadme: true,
     };
   });
@@ -121,7 +128,6 @@ export const getProjects = cached("projects", async (): Promise<readonly Content
     const rows = await db.select().from(t.projects).where(eq(t.projects.visible, true)).orderBy(asc(t.projects.sortOrder));
     if (!rows.length) return fallbackProjects();
     return rows.flatMap((r): ContentProject[] => {
-      if (!isProjectId(r.slug)) return [];   // a new slug needs a planet in the scene before it can ship
       const planet: PlanetConfig = { ...r.planet, ring: r.planet.ring ?? undefined };
       return [{
         id: r.slug, title: r.title, tagline: r.tagline, description: r.description,
@@ -130,6 +136,7 @@ export const getProjects = cached("projects", async (): Promise<readonly Content
         langs: r.langs as readonly LangShare[], planet,
         orbit: r.orbit, heading: r.heading, bullets: r.bullets, tech: r.tech,
         extraLinks: r.extraLinks.map(([l, u]) => [l, u] as const), coverImage: r.coverImage, featured: r.featured,
+        moons: r.moons, moonsAuto: r.moonsAuto,
         useLiveLangs: r.useLiveLangs, useLiveMeta: r.useLiveMeta, useLiveReadme: r.useLiveReadme,
       }];
     });

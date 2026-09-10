@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { RingConfig, Project } from "@/data/portfolio";
 import type { PlanetFull, PlanetViewApi } from "@/lib/three/types";
+import type { Moon } from "./kit";
 
 const PLACEHOLDER: Omit<Project, "planet"> = {
   id: "zcrypt", title: "preview", tagline: "", description: "", stack: [], category: "", context: "",
@@ -16,11 +17,17 @@ const PLACEHOLDER: Omit<Project, "planet"> = {
 /** The editor holds `ring: null` for "no ring", which is how the column stores it; the shader wants it absent. */
 export type EditablePlanet = Omit<PlanetFull, "ring"> & { ring?: RingConfig | null };
 
-export default function PlanetPreview({ planet, cutaway = false }: { planet: EditablePlanet; cutaway?: boolean }) {
+/**
+ * The project the view is handed, plus the moons. `Project` predates the moons column, so they ride
+ * alongside it: the scene reads them once it has moon rendering, and ignores them until then.
+ */
+type PreviewProject = Project & { moons?: readonly Moon[] };
+
+export default function PlanetPreview({ planet, moons, cutaway = false }: { planet: EditablePlanet; moons?: readonly Moon[]; cutaway?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [failed, setFailed] = useState(false);
   // one JSON key: the effect should rerun on any value change, not on identity
-  const key = JSON.stringify(planet);
+  const key = JSON.stringify({ planet, moons: moons ?? [] });
 
   useEffect(() => {
     const el = canvas.current;
@@ -32,9 +39,10 @@ export default function PlanetPreview({ planet, cutaway = false }: { planet: Edi
         try {
           const { createPlanetView } = await import("@/lib/three/planet-view");
           if (cancelled) return;
-          const parsed = JSON.parse(key) as EditablePlanet;
-          const config: PlanetFull = { ...parsed, ring: parsed.ring ?? undefined };
-          view = createPlanetView({ canvas: el, project: { ...PLACEHOLDER, planet: config }, index: 0, cutaway });
+          const parsed = JSON.parse(key) as { planet: EditablePlanet; moons: readonly Moon[] };
+          const config: PlanetFull = { ...parsed.planet, ring: parsed.planet.ring ?? undefined };
+          const project: PreviewProject = { ...PLACEHOLDER, planet: config, moons: parsed.moons };
+          view = createPlanetView({ canvas: el, project, index: 0, cutaway });
         } catch { setFailed(true); }
       })();
     }, 220);

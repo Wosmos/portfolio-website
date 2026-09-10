@@ -7,8 +7,8 @@
 import { useState } from "react";
 import { LIGHT_YEAR_AU, arrange, isScaleMode, maxPlanetSize, type ScaleMode } from "@/lib/scale";
 import {
-  Btn, Choice, Colour, ColourRamp, Danger, Field, LogSlider, Num, Section, Skeleton, Slider, Toggle,
-  Tooltip, useSingle, useToast, type ChoiceOption,
+  Btn, Choice, ColourRamp, Danger, Field, Fold, LogSlider, Num, Section, Skeleton, Slider, Swatches,
+  Toggle, Tooltip, useSingle, useToast, type ChoiceOption,
 } from "../kit";
 
 // A type alias rather than an interface: it has to be assignable to the endpoint's loose record shape.
@@ -189,60 +189,60 @@ function Form({ initial, save, refresh }: {
         </div>
       </div>
 
-      <Section title="the sun" tip="radius and brightness set the star's presence; the rest is what its surface does." />
-      <div className="fields fields--2">
-        <Field label="radius" hint={`planets cap at ${cap.toFixed(2)}`} tip={TIPS.cap}><Num value={form.sunRadius} onChange={set("sunRadius")} step={0.25} /></Field>
-        <Slider label="brightness" value={form.sunIntensity} onChange={set("sunIntensity")} min={0.2} max={2} step={0.05} tip="scales the light every planet is lit by, and the sun's own bloom." />
-      </div>
-      <ColourRamp
-        label="colour ramp" tip={TIPS.ramp}
-        stops={[
-          { label: "core", value: form.sunColorCore, onChange: set("sunColorCore") },
-          { label: "mid", value: form.sunColorMid, onChange: set("sunColorMid") },
-          { label: "edge", value: form.sunColorEdge, onChange: set("sunColorEdge") },
-        ]}
-      />
-      <div className="fields fields--2">
-        <Slider label="granulation" value={form.sunGranulation} onChange={set("sunGranulation")} min={0} max={3} step={0.05} tip={TIPS.granulation} />
-        <Slider label="limb darkening" value={form.sunLimb} onChange={set("sunLimb")} min={0} max={2} step={0.05} tip={TIPS.limb} />
-        <Slider label="spots" value={form.sunSpots} onChange={set("sunSpots")} min={0} max={1} tip={TIPS.spots} />
-        <Slider label="differential spin" value={form.sunSpin} onChange={set("sunSpin")} min={0} max={3} step={0.05} tip={TIPS.spin} />
-        <Slider label="corona" value={form.sunCorona} onChange={set("sunCorona")} min={0} max={3} step={0.05} tip={TIPS.corona} />
-        <Slider label="flare" value={form.sunFlare} onChange={set("sunFlare")} min={0} max={3} step={0.05} tip={TIPS.flare} />
-      </div>
+      <Fold id="scene.sun" title="the sun" tip="radius and brightness set the star's presence; the rest is what its surface does.">
+        <div className="fields fields--3">
+          <Field label="radius" hint={`planets cap at ${cap.toFixed(2)}`} tip={TIPS.cap}><Num value={form.sunRadius} onChange={set("sunRadius")} step={0.25} /></Field>
+          <Slider label="brightness" value={form.sunIntensity} onChange={set("sunIntensity")} min={0.2} max={2} step={0.05} tip="scales the light every planet is lit by, and the sun's own bloom." />
+          <Slider label="granulation" value={form.sunGranulation} onChange={set("sunGranulation")} min={0} max={3} step={0.05} tip={TIPS.granulation} />
+          <Slider label="limb darkening" value={form.sunLimb} onChange={set("sunLimb")} min={0} max={2} step={0.05} tip={TIPS.limb} />
+          <Slider label="spots" value={form.sunSpots} onChange={set("sunSpots")} min={0} max={1} tip={TIPS.spots} />
+          <Slider label="differential spin" value={form.sunSpin} onChange={set("sunSpin")} min={0} max={3} step={0.05} tip={TIPS.spin} />
+          <Slider label="corona" value={form.sunCorona} onChange={set("sunCorona")} min={0} max={3} step={0.05} tip={TIPS.corona} />
+          <Slider label="flare" value={form.sunFlare} onChange={set("sunFlare")} min={0} max={3} step={0.05} tip={TIPS.flare} />
+        </div>
+        <ColourRamp
+          label="colour ramp" tip={TIPS.ramp}
+          stops={[
+            { label: "core", value: form.sunColorCore, onChange: set("sunColorCore") },
+            { label: "mid", value: form.sunColorMid, onChange: set("sunColorMid") },
+            { label: "edge", value: form.sunColorEdge, onChange: set("sunColorEdge") },
+          ]}
+        />
+      </Fold>
 
-      <Section title="the system" />
-      <div className="fields fields--2">
-        <Field label="orbit scale" tip="multiplies every planet's distance from the sun at once, so the whole system spreads or tightens."><Num value={form.orbitScale} onChange={set("orbitScale")} step={0.05} /></Field>
-        <Field label="field of view" tip="degrees. 42 is the default; higher feels wider and faster, lower feels telephoto."><Num value={form.fov} onChange={set("fov")} step={1} /></Field>
-      </div>
+      <Fold id="scene.system" title="the system and the camera" note="spread, lens, bloom">
+        <div className="fields fields--3">
+          <Field label="orbit scale" tip="multiplies every planet's distance from the sun at once, so the whole system spreads or tightens."><Num value={form.orbitScale} onChange={set("orbitScale")} step={0.05} /></Field>
+          <Field label="field of view" tip="degrees. 42 is the default; higher feels wider and faster, lower feels telephoto."><Num value={form.fov} onChange={set("fov")} step={1} /></Field>
+          <Slider label="bloom" value={form.bloom} onChange={set("bloom")} min={0} max={2} step={0.05} tip="how far bright pixels bleed. 0 turns the post-processing glow off entirely." />
+        </div>
+      </Fold>
 
-      <Section title="the asteroid belt" tip="a ring of instanced rocks between the inner and outer planets." />
-      <div className="fields fields--2">
-        <Field label="radius"><Num value={form.beltRadius} onChange={set("beltRadius")} step={0.5} /></Field>
-        <Field label="rocks" tip={TIPS.beltDensity}><Num value={form.beltDensity} onChange={set("beltDensity")} step={100} /></Field>
-        <Slider label="width" value={form.beltWidth} onChange={set("beltWidth")} min={0.5} max={60} step={0.5} tip={TIPS.beltWidth} />
-        <Slider label="thickness" value={form.beltThickness} onChange={set("beltThickness")} min={0} max={12} step={0.1} tip={TIPS.beltThickness} />
-        <Slider label="rock size" value={form.beltRockSize} onChange={set("beltRockSize")} min={0.1} max={4} step={0.05} tip={TIPS.beltRock} />
-        <Slider label="tilt" value={form.beltTilt} onChange={set("beltTilt")} min={-45} max={45} step={1} unit="°" tip={TIPS.beltTilt} />
-        <Field label="rock colour"><Colour value={form.beltColor} onChange={set("beltColor")} /></Field>
-      </div>
+      <Fold id="scene.belt" title="the asteroid belt" open={false} tip="a ring of instanced rocks between the inner and outer planets." note={`radius ${form.beltRadius} · ${form.beltDensity} rocks`}>
+        <div className="fields fields--3">
+          <Field label="radius"><Num value={form.beltRadius} onChange={set("beltRadius")} step={0.5} /></Field>
+          <Field label="rocks" tip={TIPS.beltDensity}><Num value={form.beltDensity} onChange={set("beltDensity")} step={100} /></Field>
+          <Slider label="width" value={form.beltWidth} onChange={set("beltWidth")} min={0.5} max={60} step={0.5} tip={TIPS.beltWidth} />
+          <Slider label="thickness" value={form.beltThickness} onChange={set("beltThickness")} min={0} max={10} step={0.1} tip={TIPS.beltThickness} />
+          <Slider label="rock size" value={form.beltRockSize} onChange={set("beltRockSize")} min={0.2} max={4} step={0.05} tip={TIPS.beltRock} />
+          <Slider label="tilt" value={form.beltTilt} onChange={set("beltTilt")} min={-45} max={45} step={1} unit="°" tip={TIPS.beltTilt} />
+        </div>
+        <Swatches items={[{ label: "rock", value: form.beltColor, onChange: set("beltColor") }]} />
+      </Fold>
 
-      <Section title="the sky" />
-      <div className="fields fields--3">
-        <Field label="stars" tip="one point sprite each, drawn in a single call — thousands are cheap."><Num value={form.starCount} onChange={set("starCount")} step={200} /></Field>
-        <Field label="nebula, first colour"><Colour value={form.nebulaA} onChange={set("nebulaA")} /></Field>
-        <Field label="nebula, second colour"><Colour value={form.nebulaB} onChange={set("nebulaB")} /></Field>
-      </div>
-      <div className="fields fields--2">
-        <Toggle label="constellations from the other repos" checked={form.constellations} onChange={set("constellations")} tip={TIPS.constellations} />
-        <Slider label="repo star gain" value={form.constellationGain} onChange={set("constellationGain")} min={0} max={3} step={0.05} tip={TIPS.gain} />
-      </div>
-
-      <Section title="the camera" />
-      <div className="fields fields--2">
-        <Slider label="bloom" value={form.bloom} onChange={set("bloom")} min={0} max={2} step={0.05} tip="how far bright pixels bleed. 0 turns the post-processing glow off entirely." />
-      </div>
+      <Fold id="scene.sky" title="the sky" open={false} note={`${form.starCount} stars${form.constellations ? " · constellations on" : ""}`}>
+        <div className="fields fields--3">
+          <Field label="stars" tip="one point sprite each, drawn in a single call — thousands are cheap."><Num value={form.starCount} onChange={set("starCount")} step={200} /></Field>
+          <Slider label="repo star gain" value={form.constellationGain} onChange={set("constellationGain")} min={0} max={3} step={0.05} tip={TIPS.gain} />
+          <Toggle label="constellations from the other repos" checked={form.constellations} onChange={set("constellations")} tip={TIPS.constellations} />
+        </div>
+        <Swatches
+          items={[
+            { label: "nebula a", value: form.nebulaA, onChange: set("nebulaA") },
+            { label: "nebula b", value: form.nebulaB, onChange: set("nebulaB") },
+          ]}
+        />
+      </Fold>
 
       <p className="hint">The deck reads these on load, so a change shows on the next visit to /ship.</p>
       <div className="acts">

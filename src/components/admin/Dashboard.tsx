@@ -26,11 +26,12 @@ const Testimonials = dynamic(() => import("./panels/Testimonials"), { loading: (
 const Facts = dynamic(() => import("./panels/Facts"), { loading: () => <Skeleton rows={3} />, ssr: false });
 const Posts = dynamic(() => import("./panels/Posts"), { loading: () => <Skeleton rows={4} />, ssr: false });
 const Profile = dynamic(() => import("./panels/Profile"), { loading: () => <Skeleton rows={4} />, ssr: false });
+const Help = dynamic(() => import("./panels/Help"), { loading: () => <Skeleton rows={5} />, ssr: false });
 
 type TabId =
   | "overview" | "inbox" | "visitors"
   | "projects" | "scene" | "experience" | "skills" | "education" | "testimonials" | "facts" | "posts"
-  | "profile";
+  | "profile" | "help";
 type Group = "insight" | "content" | "you";
 
 interface Tab { id: TabId; label: string; icon: string; group: Group; blurb: string; keys?: string }
@@ -48,6 +49,7 @@ const TABS: readonly Tab[] = [
   { id: "facts", label: "Secrets", icon: "✦", group: "content", blurb: "The lines the flight deck whispers when a visitor finds one of its twenty hidden things." },
   { id: "posts", label: "Blog", icon: "✎", group: "content", blurb: "Write, draft and publish." },
   { id: "profile", label: "Profile", icon: "☺", group: "you", blurb: "Name, contact details, both descriptions and the résumé link." },
+  { id: "help", label: "How this works", icon: "?", group: "you", blurb: "Every panel, every control, and the numbers behind them — read off the code, not remembered." },
 ];
 
 const GROUPS: readonly { id: Group; label: string }[] = [
@@ -72,6 +74,7 @@ function Panel({ id }: { id: TabId }) {
     case "facts": return <Facts />;
     case "posts": return <Posts />;
     case "profile": return <Profile />;
+    case "help": return <Help />;
   }
 }
 

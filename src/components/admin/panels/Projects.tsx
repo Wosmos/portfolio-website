@@ -12,12 +12,14 @@
 // typing a url, and the three live switches decide which side wins when both have something to say.
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { maxPlanetSize } from "@/lib/scale";
 import {
-  Area, Badge, Bone, Btn, Card, Check, Chip, Chips, Colour, Count, Danger, Empty, Field, Lines, LiveNote, Num,
-  Pager, Search, Section, Select, Skeleton, Slider, Table, Text, Toggle, Toolbar, Tooltip, applySort, pageOf,
-  useRepos, useResource, usePager, useSearch, useSort, useSunRadius, type AdminRepo, type Column, type WithId,
+  Area, Badge, Bone, Btn, Check, Chip, Chips, Count, Danger, Empty, Field, Fold, Lines, LiveNote, Modal,
+  MoonRow, MOON_CAP, MOON_CAP_TIP, Num, Pager, Row as FieldRow, Search, Section, Select, Skeleton, Slider,
+  Swatches, Table, Text, Toggle, Toolbar, Tooltip, applySort, detectMoons, newMoon, pageOf, readMoons,
+  useFold, useRepos, useResource, usePager, useSearch, useSort, useSunRadius, useToast, writeMoons,
+  type AdminRepo, type Column, type Moon, type MoonTree, type WithId,
 } from "../kit";
 
 const PlanetPreview = dynamic(() => import("../PlanetPreview"), { ssr: false, loading: () => <Bone height={200} /> });
@@ -43,7 +45,10 @@ interface Row extends WithId {
   category: string; context: string; status: string; year: number | null; weight: number;
   github: string; live: string; langs: [string, number][]; planet: Planet; orbit: number;
   coverImage: string; featured: boolean; visible: boolean;
+  /** The repository's top-level folders, as moons. Absent while the API has not learned the column. */
+  moons?: Moon[];
   /** Absent means the column's default, which is on — so the reader treats "not said" as live. */
+  moonsAuto?: boolean;
   useLiveLangs?: boolean; useLiveMeta?: boolean; useLiveReadme?: boolean;
 }
 
@@ -101,6 +106,7 @@ const blank = {
   stack: [] as string[], extraLinks: [] as [string, string][], category: "web", context: "product", status: "",
   year: new Date().getFullYear(), weight: 0.6, github: "", live: "", langs: [] as [string, number][],
   planet: DEFAULT_PLANET, orbit: 120, coverImage: "", featured: false, visible: true,
+  moons: [] as Moon[], moonsAuto: true,
   useLiveLangs: true, useLiveMeta: true, useLiveReadme: true,
 };
 
@@ -220,8 +226,9 @@ const TIPS = {
   vein: "how bright the molten veins run.",
 } as const;
 
-function PlanetEditor({ planet, orbit, sunRadius, onChange, onOrbit }: {
-  planet: Planet; orbit: number; sunRadius: number; onChange: (p: Planet) => void; onOrbit: (v: number) => void;
+function PlanetEditor({ planet, orbit, sunRadius, moons, onChange, onOrbit }: {
+  planet: Planet; orbit: number; sunRadius: number; moons?: readonly Moon[];
+  onChange: (p: Planet) => void; onOrbit: (v: number) => void;
 }) {
   const set = <K extends keyof Planet>(k: K, v: Planet[K]): void => onChange({ ...planet, [k]: v });
   const knob = (k: Knob): number => planet[k] ?? KNOB[k];
@@ -232,31 +239,27 @@ function PlanetEditor({ planet, orbit, sunRadius, onChange, onOrbit }: {
   // The sun is the one thing a planet may not out-grow; the API clamps too, this is so the slider cannot ask.
   const cap = maxPlanetSize(sunRadius);
   const over = planet.size > cap;
+  const shown = (moons ?? []).filter((m) => m.visible).length;
 
   return (
     <div className="pled">
-      <div className="fields">
-        <Section
-          title="planet"
-          actions={
-            <>
-              {PLANET_TYPES.map((t) => (
-                <Chip key={t} on={planet.type === t} onClick={() => onChange({ ...PRESETS[t], size: Math.min(planet.size, cap), ring: planet.ring ?? null })}>{t}</Chip>
-              ))}
-              <Btn onClick={() => onChange(randomise(planet))}>randomise</Btn>
-              <Btn onClick={() => onChange(reset(planet))} title="clears every knob back to the scene's own defaults">reset</Btn>
-            </>
-          }
-        />
+      <div className="pled__knobs">
+        <div className="pled__pick">
+          {PLANET_TYPES.map((t) => (
+            <Chip key={t} on={planet.type === t} onClick={() => onChange({ ...PRESETS[t], size: Math.min(planet.size, cap), ring: planet.ring ?? null })}>{t}</Chip>
+          ))}
+          <Btn onClick={() => onChange(randomise(planet))}>randomise</Btn>
+          <Btn onClick={() => onChange(reset(planet))} title="clears every knob back to the scene's own defaults">reset</Btn>
+        </div>
         <div className="fields fields--3">
           <Field label="type" tip={TIPS.type}><Select value={planet.type} onChange={(v) => set("type", v)} options={PLANET_TYPES} /></Field>
           <Field label="orbit" tip={TIPS.orbit}><Num value={orbit} onChange={onOrbit} step={1} /></Field>
+          <Slider
+            label="size" value={Math.min(planet.size, cap)} onChange={(v) => set("size", Math.min(v, cap))}
+            min={0.05} max={cap} step={0.05}
+            tip={`${TIPS.size} The cap is ${cap.toFixed(2)} — 72% of the sun's ${sunRadius.toFixed(2)} — so no planet can be bigger than the sun itself.`}
+          />
         </div>
-        <Slider
-          label="size" value={Math.min(planet.size, cap)} onChange={(v) => set("size", Math.min(v, cap))}
-          min={0.05} max={cap} step={0.05}
-          tip={`${TIPS.size} The cap is ${cap.toFixed(2)} — 72% of the sun's ${sunRadius.toFixed(2)} — so no planet can be bigger than the sun itself.`}
-        />
         {over && (
           <p className="hint">
             This planet is stored at {planet.size.toFixed(2)}, over the {cap.toFixed(2)} cap.{" "}
@@ -264,54 +267,182 @@ function PlanetEditor({ planet, orbit, sunRadius, onChange, onOrbit }: {
           </p>
         )}
 
-        <p className="panel__h">colours</p>
+        <Fold id="planet.colours" title="colours" open={false} note={`${labels[0]} → ${labels[3]}, rim`}>
+          <Swatches
+            items={[
+              { label: labels[0], value: planet.c0, onChange: (v) => set("c0", v) },
+              { label: labels[1], value: planet.c1, onChange: (v) => set("c1", v) },
+              { label: labels[2], value: planet.c2, onChange: (v) => set("c2", v) },
+              { label: labels[3], value: planet.c3, onChange: (v) => set("c3", v) },
+              { label: "rim", value: planet.rim, onChange: (v) => set("rim", v) },
+            ]}
+          />
+          <p className="hint">the rim colour is the atmosphere&rsquo;s edge, and the tint this planet gives the nebula behind it.</p>
+        </Fold>
+
+        <Fold id="planet.surface" title="surface detail" open={false} note={`${planet.type} · seed ${knob("seed").toFixed(1)}`}>
+          <div className="fields fields--3">
+            <Slider label="seed" value={knob("seed")} onChange={(v) => set("seed", v)} min={0} max={400} step={0.1} tip={TIPS.seed} />
+            {OCEANIC.includes(planet.type) && <Slider label="ocean" value={knob("ocean")} onChange={(v) => set("ocean", v)} min={0} max={1} tip={TIPS.ocean} />}
+            {CRATERED.includes(planet.type) && <Slider label="craters" value={knob("crater")} onChange={(v) => set("crater", v)} min={0} max={1} tip={TIPS.crater} />}
+            {planet.type === "lava" && <Slider label="veins" value={knob("vein")} onChange={(v) => set("vein", v)} min={0} max={1} tip={TIPS.vein} />}
+            {planet.type !== "lava" && <Slider label="clouds" value={knob("cloud")} onChange={(v) => set("cloud", v)} min={0} max={1} tip={TIPS.cloud} />}
+            {BANDED.includes(planet.type) && <>
+              <Slider label="bands" value={knob("bands")} onChange={(v) => set("bands", v)} min={1} max={40} step={1} tip={TIPS.bands} />
+              <Slider label="band edges" value={knob("bandSharp")} onChange={(v) => set("bandSharp", v)} min={0} max={1} tip={TIPS.bandSharp} />
+            </>}
+          </div>
+        </Fold>
+
         <div className="fields fields--3">
-          <Field label={labels[0]}><Colour value={planet.c0} onChange={(v) => set("c0", v)} /></Field>
-          <Field label={labels[1]}><Colour value={planet.c1} onChange={(v) => set("c1", v)} /></Field>
-          <Field label={labels[2]}><Colour value={planet.c2} onChange={(v) => set("c2", v)} /></Field>
-          <Field label={labels[3]}><Colour value={planet.c3} onChange={(v) => set("c3", v)} /></Field>
-          <Field label="atmosphere rim" hint="also the nebula tint"><Colour value={planet.rim} onChange={(v) => set("rim", v)} /></Field>
-        </div>
-
-        <p className="panel__h">surface</p>
-        <div className="fields fields--2">
-          <Slider label="seed" value={knob("seed")} onChange={(v) => set("seed", v)} min={0} max={400} step={0.1} tip={TIPS.seed} />
-          {OCEANIC.includes(planet.type) && <Slider label="ocean" value={knob("ocean")} onChange={(v) => set("ocean", v)} min={0} max={1} tip={TIPS.ocean} />}
-          {CRATERED.includes(planet.type) && <Slider label="craters" value={knob("crater")} onChange={(v) => set("crater", v)} min={0} max={1} tip={TIPS.crater} />}
-          {planet.type === "lava" && <Slider label="veins" value={knob("vein")} onChange={(v) => set("vein", v)} min={0} max={1} tip={TIPS.vein} />}
-          {planet.type !== "lava" && <Slider label="clouds" value={knob("cloud")} onChange={(v) => set("cloud", v)} min={0} max={1} tip={TIPS.cloud} />}
-          {BANDED.includes(planet.type) && <>
-            <Slider label="bands" value={knob("bands")} onChange={(v) => set("bands", v)} min={1} max={40} step={1} tip={TIPS.bands} />
-            <Slider label="band edges" value={knob("bandSharp")} onChange={(v) => set("bandSharp", v)} min={0} max={1} tip={TIPS.bandSharp} />
-          </>}
-        </div>
-
-        <p className="panel__h">motion and air</p>
-        <div className="fields fields--2">
           <Slider label="spin" value={knob("spin")} onChange={(v) => set("spin", v)} min={0} max={12} step={0.1} unit=" tpm" tip={TIPS.spin} />
           <Slider label="tilt" value={knob("tilt")} onChange={(v) => set("tilt", v)} min={-90} max={90} step={1} unit="°" tip={TIPS.tilt} />
-          <Slider label="atmosphere" value={knob("atmo")} onChange={(v) => set("atmo", v)} min={0} max={0.6} tip={TIPS.atmo} />
-          <Slider label="atmosphere opacity" value={knob("atmoAlpha")} onChange={(v) => set("atmoAlpha", v)} min={0} max={1} tip={TIPS.atmoAlpha} />
           <Slider label="glow" value={knob("glow")} onChange={(v) => set("glow", v)} min={0} max={3} step={0.05} tip={TIPS.glow} />
+          <Slider label="atmosphere" value={knob("atmo")} onChange={(v) => set("atmo", v)} min={0} max={0.6} tip={TIPS.atmo} />
+          <Slider label="air opacity" value={knob("atmoAlpha")} onChange={(v) => set("atmoAlpha", v)} min={0} max={1} tip={TIPS.atmoAlpha} />
+          {unset > 0 && <p className="hint">{unset} knobs unset — the scene picks those from the planet&rsquo;s position until you move them.</p>}
         </div>
-        {unset > 0 && <p className="hint">{unset} of these are still unset, so the scene picks them from the planet&rsquo;s position. Moving one fixes it.</p>}
 
-        <Check label="give it a ring" checked={ring !== null} onChange={(on) => (on ? setRing({}) : onChange({ ...planet, ring: null }))} />
-        {ring && (
-          <div className="fields fields--3">
-            <Field label="ring, inner colour"><Colour value={ring.ca} onChange={(v) => setRing({ ca: v })} /></Field>
-            <Field label="ring, outer colour"><Colour value={ring.cb} onChange={(v) => setRing({ cb: v })} /></Field>
-            <Field label="ring tilt" hint="radians"><Num value={ring.tilt} onChange={(v) => setRing({ tilt: v })} step={0.02} /></Field>
-            <Field label="inner radius" hint="× planet size"><Num value={ring.inner} onChange={(v) => setRing({ inner: v })} step={0.02} /></Field>
-            <Field label="outer radius" hint="× planet size"><Num value={ring.outer} onChange={(v) => setRing({ outer: v })} step={0.02} /></Field>
-          </div>
-        )}
+        <Fold id="planet.ring" title="ring" open={false} note={ring ? "on" : "none"}>
+          <Check label="give it a ring" checked={ring !== null} onChange={(on) => (on ? setRing({}) : onChange({ ...planet, ring: null }))} />
+          {ring && (
+            <>
+              <Swatches
+                items={[
+                  { label: "inner", value: ring.ca, onChange: (v) => setRing({ ca: v }) },
+                  { label: "outer", value: ring.cb, onChange: (v) => setRing({ cb: v }) },
+                ]}
+              />
+              <div className="fields fields--3">
+                <Slider label="ring tilt" value={ring.tilt} onChange={(v) => setRing({ tilt: v })} min={-1.6} max={1.6} step={0.02} tip="radians, around the planet's own tilt." />
+                <Slider label="inner radius" value={ring.inner} onChange={(v) => setRing({ inner: v })} min={1} max={4} step={0.02} unit="×" tip="multiples of the planet's own radius." />
+                <Slider label="outer radius" value={ring.outer} onChange={(v) => setRing({ outer: v })} min={1} max={6} step={0.02} unit="×" tip="multiples of the planet's own radius; keep it above the inner one." />
+              </div>
+            </>
+          )}
+        </Fold>
       </div>
       <div className="pled__view">
         <p className="panel__h">live preview</p>
-        <PlanetPreview planet={planet} />
+        <PlanetPreview planet={planet} moons={moons} />
+        {shown > 0 && (
+          <p className="hint">
+            {shown} {shown === 1 ? "moon is" : "moons are"} passed to the preview. It draws them once the scene
+            gains moon rendering; until then the planet alone is what you see here.
+          </p>
+        )}
       </div>
     </div>
+  );
+}
+
+// ── moons ──
+
+const MOON_TIPS = {
+  auto: "on, the next detection may add and update this project's moons. Off, the list is yours alone and nothing rewrites it.",
+  detect: "reads the repository's top-level folders and shows what they would become. Nothing changes until you apply it.",
+  marks: "auto means the moon is still exactly what detection produced. Edit any of its values and it becomes yours — the next detection leaves it alone.",
+} as const;
+
+/**
+ * The moons list: what the repository suggests, what you have made of it, and the switch that decides
+ * whether detection is allowed to keep touching it. The detect button previews before it writes anything,
+ * and both endpoints belong to another agent — a miss is a line of text, never a crash.
+ */
+function MoonsBlock({ slug, moons, auto, onMoons, onAuto, onWrite }: {
+  slug: string; moons: readonly Moon[]; auto: boolean;
+  onMoons: (m: Moon[]) => void; onAuto: (v: boolean) => void;
+  /** Absent while the project is unsaved or the form is dirty — a server-side write would lose the edits. */
+  onWrite?: () => void;
+}) {
+  const { say } = useToast();
+  const [tree, setTree] = useState<MoonTree | null>(null);
+  const [busy, setBusy] = useState(false);
+  const full = moons.length >= MOON_CAP;
+  const mine = moons.filter((m) => !m.auto).length;
+
+  const look = async (): Promise<void> => {
+    setBusy(true);
+    const found = await detectMoons(slug);
+    setBusy(false);
+    setTree(found);
+    if (found.error) say(found.error, true);
+  };
+  // Detection may add and refresh, but never overwrite a moon you have touched — same rule as the route.
+  const key = (m: Moon): string => (m.path || m.name).toLowerCase();
+  const plan = (found: readonly Moon[]): { kept: Moon[]; fresh: Moon[] } => {
+    const kept = moons.filter((m) => !m.auto);
+    const taken = new Set(kept.map(key));
+    return { kept, fresh: found.filter((f) => !taken.has(key(f))).slice(0, Math.max(0, MOON_CAP - kept.length)) };
+  };
+  const apply = (found: readonly Moon[]): void => {
+    const { kept, fresh } = plan(found);
+    onMoons([...kept, ...fresh]);
+    setTree(null);
+    say(`${fresh.length} detected · ${kept.length} of your own kept`);
+  };
+
+  return (
+    <>
+      <div className="moons__bar">
+        <Btn kind="primary" onClick={() => void look()} disabled={busy || !slug}>{busy ? "reading the repository…" : "detect from the repository"}</Btn>
+        <Tooltip text={MOON_TIPS.detect} />
+        <Btn onClick={() => onMoons([...moons, newMoon(moons.length + 1)])} disabled={full}>add a moon</Btn>
+        <Tooltip text={MOON_CAP_TIP} />
+        <Toggle label="let detection keep this list" checked={auto} onChange={onAuto} tip={MOON_TIPS.auto} />
+        {onWrite && <Btn onClick={onWrite}>detect and write now</Btn>}
+        <span className="moons__count">{moons.length} of {MOON_CAP}{mine > 0 && ` · ${mine} edited by hand`}</span>
+      </div>
+      {!slug && <p className="hint">detection needs the project&rsquo;s slug — save it once and the button wakes up. Moons added by hand save with the project either way.</p>}
+
+      {tree && (
+        <div className="sf moons__pre">
+          <div className="sf__in">
+            <Section title="what the repository would give it" actions={<Btn onClick={() => setTree(null)}>dismiss</Btn>} />
+            {tree.folders.length > 0 && (
+              <p className="moons__dirs">{tree.folders.map((f) => <span key={f}>{f}</span>)}</p>
+            )}
+            {tree.moons.length === 0 ? (
+              <p className="hint">{tree.error || "the tree came back with nothing that would make a moon."}</p>
+            ) : (
+              <>
+                <ul className="moons__list">
+                  {tree.moons.map((m, i) => (
+                    <li key={`${key(m)}-${i}`}><b>{m.name}</b><small>{m.path || "no folder"}</small><em>{m.type} · size {m.size.toFixed(2)} · orbit {m.orbit.toFixed(1)}</em></li>
+                  ))}
+                </ul>
+                <div className="acts">
+                  <Btn kind="primary" onClick={() => apply(tree.moons)} disabled={plan(tree.moons).fresh.length === 0}>
+                    apply {plan(tree.moons).fresh.length} of these
+                  </Btn>
+                  <p className="hint">
+                    applied to the form only — the project still has to be saved.
+                    {plan(tree.moons).kept.length > 0 && ` Your ${plan(tree.moons).kept.length} edited ${plan(tree.moons).kept.length === 1 ? "moon" : "moons"} stay as they are.`}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {moons.length === 0 ? (
+        <p className="hint">no moons. A repository&rsquo;s top-level folders make them — zcrypt&rsquo;s backend, frontend, mobile and core — or add one by hand.</p>
+      ) : (
+        <div className="moons">
+          <div className="moons__head">
+            <span>moon</span><span>the numbers</span><Tooltip text={MOON_TIPS.marks} />
+          </div>
+          {moons.map((m, i) => (
+            <MoonRow
+              key={`${m.path || m.name}-${i}`} moon={m}
+              onChange={(next) => onMoons(moons.map((x, k) => (k === i ? next : x)))}
+              onRemove={() => onMoons(moons.filter((_, k) => k !== i))}
+            />
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -321,6 +452,13 @@ const COLUMNS: readonly Column<Row>[] = [
   { key: "title", label: "project", value: (r) => r.title, cell: (r) => <><b>{r.title}</b><small className="sub">/{r.slug}</small></> },
   { key: "planet", label: "planet", width: "96px", value: (r) => r.planet.type, cell: (r) => <Badge tone="cool">{r.planet.type}</Badge> },
   { key: "orbit", label: "orbit", width: "80px", num: true, value: (r) => r.orbit, cell: (r) => r.orbit },
+  {
+    key: "moons", label: "moons", width: "84px", value: (r) => readMoons(r.moons).length,
+    cell: (r) => {
+      const n = readMoons(r.moons).length;
+      return n === 0 ? <small className="sub">none</small> : <Badge tone={r.moonsAuto === false ? "warn" : "cool"}>{n}</Badge>;
+    },
+  },
   { key: "year", label: "year", width: "72px", num: true, value: (r) => r.year ?? 0, cell: (r) => r.year ?? "—" },
   {
     key: "state", label: "state", width: "150px", value: (r) => (r.visible ? 0 : 1),
@@ -330,9 +468,10 @@ const COLUMNS: readonly Column<Row>[] = [
 type Shown = "all" | "visible" | "hidden" | "featured";
 
 export default function ProjectsPanel() {
-  const { items, loading, create, update, remove, move } = useResource<Row>("projects");
+  const { items, loading, create, update, remove, move, refresh } = useResource<Row>("projects");
   const { repos, loading: reposLoading, error: repoError } = useRepos();
   const { sunRadius } = useSunRadius();
+  const { say } = useToast();
   const [term, setTerm] = useState("");
   const [type, setType] = useState<PlanetType | "all">("all");
   const [shown, setShown] = useState<Shown>("all");
@@ -354,6 +493,11 @@ export default function ProjectsPanel() {
 
   const close = (): void => { setSel(null); setAdding(false); };
   const github = { repos, loading: reposLoading, error: repoError, linked };
+  const detectAll = async (): Promise<void> => {
+    const res = await writeMoons({ all: true });
+    say(res.text, !res.ok);
+    if (res.ok) await refresh();
+  };
 
   return (
     <div className="stack" onKeyDown={(e) => { if (e.key === "Escape") close(); }}>
@@ -371,6 +515,11 @@ export default function ProjectsPanel() {
             <Chip on={shown === "hidden"} onClick={() => setShown(shown === "hidden" ? "all" : "hidden")}>hidden</Chip>
           </div>
           <Count shown={rows.length} total={items.length} noun="projects" />
+          <Danger
+            label="detect every project's moons" armedLabel="click again — this writes moons"
+            onConfirm={() => void detectAll()}
+          />
+          <Tooltip text="asks the repository of every project with moons on for its top-level folders and writes the moons they make. A moon you have edited is never overwritten." />
           <Btn kind="primary" onClick={() => { setSel(null); setAdding(true); }}>new project</Btn>
         </Toolbar>
 
@@ -410,6 +559,7 @@ export default function ProjectsPanel() {
           onSave={(patch) => update({ id: current.id, ...patch })}
           onDelete={() => { void remove(current.id); close(); }}
           onMove={(dir) => void move(current.id, dir)}
+          onWrote={refresh}
         />
       )}
     </div>
@@ -418,101 +568,140 @@ export default function ProjectsPanel() {
 
 interface GithubBits { repos: readonly AdminRepo[]; loading: boolean; error: string; linked: ReadonlySet<string> }
 
-function EditProject({ row, github, sunRadius, onClose, onSave, onDelete, onMove }: {
+function EditProject({ row, github, sunRadius, onClose, onSave, onDelete, onMove, onWrote }: {
   row: Row; github: GithubBits; sunRadius: number; onClose: () => void;
   onSave: (patch: Partial<Row>) => Promise<boolean>; onDelete: () => void; onMove: (dir: -1 | 1) => void;
+  /** The list has to be refetched after a server-side moon write, since the form never saw it. */
+  onWrote: () => Promise<void>;
 }) {
   const [form, setForm] = useState<Row>(row);
   const [busy, setBusy] = useState(false);
   const [picking, setPicking] = useState(false);
+  const formId = useId();
+  const { say } = useToast();
+  // A required field inside a shut section cannot be focused, so the browser would refuse the submit in
+  // silence; opening the section on `invalid` puts the field the user has to fix back on screen.
+  const [, openBasics] = useFold("proj.basics");
   const set = <K extends keyof Row>(k: K) => (v: Row[K]): void => setForm({ ...form, [k]: v });
   const dirty = JSON.stringify(form) !== JSON.stringify(row);
   const repo = matchRepo(github.repos, form.github);
   // Absent means the column default, which is on.
   const live = { langs: form.useLiveLangs !== false, meta: form.useLiveMeta !== false, readme: form.useLiveReadme !== false };
+  const moons = readMoons(form.moons);
+
+  // Writing server-side would throw away whatever the form is holding, so it is offered only when clean.
+  const write = async (): Promise<void> => {
+    const res = await writeMoons({ slug: form.slug });
+    say(res.text, !res.ok);
+    if (res.ok) { await onWrote(); onClose(); }
+  };
 
   return (
-    <Card
-      title={row.title} onClose={onClose}
-      actions={<><Btn onClick={() => onMove(-1)} aria-label="move up">↑</Btn><Btn onClick={() => onMove(1)} aria-label="move down">↓</Btn></>}
+    <Modal
+      title={row.title} subtitle={`/${row.slug}`} onClose={onClose}
+      actions={
+        <>
+          {dirty && <Badge tone="warn">unsaved</Badge>}
+          <Btn onClick={() => onMove(-1)} aria-label="move up">↑</Btn>
+          <Btn onClick={() => onMove(1)} aria-label="move down">↓</Btn>
+        </>
+      }
+      foot={
+        <>
+          <Btn kind="primary" size="md" type="submit" form={formId} disabled={busy || !dirty}>{busy ? "saving…" : dirty ? "save the project" : "saved"}</Btn>
+          <Btn size="md" onClick={() => setForm(row)} disabled={!dirty}>undo</Btn>
+          <Danger size="md" onConfirm={onDelete} />
+          <p className="hint">escape closes this. Languages come from github at request time; the stored list is only the fallback.</p>
+        </>
+      }
     >
-      {picking && (
-        <RepoPicker
-          repos={github.repos} loading={github.loading} error={github.error} current={form.github} linked={github.linked}
-          onClose={() => setPicking(false)}
-          onPick={(r) => {
-            setForm({ ...form, github: r.url, live: form.live || r.homepage, tagline: form.tagline || r.description });
-            setPicking(false);
-          }}
-        />
-      )}
       <form
-        className="fields"
+        id={formId} className="fields"
         onSubmit={(e) => { e.preventDefault(); setBusy(true); void onSave(form).finally(() => setBusy(false)); }}
       >
-        <div className="fields fields--2">
-          <Field label="title"><Text value={form.title} onChange={set("title")} required /></Field>
-          <Field label="slug" hint="the URL"><Text value={form.slug} onChange={set("slug")} required /></Field>
-          <Field label="tagline"><Text value={form.tagline} onChange={set("tagline")} /></Field>
-          <Field label="résumé heading" hint="the longer title on the project page"><Text value={form.heading} onChange={set("heading")} /></Field>
-        </div>
-        <div className="withlive">
-          <Field label="description" hint="one paragraph, used everywhere"><Area value={form.description} onChange={set("description")} /></Field>
-          {repo && <LiveNote on={live.meta && !form.description.trim()} value={repo.description} tip={LIVE_TIPS.meta} />}
-        </div>
-        <Field label="bullets" hint="one per line · the About section"><Lines value={form.bullets} onChange={set("bullets")} rows={6} /></Field>
-        <div className="fields fields--2">
-          <div className="withlive">
-            <Field label="stack" hint="the chips"><Chips value={form.stack} onChange={set("stack")} /></Field>
-            {repo && <LiveNote on={live.meta && form.stack.length === 0} value={repo.topics.join(" · ")} tip={LIVE_TIPS.meta} />}
+        <Fold id="proj.basics" title="the basics">
+          <div className="fields fields--3">
+            <Field label="title"><Text value={form.title} onChange={set("title")} required onInvalid={() => openBasics(true)} /></Field>
+            <Field label="slug" hint="the URL"><Text value={form.slug} onChange={set("slug")} required onInvalid={() => openBasics(true)} /></Field>
+            <Field label="tagline"><Text value={form.tagline} onChange={set("tagline")} /></Field>
+            <Field label="category"><Text value={form.category} onChange={set("category")} /></Field>
+            <Field label="context"><Text value={form.context} onChange={set("context")} /></Field>
+            <Field label="status" hint="when it is not live"><Text value={form.status} onChange={set("status")} /></Field>
+            <Field label="github"><Text value={form.github} onChange={set("github")} /></Field>
+            <div className="withlive">
+              <Field label="live url"><Text value={form.live} onChange={set("live")} /></Field>
+              {repo && <LiveNote on={live.meta && !form.live.trim()} value={repo.homepage} tip={LIVE_TIPS.meta} />}
+            </div>
+            <Field label="year"><Num value={form.year ?? 0} onChange={(v) => setForm({ ...form, year: v || null })} /></Field>
+            <Slider label="weight" value={form.weight} onChange={set("weight")} min={0} max={1} tip="how big the planet looks in the strip, and how high the project sits on the reading page." />
+            <Check label="featured" checked={form.featured} onChange={set("featured")} />
+            <Check label="visible on the site" checked={form.visible} onChange={set("visible")} />
           </div>
-          <Field label="full tech list" hint="the project page's stack card"><Chips value={form.tech} onChange={set("tech")} /></Field>
-        </div>
-        <div className="fields fields--3">
-          <Field label="category"><Text value={form.category} onChange={set("category")} /></Field>
-          <Field label="context"><Text value={form.context} onChange={set("context")} /></Field>
-          <Field label="status" hint="when it is not live"><Text value={form.status} onChange={set("status")} /></Field>
-          <Field label="github"><Text value={form.github} onChange={set("github")} /></Field>
-          <div className="withlive">
-            <Field label="live url"><Text value={form.live} onChange={set("live")} /></Field>
-            {repo && <LiveNote on={live.meta && !form.live.trim()} value={repo.homepage} tip={LIVE_TIPS.meta} />}
-          </div>
-          <Field label="year"><Num value={form.year ?? 0} onChange={(v) => setForm({ ...form, year: v || null })} /></Field>
-        </div>
-        <Slider label="weight" value={form.weight} onChange={set("weight")} min={0} max={1} tip="how big the planet looks in the strip, and how high the project sits on the reading page." />
-        <div className="fields fields--2">
-          <Check label="featured" checked={form.featured} onChange={set("featured")} />
-          <Check label="visible on the site" checked={form.visible} onChange={set("visible")} />
-        </div>
+        </Fold>
 
-        <Section
-          title="github"
+        <Fold id="proj.copy" title="the words" open={false} note="description, bullets, stack">
+          <div className="fields fields--2">
+            <div className="withlive">
+              <Field label="description" hint="one paragraph, used everywhere"><Area value={form.description} onChange={set("description")} /></Field>
+              {repo && <LiveNote on={live.meta && !form.description.trim()} value={repo.description} tip={LIVE_TIPS.meta} />}
+            </div>
+            <Field label="bullets" hint="one per line · the About section"><Lines value={form.bullets} onChange={set("bullets")} rows={5} /></Field>
+            <div className="withlive">
+              <Field label="stack" hint="the chips"><Chips value={form.stack} onChange={set("stack")} /></Field>
+              {repo && <LiveNote on={live.meta && form.stack.length === 0} value={repo.topics.join(" · ")} tip={LIVE_TIPS.meta} />}
+            </div>
+            <Field label="full tech list" hint="the project page's stack card"><Chips value={form.tech} onChange={set("tech")} /></Field>
+            <Field label="résumé heading" hint="the longer title on the project page"><Text value={form.heading} onChange={set("heading")} /></Field>
+          </div>
+        </Fold>
+
+        <Fold
+          id="proj.github" title="github" open={false}
           tip="which of this project's values github may overwrite when a page renders."
+          note={repo ? repo.fullName : form.github ? "not in the list" : "no repository"}
           actions={
             <>
               {repo ? <Badge tone="cool">{repo.fullName}</Badge> : form.github ? <Badge tone="mute">not in the list</Badge> : <Badge tone="off">no repository</Badge>}
               <Btn onClick={() => setPicking(!picking)}>{picking ? "close the list" : "pick a repository"}</Btn>
             </>
           }
-        />
-        <div className="fields fields--3">
-          <Toggle label="live languages" checked={live.langs} onChange={set("useLiveLangs")} tip={LIVE_TIPS.langs} />
-          <Toggle label="live description and links" checked={live.meta} onChange={set("useLiveMeta")} tip={LIVE_TIPS.meta} />
-          <Toggle label="live readme" checked={live.readme} onChange={set("useLiveReadme")} tip={LIVE_TIPS.readme} />
-        </div>
-        {repo && <LiveNote on={live.langs} value={repo.language} tip={LIVE_TIPS.langs} />}
-        {github.error && <p className="hint">{github.error}</p>}
+        >
+          <div className="fields fields--3">
+            <Toggle label="live languages" checked={live.langs} onChange={set("useLiveLangs")} tip={LIVE_TIPS.langs} />
+            <Toggle label="live description and links" checked={live.meta} onChange={set("useLiveMeta")} tip={LIVE_TIPS.meta} />
+            <Toggle label="live readme" checked={live.readme} onChange={set("useLiveReadme")} tip={LIVE_TIPS.readme} />
+          </div>
+          {repo && <LiveNote on={live.langs} value={repo.language} tip={LIVE_TIPS.langs} />}
+          {github.error && <p className="hint">{github.error}</p>}
+          {picking && (
+            <RepoPicker
+              repos={github.repos} loading={github.loading} error={github.error} current={form.github} linked={github.linked}
+              onClose={() => setPicking(false)}
+              onPick={(r) => {
+                setForm({ ...form, github: r.url, live: form.live || r.homepage, tagline: form.tagline || r.description });
+                setPicking(false);
+              }}
+            />
+          )}
+        </Fold>
 
-        <PlanetEditor planet={form.planet} orbit={form.orbit} sunRadius={sunRadius} onChange={set("planet")} onOrbit={set("orbit")} />
-        <p className="hint">Languages come from GitHub at request time; the stored list is only the fallback when the API is unreachable.</p>
+        <Fold id="proj.planet" title="the planet" note={`${form.planet.type} · orbit ${form.orbit}`}>
+          <PlanetEditor
+            planet={form.planet} orbit={form.orbit} sunRadius={sunRadius} moons={moons}
+            onChange={set("planet")} onOrbit={set("orbit")}
+          />
+        </Fold>
 
-        <div className="acts">
-          <Btn kind="primary" size="md" type="submit" disabled={busy || !dirty}>{busy ? "saving…" : dirty ? "save the project" : "saved"}</Btn>
-          <Btn size="md" onClick={() => setForm(row)} disabled={!dirty}>undo</Btn>
-          <Danger size="md" onConfirm={onDelete} />
-        </div>
+        <Fold id="proj.moons" title="moons" tip={MOON_CAP_TIP} note={moons.length === 0 ? "none" : `${moons.length} of ${MOON_CAP}`}>
+          <MoonsBlock
+            slug={form.slug} moons={moons} auto={form.moonsAuto !== false}
+            onMoons={(m) => setForm({ ...form, moons: m })}
+            onAuto={(v) => setForm({ ...form, moonsAuto: v })}
+            onWrite={dirty ? undefined : () => void write()}
+          />
+        </Fold>
       </form>
-    </Card>
+    </Modal>
   );
 }
 
@@ -522,12 +711,20 @@ function NewProject({ github, sunRadius, onCancel, onCreate }: {
   const [draft, setDraft] = useState(blank);
   const [busy, setBusy] = useState(false);
   const [picking, setPicking] = useState(false);
+  const formId = useId();
   const slugOf = (v: string): string => v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
   return (
-    <Card
+    <Modal
       title="new project" onClose={onCancel}
       actions={<><Tooltip text="fills the title, slug, url and description from a repository on the account." /><Btn onClick={() => setPicking(!picking)}>{picking ? "close the list" : "start from a repository"}</Btn></>}
+      foot={
+        <>
+          <Btn kind="primary" size="md" type="submit" form={formId} disabled={busy}>{busy ? "creating…" : "create project"}</Btn>
+          <Btn size="md" onClick={onCancel}>cancel</Btn>
+          <p className="hint">the planet can be tuned now or later; moons need the project saved first.</p>
+        </>
+      }
     >
       {picking && (
         <RepoPicker
@@ -544,7 +741,7 @@ function NewProject({ github, sunRadius, onCancel, onCreate }: {
         />
       )}
       <form
-        className="fields"
+        id={formId} className="fields"
         onSubmit={(e) => { e.preventDefault(); setBusy(true); void onCreate(draft).then((ok) => { if (ok) setDraft(blank); setBusy(false); }); }}
       >
         <div className="fields fields--3">
@@ -557,22 +754,20 @@ function NewProject({ github, sunRadius, onCancel, onCreate }: {
           <Field label="slug"><Text value={draft.slug} onChange={(v) => setDraft({ ...draft, slug: v })} required /></Field>
           <Field label="github"><Text value={draft.github} onChange={(v) => setDraft({ ...draft, github: v })} required /></Field>
         </div>
-        <Field label="tagline"><Text value={draft.tagline} onChange={(v) => setDraft({ ...draft, tagline: v })} required /></Field>
+        <FieldRow label="tagline"><Text value={draft.tagline} onChange={(v) => setDraft({ ...draft, tagline: v })} required /></FieldRow>
         <Field label="description"><Area value={draft.description} onChange={(v) => setDraft({ ...draft, description: v })} required /></Field>
         <div className="fields fields--3">
           <Toggle label="live languages" checked={draft.useLiveLangs} onChange={(v) => setDraft({ ...draft, useLiveLangs: v })} tip={LIVE_TIPS.langs} />
           <Toggle label="live description and links" checked={draft.useLiveMeta} onChange={(v) => setDraft({ ...draft, useLiveMeta: v })} tip={LIVE_TIPS.meta} />
           <Toggle label="live readme" checked={draft.useLiveReadme} onChange={(v) => setDraft({ ...draft, useLiveReadme: v })} tip={LIVE_TIPS.readme} />
         </div>
-        <PlanetEditor
-          planet={draft.planet} orbit={draft.orbit} sunRadius={sunRadius}
-          onChange={(p) => setDraft({ ...draft, planet: p })} onOrbit={(v) => setDraft({ ...draft, orbit: v })}
-        />
-        <div className="acts">
-          <Btn kind="primary" size="md" type="submit" disabled={busy}>{busy ? "creating…" : "create project"}</Btn>
-          <Btn size="md" onClick={onCancel}>cancel</Btn>
-        </div>
+        <Fold id="proj.planet" title="the planet" note={`${draft.planet.type} · orbit ${draft.orbit}`}>
+          <PlanetEditor
+            planet={draft.planet} orbit={draft.orbit} sunRadius={sunRadius}
+            onChange={(p) => setDraft({ ...draft, planet: p })} onOrbit={(v) => setDraft({ ...draft, orbit: v })}
+          />
+        </Fold>
       </form>
-    </Card>
+    </Modal>
   );
 }

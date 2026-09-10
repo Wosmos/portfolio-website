@@ -8,12 +8,21 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "check": "bun run typecheck && bun run lint && bun run build"
+    "check": "bun run typecheck && bun run lint && bun run build",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "bun run src/db/seed.ts",
+    "admin:hash": "bun run src/db/hash.ts"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "@types/three": "^0.181.0",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/blob": "^2.8.0",
     "@vercel/speed-insights": "^2.0.0",
+    "bcryptjs": "^3.0.3",
+    "drizzle-orm": "^0.45.2",
     "gsap": "^3.13.0",
     "next": "^16.1.1",
     "react": "^19.2.3",
@@ -22,10 +31,13 @@
     "three": "^0.181.2"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
+    "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "^16.0.10",
     "typescript": "^5"

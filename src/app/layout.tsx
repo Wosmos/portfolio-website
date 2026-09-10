@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import Tracker from "@/components/Tracker";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { person, SITE_URL } from "@/data/portfolio";
 import "./globals.css";
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" className={mono.variable}>
       <body>
         {children}
+        <Tracker />
         <Analytics />
         <SpeedInsights />
       </body>

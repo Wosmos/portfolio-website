@@ -24,6 +24,8 @@ export function createPlanetView({ canvas, project, index = 0, interactive = tru
   const renderer = makeRenderer(canvas);
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 500);
+  // no scene config here, so makeBody caps the radius against the default star — a stored size can
+  // never draw a planet bigger than the sun on this side of the site either
   const b = makeBody(project, index);
   // the sun is at the origin: put the body far along +z and the camera between the two, slightly above,
   // so the lit hemisphere faces us with the light over our shoulder
@@ -236,7 +238,7 @@ export function createPlanetStrip({ canvas, projects, onPick, onHover }: PlanetS
   const addBody = (i: number): void => {
     const p = projects[i];
     if (!alive || !p) return;
-    const base = makeBody(p, i);
+    const base = makeBody(p, i);   // same size cap as the deck; the cell then normalises what is left
     const extent = base.size * (base.cfg.ring ? base.extent * 0.78 : 1 + base.atmoT);  // rings may overflow the cell a little
     const k = (CELL * 0.44) / extent;
     base.root.scale.setScalar(k * (0.85 + 0.15 * Math.min(1, p.weight)));

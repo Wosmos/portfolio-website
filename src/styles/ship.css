@@ -61,14 +61,15 @@ html.is-deck :focus-visible { outline: 1px solid var(--cy); outline-offset: 3px;
 .frame__vignette { position: absolute; inset: 0; background: radial-gradient(120% 100% at 50% 42%, transparent 62%, rgba(3,4,7,.6) 100%); }
 
 /* instrument hood: three screens set into the dashboard */
-.dash { position: absolute; left: 0; right: 0; bottom: 0; height: 19%; display: grid; grid-template-columns: .92fr 1.5fr .86fr 1fr; gap: 1%; padding: .8% 9% .9% 9%; transform: translate(calc(var(--tx) * 1.2), calc(var(--ty) * 1.2)); transition: transform .12s linear; }
+.dash { position: absolute; left: 0; right: 0; bottom: 0; height: 19%; display: grid; grid-template-columns: .84fr 1.38fr .8fr 1.28fr; gap: 1%; padding: .8% 9% .9% 9%; transform: translate(calc(var(--tx) * 1.2), calc(var(--ty) * 1.2)); transition: transform .12s linear; }
 .screen { position: relative; background: #050a10; border: 1px solid rgba(0,229,255,.22); box-shadow: inset 0 0 0 2px #0b1118, inset 0 0 40px rgba(0,229,255,.06), 0 -2px 0 #2a3040; padding: 8px 10px; overflow: hidden; font-size: 11px; color: var(--fg-2); }
 .screen::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(255,255,255,.028) 0 1px, transparent 1px 3px); mix-blend-mode: screen; }
 .screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, rgba(160,220,255,.08), transparent 35%, transparent 70%, rgba(160,220,255,.04)); }
 .screen--mid { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 4px; }
 .screen--mid canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
-.screen--right { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; }
-.screen--right canvas { cursor: crosshair; width: 96px; height: 96px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,229,255,.3); background: radial-gradient(circle, rgba(0,229,255,.06), transparent 70%); }
+/* the radar column is fixed, so the dish is always a circle rather than whatever is left over */
+.screen--right { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 10px; align-items: center; }
+.screen--right canvas { cursor: crosshair; width: 104px; height: 104px; aspect-ratio: 1; flex: none; justify-self: center; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,229,255,.3); background: radial-gradient(circle, rgba(0,229,255,.06), transparent 70%); }
 .screen--left { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; }
 .targets { list-style: none; margin: 0; padding: 0 4px 0 0; display: grid; gap: 0; align-content: start; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(0,229,255,.45) transparent; min-height: 0;
   /* the list fades at the edges so a clipped row reads as "there is more", not as a broken panel */
@@ -285,6 +286,10 @@ html.is-deck :focus-visible { outline: 1px solid var(--cy); outline-offset: 3px;
 .toast--fact { max-width: min(620px, 84vw); font-size: 12.5px; line-height: 1.55; letter-spacing: .01em; text-transform: none; text-align: center; color: var(--fg); border-color: rgba(0,229,255,.6); box-shadow: 0 0 30px rgba(0,229,255,.14); }
 .toast--fact b { display: block; margin-bottom: 5px; font-size: 8.5px; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; color: var(--cy); }
 
+@media (max-width: 1280px) {
+  .screen--right { grid-template-columns: 84px minmax(0, 1fr); gap: 8px; }
+  .screen--right canvas { width: 84px; height: 84px; }
+}
 @media (max-width: 900px) {
   .frame__svg { display: none; }
   .dash { height: auto; grid-template-columns: 1fr; padding: 0 10px 10px; bottom: 0; gap: 8px; }

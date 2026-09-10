@@ -3,7 +3,7 @@
 // src/lib/github.ts and layered over these records at request time; what it cannot (planet shader
 // configuration, taglines, résumé bullets) lives here. Mirrors the prototype's data.js.
 
-export type PlanetType = "gas" | "rocky" | "lava" | "ice";
+export type PlanetType = "gas" | "rocky" | "lava" | "ice" | "liquid" | "muddy";
 export interface RingConfig { ca: number; cb: number; inner: number; outer: number; tilt: number }
 export interface PlanetConfig {
   type: PlanetType; size: number; c0: number; c1: number; c2: number; c3: number; rim: number;

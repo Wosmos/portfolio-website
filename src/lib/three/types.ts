@@ -2,6 +2,8 @@
 // flight-deck controller (deck.ts). Kept free of three.js types so UI code never imports three.
 
 import type { PlanetConfig, Project } from "@/data/portfolio";
+import type { RepoStar } from "@/lib/github";
+import type { ScaleMode } from "@/lib/scale";
 
 /**
  * The planet parameters the admin gained after `PlanetConfig` was written. Every one is optional and a
@@ -31,6 +33,8 @@ export interface HeadingBody { id: string; x: number; y: number; z: number; r: n
 export interface Heading {
   theta: number; phi: number; roll: number; pos: Vec3; flying: boolean; flightT: number; flightDur: number;
   speed: number; hot: number; sunHot: boolean; bodies: readonly HeadingBody[];
+  /** Astronomical units per scene unit, so a distance readout stays honest at any span. */
+  auPerUnit: number;
 }
 export interface LayerAnchor { name: string; pct: number; color: number; x: number; y: number; z: number; amount: number }
 export interface Layer { name: string; pct: number; r0: number; r1: number; color: number }
@@ -45,12 +49,32 @@ export interface SceneSettings {
   nebulaA?: number; nebulaB?: number; bloom?: number; fov?: number;
   /** Distance from the sun per project, in the order `projects` is given. */
   orbits?: readonly number[];
+  /**
+   * How the system is laid out. `stylised` uses the stored sizes and orbits — the look that shipped.
+   * `relative` and `real` take sizes, orbits, tilts, spins and the belt from src/lib/scale.ts instead,
+   * which is why the per-project values stop having an effect in those two modes.
+   */
+  scaleMode?: ScaleMode;
+  /** What the outermost orbit represents, in astronomical units: 30 is Neptune, 63241 a light year. */
+  spanAu?: number;
+  /** Sun: the middle stop of the core→mid→edge ramp. */
+  sunColorMid?: number;
+  /** Sun: granulation cell contrast, limb darkening, sunspot coverage, rotation rate. */
+  sunGranulation?: number; sunLimb?: number; sunSpots?: number; sunSpin?: number;
+  /** Sun: corona brightness and how far prominences reach. */
+  sunCorona?: number; sunFlare?: number;
+  /** Belt: radial width and vertical spread in scene units, rock scale, tint, and tilt in degrees. */
+  beltWidth?: number; beltThickness?: number; beltRockSize?: number; beltColor?: number; beltTilt?: number;
+  /** Draw the other repositories as background constellations, and how bright commit counts make them. */
+  constellations?: boolean; constellationGain?: number;
 }
 export interface SystemOptions {
   canvas: HTMLCanvasElement; labelsEl: HTMLElement; projects: readonly Project[]; scene?: SceneSettings;
   onSelect?: (p: Project) => void; onSunSelect?: () => void;
   onFlightEvent?: (name: FlightEventName, info: FlightEventInfo) => void; onBeltLevel?: (k: number) => void;
   reducedMotion?: boolean;
+  /** The repositories that are not projects, drawn as the constellation layer. */
+  repoStars?: readonly RepoStar[];
 }
 /** The flight-deck scene. Same surface the prototype's ship.js used. */
 export interface SystemApi {

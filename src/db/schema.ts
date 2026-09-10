@@ -36,7 +36,7 @@ export const profile = pgTable("profile", {
 export interface RingConfigJson { ca: number; cb: number; inner: number; outer: number; tilt: number }
 /** Everything the shader needs for one planet. Colours are stored as integers, as the scene wants them. */
 export interface PlanetConfigJson {
-  type: "gas" | "rocky" | "lava" | "ice";
+  type: "gas" | "rocky" | "lava" | "ice" | "liquid" | "muddy";
   size: number; c0: number; c1: number; c2: number; c3: number; rim: number;
   ocean?: number; cloud?: number; crater?: number; vein?: number;
   /** Surface noise seed — changes the terrain without touching anything else. */
@@ -77,6 +77,10 @@ export const projects = pgTable("projects", {
   planet: jsonb("planet").$type<PlanetConfigJson>().notNull(),
   /** Distance from the sun in scene units — the orbit the planet sits on. */
   orbit: real("orbit").notNull(),
+  /** When false the dashboard's own value wins over whatever GitHub reports. */
+  useLiveLangs: boolean("use_live_langs").default(true).notNull(),
+  useLiveMeta: boolean("use_live_meta").default(true).notNull(),
+  useLiveReadme: boolean("use_live_readme").default(true).notNull(),
   coverImage: text("cover_image").default("").notNull(),
   images: jsonb("images").$type<{ url: string; caption?: string }[]>().default([]).notNull(),
   featured: boolean("featured").default(false).notNull(),
@@ -172,6 +176,27 @@ export const sceneConfig = pgTable("scene_config", {
   nebulaB: integer("nebula_b").default(0x0b2f6e).notNull(),
   bloom: real("bloom").default(1).notNull(),
   fov: real("fov").default(42).notNull(),
+  /** stylised (hand-picked) · relative (true size ratios, eased distances) · real (true to scale). */
+  scaleMode: varchar("scale_mode", { length: 10 }).default("stylised").notNull(),
+  /** What the outermost orbit means in astronomical units — 30 is Neptune, 63241 is a light year. */
+  spanAu: real("span_au").default(30).notNull(),
+  /** Sun: the rest of what the shader can do. */
+  sunColorMid: integer("sun_color_mid").default(0xffb547).notNull(),
+  sunGranulation: real("sun_granulation").default(1).notNull(),
+  sunCorona: real("sun_corona").default(1).notNull(),
+  sunSpots: real("sun_spots").default(0).notNull(),
+  sunSpin: real("sun_spin").default(1).notNull(),
+  sunLimb: real("sun_limb").default(1).notNull(),
+  sunFlare: real("sun_flare").default(1).notNull(),
+  /** Asteroid belt geometry, not just its radius. */
+  beltWidth: real("belt_width").default(9).notNull(),
+  beltThickness: real("belt_thickness").default(1.2).notNull(),
+  beltRockSize: real("belt_rock_size").default(1).notNull(),
+  beltColor: integer("belt_color").default(0x8b7d6b).notNull(),
+  beltTilt: real("belt_tilt").default(0).notNull(),
+  /** The other repositories, drawn as constellations whose stars are sized by commit count. */
+  constellations: boolean("constellations").default(true).notNull(),
+  constellationGain: real("constellation_gain").default(1).notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

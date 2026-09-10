@@ -523,3 +523,209 @@ export function useSearch<T>(rows: readonly T[], term: string, fields: (row: T) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, q]);
 }
+
+// ── controls the scene panel needed, kept here so every panel can have them ──
+
+/** A labelled point on a log slider: the value, and what to call it. */
+export interface Stop { at: number; label: string }
+/** Two decimals while small, one while mid-sized, whole numbers once the value is large. */
+const tidy = (v: number): number => (v < 10 ? Math.round(v * 100) / 100 : v < 1000 ? Math.round(v * 10) / 10 : Math.round(v));
+
+/**
+ * A range whose travel is logarithmic. A linear slider from 0.2 au to a light year spends 99% of its
+ * track on the last 1% of the values, so the track carries `log(value/min)` instead and the stops give
+ * the reachable landmarks a click of their own.
+ */
+export function LogSlider({ label, value, onChange, min, max, stops = [], tip, format }: {
+  label: string; value: number; onChange: (v: number) => void; min: number; max: number;
+  stops?: readonly Stop[]; tip?: string; format?: (v: number) => string;
+}) {
+  const span = Math.log(max / min);
+  const at = Math.min(max, Math.max(min, value));
+  const pos = Math.round((Math.log(at / min) / span) * 1000);
+  const shown = format ? format(at) : String(tidy(at));
+  return (
+    <div className="fld sld sld--log">
+      <label>{label}<small>{shown}</small>{tip && <Tooltip text={tip} />}</label>
+      <input
+        type="range" min={0} max={1000} step={1} value={pos} aria-label={label} aria-valuetext={shown}
+        onChange={(e) => onChange(tidy(min * Math.exp((Number(e.target.value) / 1000) * span)))}
+      />
+      {stops.length > 0 && (
+        <div className="sld__stops">
+          {stops.map((s) => (
+            <button key={s.label} type="button" className={`stop${Math.abs(s.at - at) <= s.at * 0.02 ? " is-on" : ""}`} onClick={() => onChange(s.at)}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export interface ChoiceOption<T extends string> { value: T; label: string; note?: string }
+/** Radio cards: for a choice of three where each option needs a sentence, not a dropdown row. */
+export function Choice<T extends string>({ name, value, onChange, options }: {
+  name: string; value: T; onChange: (v: T) => void; options: readonly ChoiceOption<T>[];
+}) {
+  return (
+    <div className="choice">
+      {options.map((o) => (
+        <label key={o.value} className={`choice__opt${value === o.value ? " is-on" : ""}`}>
+          <input type="radio" name={name} value={o.value} checked={value === o.value} onChange={() => onChange(o.value)} />
+          <b>{o.label}</b>
+          {o.note && <small>{o.note}</small>}
+        </label>
+      ))}
+    </div>
+  );
+}
+
+export interface RampStop { label: string; value: number; onChange: (v: number) => void }
+/** Colour stops edited together, under the gradient they actually make. */
+export function ColourRamp({ label, stops, tip }: { label: string; stops: readonly RampStop[]; tip?: string }) {
+  const hex = (v: number): string => `#${(v >>> 0).toString(16).padStart(6, "0").slice(-6)}`;
+  return (
+    <div className="ramp">
+      <p className="ramp__h">{label}{tip && <Tooltip text={tip} />}</p>
+      <div className="ramp__bar" aria-hidden="true" style={{ background: `linear-gradient(90deg, ${stops.map((s) => hex(s.value)).join(", ")})` }} />
+      <div className="ramp__stops">
+        {stops.map((s) => <Field key={s.label} label={s.label}><Colour value={s.value} onChange={s.onChange} /></Field>)}
+      </div>
+    </div>
+  );
+}
+
+/** A checkbox that can explain itself — `Check` plus the tooltip a live-value switch needs. */
+export function Toggle({ label, checked, onChange, tip }: { label: string; checked: boolean; onChange: (v: boolean) => void; tip?: string }) {
+  const id = useId();
+  return (
+    <div className="fld fld--row">
+      <input id={id} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <label htmlFor={id}>{label}</label>
+      {tip && <Tooltip text={tip} />}
+    </div>
+  );
+}
+
+/** The value the live source holds for the field beside it, and whether that side is currently winning. */
+export function LiveNote({ on, value, tip }: { on: boolean; value: string; tip?: string }) {
+  if (!value) return null;
+  return (
+    <p className={`live${on ? " is-on" : ""}`}>
+      <i aria-hidden="true">{on ? "▸" : "·"}</i>
+      <em>{on ? "github wins" : "github ignored"}</em>
+      <span>{value}</span>
+      {tip && <Tooltip text={tip} />}
+    </p>
+  );
+}
+
+// ── the account's repositories ──
+
+export interface AdminRepo {
+  name: string;
+  fullName: string;
+  description: string;
+  homepage: string;
+  language: string;
+  topics: readonly string[];
+  stars: number;
+  /** ISO date of the last push, or "" when the source did not say. */
+  pushedAt: string;
+  url: string;
+  private: boolean;
+  archived: boolean;
+  fork: boolean;
+  /** The project already pointed at this repository, when the endpoint says so. */
+  linkedTo: string;
+}
+
+const pick = (o: Record<string, unknown>, keys: readonly string[]): unknown => {
+  for (const k of keys) { const v = o[k]; if (v !== undefined && v !== null) return v; }
+  return undefined;
+};
+const asText = (v: unknown): string => (typeof v === "string" ? v : typeof v === "number" ? String(v) : "");
+const asCount = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+const asList = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
+
+/** The endpoint is another agent's; read it by shape rather than by trust, and skip whatever has no name. */
+function toRepo(v: unknown): AdminRepo | null {
+  if (typeof v !== "object" || v === null) return null;
+  const o: Record<string, unknown> = { ...v };
+  const full = asText(pick(o, ["fullName", "full_name", "nameWithOwner"]));
+  const name = asText(pick(o, ["name", "repo"])) || full.split("/").pop() || "";
+  if (!name) return null;
+  return {
+    name,
+    fullName: full || name,
+    description: asText(pick(o, ["description", "desc"])),
+    homepage: asText(pick(o, ["homepage", "live"])),
+    language: asText(pick(o, ["language", "mainLanguage", "primaryLanguage"])),
+    topics: asList(pick(o, ["topics", "tags"])),
+    stars: asCount(pick(o, ["stars", "stargazers_count", "stargazersCount"])),
+    pushedAt: asText(pick(o, ["pushedAt", "pushed", "pushed_at", "updatedAt", "updated_at"])),
+    url: asText(pick(o, ["url", "htmlUrl", "html_url"])),
+    private: pick(o, ["private", "isPrivate"]) === true,
+    archived: pick(o, ["archived", "isArchived"]) === true,
+    fork: pick(o, ["fork", "isFork"]) === true,
+    linkedTo: asText(pick(o, ["linkedTo", "linked", "projectSlug", "project"])),
+  };
+}
+
+/**
+ * The account's repositories. The route may not exist yet, so a miss is a message rather than a throw
+ * and every panel that uses this must still render with an empty list.
+ */
+export function useRepos(): { repos: AdminRepo[]; loading: boolean; error: string; refresh: () => Promise<void> } {
+  const [repos, setRepos] = useState<AdminRepo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const refresh = useCallback(async () => {
+    const res = await call("/api/admin/github/repos");
+    if (!res.ok) {
+      setRepos([]);
+      setError(/40[34]/.test(res.error ?? "") ? "the repository list is not available yet" : res.error ?? "could not load the repositories");
+      setLoading(false);
+      return;
+    }
+    const raw = Array.isArray(res.data)
+      ? res.data
+      : typeof res.data === "object" && res.data !== null && "repos" in res.data && Array.isArray((res.data as { repos: unknown }).repos)
+        ? (res.data as { repos: unknown[] }).repos
+        : [];
+    setRepos(raw.map(toRepo).filter((r): r is AdminRepo => r !== null));
+    setError("");
+    setLoading(false);
+  }, []);
+
+  // The writes land after the fetch resolves, not while the effect runs — see the note in useResource.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void refresh(); }, [refresh]);
+  return { repos, loading, error, refresh };
+}
+
+/**
+ * The sun's radius from the scene row, and nothing else — the projects panel needs it to cap a planet's
+ * size without owning the scene form. A miss leaves the column's own default of 6 in place, so the
+ * editor still works when the scene endpoint is unreachable.
+ */
+export function useSunRadius(): { sunRadius: number; loading: boolean } {
+  const [sunRadius, setSun] = useState(6);
+  const [loading, setLoading] = useState(true);
+  const refresh = useCallback(async () => {
+    const res = await call("/api/admin/scene");
+    const row: unknown = Array.isArray(res.data) ? res.data[0] : res.data;
+    if (res.ok && typeof row === "object" && row !== null && "sunRadius" in row) {
+      const v = (row as { sunRadius: unknown }).sunRadius;
+      if (typeof v === "number" && Number.isFinite(v) && v > 0) setSun(v);
+    }
+    setLoading(false);
+  }, []);
+  // The writes land after the fetch resolves — see the note in useResource.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void refresh(); }, [refresh]);
+  return { sunRadius, loading };
+}

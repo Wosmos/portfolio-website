@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import ShipLoader from "@/components/ship/ShipLoader";
-import { getContributions, getLastPush } from "@/lib/github";
+import { getContributions, getLastPush, getRepoStars } from "@/lib/github";
 import { getEggFacts, getPerson, getProjects, getScene } from "@/lib/content";
 import { SITE_URL } from "@/data/portfolio";
 import { absoluteUrl, clampDescription, SITE_NAME } from "@/lib/seo";
@@ -25,8 +25,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ShipPage() {
-  const [person, projects, scene, lastPush, activity, facts] = await Promise.all([
-    getPerson(), getProjects(), getScene(), getLastPush(), getContributions(), getEggFacts(),
+  const [person, projects, scene, lastPush, activity, facts, repoStars] = await Promise.all([
+    getPerson(), getProjects(), getScene(), getLastPush(), getContributions(), getEggFacts(), getRepoStars(),
   ]);
   // the deck needs the plain project shape plus the orbit each one sits on
   const bodies = projects.map((p) => ({
@@ -89,7 +89,7 @@ export default async function ShipPage() {
           </ul>
         </nav>
       </div>
-      <ShipLoader lastPush={lastPush ? { repo: lastPush.repo, at: lastPush.at } : null} projects={bodies} orbits={orbits} scene={scene} activity={activity} facts={facts} />
+      <ShipLoader lastPush={lastPush ? { repo: lastPush.repo, at: lastPush.at } : null} projects={bodies} orbits={orbits} scene={scene} activity={activity} facts={facts} repoStars={repoStars} />
     </>
   );
 }

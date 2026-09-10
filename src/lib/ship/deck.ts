@@ -6,7 +6,7 @@
 import { gsap } from "gsap";
 import { ev } from "@/lib/analytics";
 import { DEFAULT_ORBITS, eggFacts as staticFacts, person, projects as staticProjects, experience, skills, LANG_COLORS, type EggFact, type Project } from "@/data/portfolio";
-import type { Contributions } from "@/lib/github";
+import type { Contributions, RepoStar } from "@/lib/github";
 import { createAudio, MUTE_KEY, storedMuted } from "@/lib/audio";
 import type { FlightEventInfo, FlightEventName, SceneSettings, SystemApi, SystemOptions } from "@/lib/three/types";
 
@@ -27,6 +27,8 @@ export interface DeckOptions {
   activity?: Contributions | null;
   /** The lines the cockpit whispers when a secret is found. Falls back to the static pool. */
   facts?: readonly EggFact[];
+  /** The other repositories, drawn as background constellations sized by commit count. */
+  repoStars?: readonly RepoStar[];
 }
 
 /** Root-scoped querySelector that throws instead of returning null. */
@@ -349,8 +351,13 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     $("#tl-push").textContent = lastPush ? `${lastPush.repo} · ${relTime(lastPush.at)}` : "…";
     $("#tl-clock").textContent = clockLocal ? `${clock()} local` : `${clock(person.tz)} pkt`;
     const tgt = current ? h.bodies.find((b) => b.id === current?.id) : undefined;
-    const au = tgt ? Math.hypot(h.pos.x - tgt.x, h.pos.z - tgt.z) : Math.hypot(h.pos.x, h.pos.z);
-    const fmtR = (v: number): string => rangeKm ? `${(v * 149.6).toFixed(0)} Mkm` : `${v.toFixed(1)} au`;
+    // scene units are not astronomical units: the scale mode and the system span decide the rate
+    const units = tgt ? Math.hypot(h.pos.x - tgt.x, h.pos.z - tgt.z) : Math.hypot(h.pos.x, h.pos.z);
+    const au = units * (h.auPerUnit || 1);
+    const fmtR = (v: number): string => {
+      if (rangeKm) return v * 149.6 >= 100_000 ? `${(v * 149.6 / 1e6).toFixed(2)} bn km` : `${(v * 149.6).toFixed(0)} Mkm`;
+      return v >= 10_000 ? `${(v / 63_241.1).toFixed(3)} ly` : v >= 100 ? `${v.toFixed(0)} au` : `${v.toFixed(1)} au`;
+    };
     $("#tl-range").textContent = tgt ? fmtR(au) : `${fmtR(au)} from core`;
     $("#tl-eta").textContent = h.flying ? `T−${Math.max(0, (1 - h.flightT) * h.flightDur).toFixed(1)} s` : "—";
     lamp("link", live.on ? "on" : "bad");
@@ -974,7 +981,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (disposed) return false;
     const labels = document.createElement("div"); labels.className = "orbit__labels"; deck.prepend(labels); labelsEl = labels;
     let flightFrom = "system", flightStart = 0;
-    const sys = mod.createSystem({ canvas: orbitCanvas, labelsEl: labels, projects, scene: { ...opts.scene, orbits: ORBIT_AU }, onSelect: select, onSunSelect: selectSun, reducedMotion: reduced,
+    const sys = mod.createSystem({ canvas: orbitCanvas, labelsEl: labels, projects, scene: { ...opts.scene, orbits: ORBIT_AU }, repoStars: opts.repoStars, onSelect: select, onSunSelect: selectSun, reducedMotion: reduced,
       onFlightEvent: (name: FlightEventName, info: FlightEventInfo) => {
         if (name === "launch") { audio.warp(2.6 / (info.dur || 2.6)); energy = clamp(energy - clamp(info.dist / 260, 0.06, 0.32), 0, 1); flightStart = performance.now(); }
         if (name === "launchBack") { audio.retro(2.6 / (info.dur || 2.6)); flightStart = performance.now(); }

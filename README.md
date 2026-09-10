@@ -56,6 +56,47 @@ README (rendered by a small markdown subset that drops badges, tables, code fenc
 Every call degrades to the static records in `src/data/portfolio.ts`, so a rate limit or a private
 repository never breaks a page.
 
+It also reads the account as a whole. `listRepos()` pages through every repository on `Wosmos`
+(100 at a time, five pages at most) and feeds the admin's repo picker through
+`GET /api/admin/github/repos`. `getRepoStars()` takes the repositories that are *not* one of the eight
+projects — forks excluded — and returns `{ name, commits, stars, language, colour }` for the 24 most
+recently pushed, which the deck draws as background constellations. `commits` is the sum of
+`contributors?per_page=100&anon=1`: every commit GitHub attributes to a contributor on the default
+branch. It therefore misses other branches, and one request per repository is the cheapest number
+GitHub will give without walking the commit list.
+
+**`GITHUB_TOKEN` now does three things.** It raises the API limit from 60 to 5000 requests an hour,
+which the repo list and the commit counts need; it switches the repo list to `/user/repos`, so private
+repositories appear in the picker; and without it the picker is public-only. Nothing breaks without a
+token — the lists just come back short or empty.
+
+Three per-project switches decide who wins when both halves have an answer:
+`useLiveLangs` (off: the stored language split drives the planet cutaway), `useLiveMeta` (off: the
+stored description, live URL and stack stand) and `useLiveReadme` (off: the README is not fetched at
+all). They live on the `projects` row and are edited in the admin.
+
+## Scale
+
+`src/lib/scale.ts` holds the real solar system — JPL radii, semi-major axes, tilts and rotation
+periods — and three ways of putting it on a screen:
+
+| Mode | Sizes | Distances |
+|---|---|---|
+| `stylised` | the hand-picked values that shipped | the hand-picked orbits |
+| `relative` | true ratios between the planets, the sun compressed | eased, square-root spacing |
+| `real` | true to scale — specks | true to scale, normalised to the span |
+
+`POST /api/admin/scene/arrange` with `{ mode, spanAu?, apply }` computes an arrangement and writes it:
+`apply: "scene"` writes the mode, the span, the sun radius and the belt onto `scene_config`,
+`apply: "all"` also gives every visible project the body it stands in for, in order — Zcrypt becomes
+Mercury, outward. `spanAu` says what the outermost orbit means: 30 au is Neptune, 63241.1 is a light
+year. Running it twice writes the same values, and switching back to `stylised` restores the sizes and
+orbits that shipped.
+
+Whatever the mode, no planet may be as large as the star it orbits: the projects endpoint clamps
+`planet.size` to 72% of the sun's radius, and rejects a size more than 20% over that cap rather than
+quietly rewriting it.
+
 ## Analytics
 
 Vercel Web Analytics gives page views, referrers, countries and devices; Speed Insights gives Core
@@ -143,7 +184,7 @@ bun run admin:hash pw  # print a bcrypt hash for ADMIN_PASSWORD_HASH
 
 ```bash
 RESEND_API_KEY=…    # required for the contact form
-GITHUB_TOKEN=…      # optional: raises the API limit and reads private repos
+GITHUB_TOKEN=…      # optional: 5000/hour instead of 60, private repos in the picker, commit counts
 CONTACT_TO=…        # optional: overrides the recipient
 CONTACT_FROM=…      # optional: needs a domain verified at resend.com/domains
 NTFY_TOPIC=…        # optional: pushes each submission to your phone via ntfy.sh

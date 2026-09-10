@@ -2,19 +2,25 @@
 // degrades to the static records in src/data/portfolio.ts, so a rate limit or a private repo never
 // breaks a page. Set GITHUB_TOKEN in the environment to raise the limit and read private repos.
 
-import { LANG_COLORS, projects, repoPath, type LangShare, type Project } from "@/data/portfolio";
+import { LANG_COLORS, projects, repoPath, repoSlug, type LangShare, type Project } from "@/data/portfolio";
 import { escapeHtml } from "@/lib/text";
 
 const API = "https://api.github.com";
 const REVALIDATE = 3600;
+const OWNER = "Wosmos";
 
 export interface RepoMeta {
   stars: number; created: string; pushed: string; description: string | null; homepage: string | null;
   topics: readonly string[]; isPrivate: boolean;
 }
 export interface LastPush { repo: string; at: string; msg: string }
-/** A project with whatever GitHub could add to it. `live` is true when the fetch succeeded. */
-export interface LiveProject extends Project { meta: RepoMeta | null; readme: string | null; langsLive: boolean }
+/** Per-project switches: false means the value stored in the dashboard wins over GitHub's. */
+export interface LiveFlags { useLiveLangs?: boolean; useLiveMeta?: boolean; useLiveReadme?: boolean }
+/** A project with whatever GitHub could add to it. The `*Live` flags say which half each value came from. */
+export interface LiveProject extends Project {
+  meta: RepoMeta | null; readme: string | null;
+  langsLive: boolean; metaLive: boolean; readmeLive: boolean;
+}
 
 interface GhRepo { stargazers_count: number; created_at: string; pushed_at: string; description: string | null; homepage: string | null; topics?: string[]; private: boolean }
 interface GhEvent { type: string; created_at: string; repo: { name: string }; payload?: { commits?: { message: string }[] } }
@@ -68,12 +74,120 @@ export async function getLastPush(): Promise<LastPush | null> {
   return { repo: ev.repo.name.split("/")[1] ?? ev.repo.name, at: ev.created_at, msg: commits.at(-1)?.message.split("\n")[0] ?? "" };
 }
 
-export async function getLiveProject(p: Project, { readme = false } = {}): Promise<LiveProject> {
-  const [meta, langs, md] = await Promise.all([getRepoMeta(p), getLanguages(p), readme ? getReadmeHtml(p) : Promise.resolve(null)]);
-  return { ...p, meta, readme: md, langs: langs ?? p.langs, langsLive: langs !== null, live: meta?.homepage || p.live };
+/**
+ * Layers GitHub over one project, honouring the three per-project switches. `meta` is fetched either
+ * way because stars and push dates are facts the dashboard does not store — the switch decides whether
+ * GitHub's description, homepage and topics are allowed to fill in what the row leaves empty.
+ */
+export async function getLiveProject(p: Project & LiveFlags, { readme = false } = {}): Promise<LiveProject> {
+  const wantLangs = p.useLiveLangs !== false;
+  const wantMeta = p.useLiveMeta !== false;
+  const wantReadme = readme && p.useLiveReadme !== false;
+  const [meta, langs, md] = await Promise.all([
+    getRepoMeta(p),
+    wantLangs ? getLanguages(p) : Promise.resolve(null),
+    wantReadme ? getReadmeHtml(p) : Promise.resolve(null),
+  ]);
+  const fill = wantMeta && meta !== null ? meta : null;
+  return {
+    ...p,
+    meta,
+    readme: md,
+    langs: langs ?? p.langs,
+    langsLive: langs !== null,
+    metaLive: fill !== null,
+    readmeLive: md !== null,
+    description: p.description || fill?.description || "",
+    stack: p.stack.length ? p.stack : (fill?.topics ?? p.stack),
+    live: (fill?.homepage ?? "") || p.live,
+  };
 }
-export async function getLiveProjects(): Promise<readonly LiveProject[]> {
-  return Promise.all(projects.map((p) => getLiveProject(p)));
+/** The whole deck. Pass the database's projects to keep their switches; defaults to the static records. */
+export async function getLiveProjects(list: readonly (Project & LiveFlags)[] = projects): Promise<readonly LiveProject[]> {
+  return Promise.all(list.map((p) => getLiveProject(p)));
+}
+
+// ── the account's other repositories ────────────────────────────────────────
+// Two readers over the same list. `listRepos` is what the admin's repo picker shows; `getRepoStars` is
+// what the scene draws as background constellations. Both are cached for an hour and both degrade to an
+// empty list, so neither the picker nor the sky can break a page.
+
+export interface RepoSummary {
+  name: string; fullName: string; description: string | null; homepage: string | null;
+  topics: readonly string[]; stars: number; forks: number; language: string | null;
+  pushed: string; created: string; isPrivate: boolean; archived: boolean; isFork: boolean; url: string;
+}
+/** The contract the scene draws from: one star per repository, sized by `commits`. */
+export interface RepoStar { name: string; commits: number; stars: number; language: string; colour: number }
+
+interface GhRepoFull extends GhRepo {
+  name: string; full_name: string; forks_count: number; language: string | null;
+  archived: boolean; fork: boolean; html_url: string; owner?: { login: string };
+}
+interface GhContributor { contributions: number }
+
+/** 100 per page × 5 pages. Past that an account is not a portfolio any more. */
+const MAX_PAGES = 5;
+/** Commit counts cost one request each, so only the most recently pushed repositories get a star. */
+const MAX_STARS = 24;
+/** A language linguist has no colour for, or none at all. */
+const NEUTRAL = 0x8b8b8b;
+
+/** Every repository on the account, newest push first. With a token this includes the private ones. */
+export async function listRepos(): Promise<readonly RepoSummary[]> {
+  const mine = Boolean(process.env.GITHUB_TOKEN);
+  const out: RepoSummary[] = [];
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    // /user/repos is the only endpoint that returns private repositories, and it needs the token
+    const path = mine
+      ? `/user/repos?per_page=100&affiliation=owner&sort=pushed&page=${page}`
+      : `/users/${OWNER}/repos?per_page=100&sort=pushed&page=${page}`;
+    const batch = await gh<GhRepoFull[]>(path);
+    if (!batch || !Array.isArray(batch) || batch.length === 0) break;
+    for (const r of batch) {
+      if (r.owner && r.owner.login.toLowerCase() !== OWNER.toLowerCase()) continue;
+      out.push({
+        name: r.name, fullName: r.full_name, description: r.description, homepage: r.homepage,
+        topics: r.topics ?? [], stars: r.stargazers_count, forks: r.forks_count, language: r.language,
+        pushed: r.pushed_at, created: r.created_at, isPrivate: r.private, archived: r.archived,
+        isFork: r.fork, url: r.html_url,
+      });
+    }
+    if (batch.length < 100) break;
+  }
+  return out;
+}
+
+/**
+ * Commits on the default branch, summed from `contributors?per_page=100&anon=1` — one request per
+ * repository, which is the cheapest number GitHub will give without walking the commit list. It counts
+ * every commit GitHub attributes to a contributor on the default branch, so it misses commits on other
+ * branches and undercounts a repository with more than 100 contributors (none of these have).
+ */
+async function commitCount(fullName: string): Promise<number> {
+  const list = await gh<GhContributor[]>(`/repos/${fullName}/contributors?per_page=100&anon=1`);
+  if (!Array.isArray(list)) return 0;
+  return list.reduce((sum, c) => sum + (Number.isFinite(c.contributions) ? c.contributions : 0), 0);
+}
+
+/** The repositories that are not one of the eight portfolio projects, as stars for the sky. */
+export async function getRepoStars(): Promise<readonly RepoStar[]> {
+  const taken = new Set(projects.map((p) => repoSlug(p).toLowerCase()));
+  const repos = (await listRepos())
+    // forks would draw someone else's history as mine
+    .filter((r) => !r.isFork && !taken.has(r.name.toLowerCase()))
+    .slice(0, MAX_STARS);
+  const counts = await Promise.all(repos.map((r) => commitCount(r.fullName)));
+  return repos.map((r, i) => {
+    const language = r.language ?? "Other";
+    return {
+      name: r.name,
+      commits: counts[i] ?? 0,
+      stars: r.stars,
+      language,
+      colour: LANG_COLORS[language] ?? NEUTRAL,
+    };
+  });
 }
 
 // ── markdown-lite ──

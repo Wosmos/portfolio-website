@@ -1,14 +1,21 @@
 // Projects. The slug is a URL segment and must stay unique; `planet` and `orbit` are what the scene
 // reads, so they are checked field by field rather than trusted as JSON.
+//
+// A write also reads the sun's radius, because nothing may orbit a star while being larger than it:
+// the cap is `maxPlanetSize(sunRadius)`, a slightly-over size is clamped to it, and anything wildly
+// over is rejected so a typo is reported rather than silently rewritten.
 
-import { schema as t } from "@/db/client";
+import { getDb, schema as t } from "@/db/client";
 import type { LangShareJson, PlanetConfigJson } from "@/db/schema";
+import { requireAdmin } from "@/lib/auth";
 import { build, createCrud, isRecord, reject, type Parse } from "@/lib/admin-crud";
+import { DEFAULT_SCENE } from "@/lib/content";
+import { clampPlanetSize, maxPlanetSize } from "@/lib/scale";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const PLANET_TYPES = ["gas", "rocky", "lava", "ice"] as const;
+const PLANET_TYPES = ["gas", "rocky", "lava", "ice", "liquid", "muddy"] as const;
 type PlanetType = (typeof PLANET_TYPES)[number];
 const isPlanetType = (v: unknown): v is PlanetType => PLANET_TYPES.some((k) => k === v);
 
@@ -46,8 +53,10 @@ const KNOBS: readonly (readonly [Knob, (value: unknown, key: string) => number])
   ["crater", ranged(0, 1)],
   ["vein", ranged(0, 1)],
   ["seed", ranged(0, 10_000)],
-  ["spin", ranged(0, 20)],
-  ["tilt", ranged(-90, 90)],
+  // both are signed and unbounded in the real solar system: Venus and Uranus turn backwards, and
+  // Venus's axis is tipped 177°, so /scene/arrange writes values a 0–20 / ±90 window would reject
+  ["spin", ranged(-20, 20)],
+  ["tilt", ranged(-360, 360)],
   ["atmo", ranged(0, 1)],
   ["atmoAlpha", ranged(0, 1)],
   ["glow", ranged(0, 3)],
@@ -55,12 +64,20 @@ const KNOBS: readonly (readonly [Knob, (value: unknown, key: string) => number])
   ["bandSharp", ranged(0, 1)],
 ];
 
-function readPlanet(value: unknown): PlanetConfigJson {
+/** How far over the cap a caller may be before the size is treated as a mistake instead of a nudge. */
+const SIZE_SLACK = 1.2;
+
+const readPlanet = (sunRadius: number) => (value: unknown): PlanetConfigJson => {
   if (!isRecord(value)) reject("planet must be an object");
-  if (!isPlanetType(value.type)) reject("planet.type must be one of gas, rocky, lava, ice");
+  if (!isPlanetType(value.type)) reject(`planet.type must be one of ${PLANET_TYPES.join(", ")}`);
+  const cap = maxPlanetSize(sunRadius);
+  const asked = positive(value.size, "planet.size");
+  if (asked > cap * SIZE_SLACK) {
+    reject(`planet.size must be at most ${cap.toFixed(2)} — a planet cannot be larger than the sun (radius ${sunRadius})`);
+  }
   const planet: PlanetConfigJson = {
     type: value.type,
-    size: positive(value.size, "planet.size"),
+    size: clampPlanetSize(asked, sunRadius),
     c0: colour(value.c0, "planet.c0"),
     c1: colour(value.c1, "planet.c1"),
     c2: colour(value.c2, "planet.c2"),
@@ -83,7 +100,7 @@ function readPlanet(value: unknown): PlanetConfigJson {
     };
   }
   return planet;
-}
+};
 
 function readLangs(value: unknown): LangShareJson[] {
   if (!Array.isArray(value)) reject("langs must be a list of [name, percent] pairs");
@@ -125,7 +142,7 @@ function readImages(value: unknown): { url: string; caption?: string }[] {
   });
 }
 
-const parse: Parse<typeof t.projects> = (input, base) =>
+const parse = (sunRadius: number): Parse<typeof t.projects> => (input, base) =>
   build(input, (f) => ({
     slug: f.slug("slug", base?.slug),
     title: f.text("title", base?.title, 160),
@@ -144,8 +161,11 @@ const parse: Parse<typeof t.projects> = (input, base) =>
     github: f.optText("github", base?.github ?? "", 400),
     live: f.optText("live", base?.live ?? "", 400),
     langs: f.of("langs", base?.langs ?? [], readLangs),
-    planet: f.of("planet", base?.planet, readPlanet),
+    planet: f.of("planet", base?.planet, readPlanet(sunRadius)),
     orbit: f.of("orbit", base?.orbit, positive),
+    useLiveLangs: f.bool("useLiveLangs", base?.useLiveLangs ?? true),
+    useLiveMeta: f.bool("useLiveMeta", base?.useLiveMeta ?? true),
+    useLiveReadme: f.bool("useLiveReadme", base?.useLiveReadme ?? true),
     coverImage: f.optText("coverImage", base?.coverImage ?? "", 500),
     images: f.of("images", base?.images ?? [], readImages),
     featured: f.bool("featured", base?.featured ?? false),
@@ -154,16 +174,39 @@ const parse: Parse<typeof t.projects> = (input, base) =>
     updatedAt: new Date(),
   }));
 
-const handlers = createCrud({
-  name: "project",
-  table: t.projects,
-  id: t.projects.id,
-  order: t.projects.sortOrder,
-  sort: t.projects.sortOrder,
-  unique: { column: t.projects.slug, label: "slug", value: (row) => row.slug },
-  parse,
-});
-export const GET = handlers.GET;
-export const POST = handlers.POST;
-export const PUT = handlers.PUT;
-export const DELETE = handlers.DELETE;
+const crud = (sunRadius: number) =>
+  createCrud({
+    name: "project",
+    table: t.projects,
+    id: t.projects.id,
+    order: t.projects.sortOrder,
+    sort: t.projects.sortOrder,
+    unique: { column: t.projects.slug, label: "slug", value: (row) => row.slug },
+    parse: parse(sunRadius),
+  });
+
+/** The size cap is relative to the star, so a write costs one extra read of the single scene row. */
+async function sunRadius(): Promise<number> {
+  const db = getDb();
+  if (!db) return DEFAULT_SCENE.sunRadius;
+  try {
+    const [row] = await db.select({ r: t.sceneConfig.sunRadius }).from(t.sceneConfig).limit(1);
+    return row?.r ?? DEFAULT_SCENE.sunRadius;
+  } catch {
+    // the write itself will fail with a proper message; don't turn a dead database into a 500 here
+    return DEFAULT_SCENE.sunRadius;
+  }
+}
+/** Reading and deleting never touch `planet`, so they need no radius. */
+const plain = crud(DEFAULT_SCENE.sunRadius);
+/** Guarded here as well, so an anonymous POST cannot spend a query on the scene row. */
+const writing = async (run: (h: ReturnType<typeof crud>) => Promise<Response>): Promise<Response> => {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+  return run(crud(await sunRadius()));
+};
+
+export const GET = plain.GET;
+export const POST = (request: Request): Promise<Response> => writing((h) => h.POST(request));
+export const PUT = (request: Request): Promise<Response> => writing((h) => h.PUT(request));
+export const DELETE = plain.DELETE;

@@ -8,6 +8,7 @@
 import { revalidateTag, unstable_cache } from "next/cache";
 import { asc, eq } from "drizzle-orm";
 import { getDb, schema as t } from "@/db/client";
+import { isScaleMode, type ScaleMode } from "@/lib/scale";
 import {
   education as staticEducation,
   eggFacts as staticEggFacts,
@@ -50,18 +51,35 @@ export function revalidateKey(key: ContentKey): void { revalidateTag(`content:${
 const cached = <T>(key: string, fn: () => Promise<T>): (() => Promise<T>) =>
   unstable_cache(fn, ["content", key], { tags: [CONTENT_TAG, `content:${key}`], revalidate: 3600 });
 
+// Field names are the column names, camelCased, and the scene reads them straight off this object —
+// see SceneSettings in src/lib/three/types.ts. Nothing translates between the two, so they must match.
 export interface SceneConfig {
   sunRadius: number; sunColorCore: number; sunColorEdge: number; sunIntensity: number;
   orbitScale: number; beltRadius: number; beltDensity: number; starCount: number;
   nebulaA: number; nebulaB: number; bloom: number; fov: number;
+  scaleMode: ScaleMode; spanAu: number;
+  sunColorMid: number; sunGranulation: number; sunCorona: number; sunSpots: number;
+  sunSpin: number; sunLimb: number; sunFlare: number;
+  beltWidth: number; beltThickness: number; beltRockSize: number; beltColor: number; beltTilt: number;
+  constellations: boolean; constellationGain: number;
 }
 export const DEFAULT_SCENE: SceneConfig = {
   sunRadius: 6, sunColorCore: 0xfff3c4, sunColorEdge: 0xff7a1a, sunIntensity: 1,
   orbitScale: 1, beltRadius: 65.5, beltDensity: 1400, starCount: 3600,
   nebulaA: 0x3b0764, nebulaB: 0x0b2f6e, bloom: 1, fov: 42,
+  scaleMode: "stylised", spanAu: 30,
+  sunColorMid: 0xffb547, sunGranulation: 1, sunCorona: 1, sunSpots: 0,
+  sunSpin: 1, sunLimb: 1, sunFlare: 1,
+  beltWidth: 9, beltThickness: 1.2, beltRockSize: 1, beltColor: 0x8b7d6b, beltTilt: 0,
+  constellations: true, constellationGain: 1,
 };
 /** A project plus the fields only the database carries. */
-export interface ContentProject extends Project { orbit: number; heading: string; bullets: readonly string[]; tech: readonly string[]; extraLinks: readonly (readonly [string, string])[]; coverImage: string; featured: boolean }
+export interface ContentProject extends Project {
+  orbit: number; heading: string; bullets: readonly string[]; tech: readonly string[];
+  extraLinks: readonly (readonly [string, string])[]; coverImage: string; featured: boolean;
+  /** False means the dashboard's stored value wins over whatever GitHub reports. */
+  useLiveLangs: boolean; useLiveMeta: boolean; useLiveReadme: boolean;
+}
 export interface Post {
   slug: string; title: string; excerpt: string; body: string; coverImage: string;
   tags: readonly string[]; readingMinutes: number; publishedAt: string | null;
@@ -92,6 +110,7 @@ function fallbackProjects(): ContentProject[] {
     return {
       ...p, orbit: DEFAULT_ORBITS[i] ?? 17 + i * 12, heading: h?.heading ?? "", bullets: h?.bullets ?? [],
       tech: h?.tech ?? [], extraLinks: h?.extraLinks ?? [], coverImage: "", featured: staticFeatured.includes(p.id),
+      useLiveLangs: true, useLiveMeta: true, useLiveReadme: true,
     };
   });
 }
@@ -111,6 +130,7 @@ export const getProjects = cached("projects", async (): Promise<readonly Content
         langs: r.langs as readonly LangShare[], planet,
         orbit: r.orbit, heading: r.heading, bullets: r.bullets, tech: r.tech,
         extraLinks: r.extraLinks.map(([l, u]) => [l, u] as const), coverImage: r.coverImage, featured: r.featured,
+        useLiveLangs: r.useLiveLangs, useLiveMeta: r.useLiveMeta, useLiveReadme: r.useLiveReadme,
       }];
     });
   } catch (e) { console.error("[content] projects", e); return fallbackProjects(); }
@@ -183,6 +203,13 @@ export const getScene = cached("scene", async (): Promise<SceneConfig> => {
       sunIntensity: row.sunIntensity, orbitScale: row.orbitScale, beltRadius: row.beltRadius,
       beltDensity: row.beltDensity, starCount: row.starCount, nebulaA: row.nebulaA, nebulaB: row.nebulaB,
       bloom: row.bloom, fov: row.fov,
+      // the column is a varchar, so an unknown mode falls back rather than reaching the scene
+      scaleMode: isScaleMode(row.scaleMode) ? row.scaleMode : DEFAULT_SCENE.scaleMode,
+      spanAu: row.spanAu, sunColorMid: row.sunColorMid, sunGranulation: row.sunGranulation,
+      sunCorona: row.sunCorona, sunSpots: row.sunSpots, sunSpin: row.sunSpin, sunLimb: row.sunLimb,
+      sunFlare: row.sunFlare, beltWidth: row.beltWidth, beltThickness: row.beltThickness,
+      beltRockSize: row.beltRockSize, beltColor: row.beltColor, beltTilt: row.beltTilt,
+      constellations: row.constellations, constellationGain: row.constellationGain,
     };
   } catch (e) { console.error("[content] scene", e); return DEFAULT_SCENE; }
 });

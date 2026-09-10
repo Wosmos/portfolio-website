@@ -56,7 +56,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
   const next = projects[(i + 1) % projects.length] ?? base;
   const top = langsOf(p.langs)[0];
   const created = p.meta ? new Date(p.meta.created).getFullYear() : p.year;
-  const missingReason = p.meta === null ? "repo is private or github is unreachable" : "no readme on github";
+  // the row can switch the live readme off, in which case there is nothing missing to explain
+  const missingReason = !base.useLiveReadme
+    ? "readme switched off for this project"
+    : p.meta === null ? "repo is private or github is unreachable" : "no readme on github";
 
   const breadcrumbs = {
     "@context": "https://schema.org",
@@ -149,7 +152,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
       <section>
         <div className="sec__h">
           <h2 data-n="02">Built with</h2><i />
-          <small>{p.langsLive ? "github language bytes · live" : "github language bytes"} · same numbers as the planet&rsquo;s layers</small>
+          <small>{p.langsLive ? "github language bytes · live" : "github language bytes · stored"} · same numbers as the planet&rsquo;s layers</small>
         </div>
         <div className="built">
           <div className="sf sf--thin card"><div className="sf__in"><span className="k" data-cipher>composition</span><Composition langs={p.langs} /></div></div>

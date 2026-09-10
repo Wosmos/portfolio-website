@@ -262,3 +262,55 @@
   .pager { justify-content: space-between; } .pager__go { margin-left: 0; }
   .tip__bub { max-width: 62vw; }
 }
+
+/* ── the scale block: the mode, the span, and the one button that rewrites the system ─────────────── */
+.scaleblk { --sf-bg: rgba(0,229,255,.045); }
+.scaleblk > .sf__in { display: grid; gap: 12px; padding: 16px 18px; }
+.scaleblk__go { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.scaleblk .hint b { color: var(--fg-2); font-weight: 500; }
+
+/* radio cards: a choice of three where each option carries a sentence */
+.choice { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+.choice__opt { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 9px; align-items: center; padding: 11px 13px; cursor: pointer; background: rgba(242,245,255,.03); box-shadow: inset 0 0 0 1px rgba(242,245,255,.08); clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px); transition: background .18s, box-shadow .18s; }
+.choice__opt:hover { background: rgba(0,229,255,.07); }
+.choice__opt input { grid-row: 1; width: 15px; height: 15px; accent-color: var(--cy); }
+.choice__opt b { grid-row: 1; font-size: 11px; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--fg-2); }
+.choice__opt small { grid-column: 2; font-size: 11px; line-height: 1.5; color: var(--fg-4); }
+.choice__opt.is-on { background: rgba(0,229,255,.11); box-shadow: inset 0 0 0 1px rgba(0,229,255,.5); }
+.choice__opt.is-on b { color: #fff; }
+.choice__opt.is-on small { color: var(--fg-3); }
+
+/* the log slider's stops double as jump buttons, since a drag cannot land on 30 au by hand */
+.sld__stops { display: flex; flex-wrap: wrap; gap: 4px; }
+.sld__stops .stop { font-size: 10px; letter-spacing: .06em; color: var(--fg-4); padding: 3px 7px; background: rgba(242,245,255,.03); box-shadow: inset 0 0 0 1px rgba(242,245,255,.07); transition: color .18s, background .18s; }
+.sld__stops .stop:hover { color: var(--fg); background: rgba(0,229,255,.08); }
+.sld__stops .stop.is-on { color: #061018; background: var(--cy); box-shadow: none; }
+
+/* a colour ramp, under the gradient it makes */
+.ramp { display: grid; gap: 7px; }
+.ramp__h { display: flex; align-items: center; gap: 6px; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--fg-3); }
+.ramp__bar { height: 12px; box-shadow: inset 0 0 0 1px rgba(242,245,255,.14); }
+.ramp__stops { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+
+/* a live value shown beside the field it would override */
+.withlive { display: grid; gap: 6px; min-width: 0; }
+.live { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 11px; }
+.live i { font-style: normal; color: var(--fg-4); }
+.live em { font-style: normal; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--fg-3); }
+.live span { min-width: 0; color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 46ch; }
+.live.is-on i, .live.is-on em { color: var(--cy); }
+.live.is-on span { color: var(--fg); }
+
+/* the repository picker, opened inside a detail card */
+.picker { --sf-bg: rgba(6,12,18,.78); }
+.picker > .sf__in { display: grid; gap: 10px; padding: 14px 16px; }
+.picker .tw { max-height: 46vh; }
+.picker .tbl--rows small.sub { display: block; margin-left: 0; }
+
+@media (max-width: 640px) {
+  .choice { grid-template-columns: 1fr; }
+  .ramp__stops { grid-template-columns: 1fr 1fr; }
+  .live span { max-width: 100%; white-space: normal; }
+  .sld__stops .stop { min-height: 34px; display: inline-flex; align-items: center; }
+  .scaleblk > .sf__in, .picker > .sf__in { padding: 14px; }
+}

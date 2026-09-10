@@ -11,6 +11,8 @@ const PLACEHOLDER: Omit<Project, "planet"> = {
   year: null, weight: 1, github: "", live: null, langs: [["TypeScript", 100]],
 };
 
+// `PlanetConfig["type"]` already carries every surface the editor offers, `liquid` and `muddy` included,
+// so a new type reaches the shader by being passed straight through — there is nothing to enumerate here.
 /** The editor holds `ring: null` for "no ring", which is how the column stores it; the shader wants it absent. */
 export type EditablePlanet = Omit<PlanetFull, "ring"> & { ring?: RingConfig | null };
 
@@ -39,6 +41,8 @@ export default function PlanetPreview({ planet, cutaway = false }: { planet: Edi
     return () => { cancelled = true; clearTimeout(timer); view?.dispose(); };
   }, [key, cutaway]);
 
-  if (failed) return <p className="hint">WebGL is unavailable here, so the preview is off. The values still save.</p>;
+  // A missing shader branch for a brand-new surface fails the same way a missing WebGL context does, so
+  // the copy names the type rather than blaming the browser.
+  if (failed) return <p className="hint">the preview could not start — either WebGL is unavailable here, or the scene has no branch for a {planet.type} surface yet. The values still save.</p>;
   return <canvas ref={canvas} style={{ width: "100%", aspectRatio: "1 / 1", display: "block", cursor: "grab" }} aria-label="Planet preview" />;
 }

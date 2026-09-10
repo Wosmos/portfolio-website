@@ -55,8 +55,10 @@ async function main(): Promise<void> {
       featured: featured.includes(p.id), visible: true, sortOrder: i, updatedAt: new Date(),
     };
     const found = await db.select({ id: t.projects.id }).from(t.projects).where(eq(t.projects.slug, p.id)).limit(1);
+    // the three use-live switches are only seeded on insert: re-running this must not undo a choice
+    // someone made in the dashboard about which values GitHub is allowed to overwrite
     if (found[0]) await db.update(t.projects).set(row).where(eq(t.projects.id, found[0].id));
-    else await db.insert(t.projects).values(row);
+    else await db.insert(t.projects).values({ ...row, useLiveLangs: true, useLiveMeta: true, useLiveReadme: true });
   }
   console.log(`projects ✓ (${staticProjects.length})`);
 

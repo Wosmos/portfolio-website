@@ -10,6 +10,7 @@ import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { DEFAULT_ORBITS, LANG_COLORS } from "@/data/portfolio";
 import type { PlanetType, Project, RingConfig } from "@/data/portfolio";
+import { arrange, clampPlanetSize, type Arrangement, type ScaleMode } from "@/lib/scale";
 import type { FlightEventName, Heading, Layer, LayerAnchor, Pick, PlanetFull, SystemApi, SystemOptions, Vec3 } from "./types";
 
 const BG = 0x06060a;
@@ -23,7 +24,8 @@ export const PLANET_SCALE = 1.0;
 
 const BELT_R_DEFAULT = 65.5;
 const FOV_DEFAULT = 42;
-export const TYPE: Readonly<Record<PlanetType, number>> = { gas: 0, rocky: 1, lava: 2, ice: 3 };
+// The order is the order of the branch chain in PLANET_FRAG; adding a family means appending here.
+export const TYPE: Readonly<Record<PlanetType, number>> = { gas: 0, rocky: 1, lava: 2, ice: 3, liquid: 4, muddy: 5 };
 
 // camera poses along the page — [phi (elevation), radius]; theta comes from the user's drag
 const POSES: readonly (readonly [number, number])[] = [
@@ -109,6 +111,9 @@ void main(){
   vec3 warp = vec3(fbm(q + 1.7), fbm(q + 9.2), fbm(q + 4.1));
   float n = fbm(q * 1.6 + warp * 0.9);
   vec3 albedo = uC0; vec3 emissive = vec3(0.0); float rough = 0.6;
+  // Ns is the normal the specular lobe uses — only the ocean bends it, so every other family is
+  // untouched. sheen lifts the limb where a surface is wet enough to mirror the sky.
+  vec3 Ns = N; float sheen = 0.0; float night = 0.0;
   if (uType < 0.5) {
     float lat = p.y + n * 0.07 + w1 * 0.04;
     // the second set is always 17 cycles finer than the first, so uBands moves both together
@@ -137,15 +142,54 @@ void main(){
     vein *= smoothstep(0.35, 0.7, fbm(q * 1.2 + 3.0) * 0.5 + 0.5);
     emissive = uC3 * vein * (1.1 + 0.35 * sin(uTime * 1.4 + n * 7.0)) * uVein;
     rough = 0.8;
-  } else {
+  } else if (uType < 3.5) {
     float lat = p.y + n * 0.1;
     float band = bandEdge(sin(lat * uBands * 0.5 + uSeed) * 0.5 + 0.5, uBandSharp);
     albedo = mix(uC0, uC1, band * 0.55 + n * 0.2);
     albedo = mix(albedo, uC2, smoothstep(0.6, 0.9, fbm(q * 2.0 + warp) * 0.5 + 0.5) * 0.7);
     rough = 0.3;
+  } else if (uType < 4.5) {
+    // ocean world. uOcean is the sea level, uCrater raises archipelagos, uVein lights the night side.
+    float sea = uOcean > 0.005 ? uOcean : 0.62;                       // an ocean world is mostly ocean by default
+    float h = n * 0.5 + 0.5 + w1 * 0.14 + uCrater * smoothstep(0.55, 0.85, fbm(q * 3.4 + warp * 1.3)) * 0.22;
+    float water = smoothstep(sea + 0.015, sea - 0.045, h);
+    float shelf = smoothstep(sea - 0.15, sea, h) * water;             // the pale shallows every coastline sits in
+    vec3 land = mix(uC1, uC2, smoothstep(sea, sea + 0.26, h));
+    land = mix(land, uC3, smoothstep(0.82, 0.95, h));
+    land = mix(land, uC3, smoothstep(0.76, 0.97, abs(p.y) + n * 0.05) * 0.9);
+    vec3 deep = mix(uC0, uC0 * 0.5, smoothstep(0.0, 0.3, sea - h));
+    albedo = mix(land, mix(deep, mix(uC0, uC1, 0.55), shelf * 0.85), water);
+    // wind-driven swell: sample the wave field at three points and tilt the normal along the gradient,
+    // which is what turns the sun into a moving glint instead of a static hot spot
+    vec3 t1 = normalize(cross(N, vec3(0.0, 1.0, 0.0)) + vec3(1e-3, 0.0, 0.0));
+    vec3 t2 = cross(N, t1);
+    vec3 wq = p * 34.0 + vec3(uTime * 0.3, 0.0, uTime * -0.2);
+    float s0 = snoise(wq), s1 = snoise(wq + t1 * 0.6), s2 = snoise(wq + t2 * 0.6);
+    Ns = normalize(N - (t1 * (s1 - s0) + t2 * (s2 - s0)) * 0.5 * water);
+    albedo *= 1.0 + 0.05 * s0 * water;
+    rough = mix(0.85, 0.05, water);
+    sheen = water; night = 1.0;
+    emissive = uC3 * uVein * (1.0 - water) * smoothstep(0.45, 0.82, fbm(q * 6.0 + 21.0) * 0.5 + 0.5);
+  } else {
+    // silt world. Iron-oxide bands, dune fields combed along the latitudes, dry channels, no shine.
+    float lat = p.y;
+    albedo = mix(uC0, uC1, bandEdge(0.5 + 0.5 * sin(lat * uBands * 0.5 + n * 1.6 + uSeed), uBandSharp * 0.6));
+    albedo = mix(albedo, uC2, smoothstep(0.45, 0.85, fbm(q * 2.2 + warp * 0.8) * 0.5 + 0.5) * 0.6);
+    float dune = 0.5 + 0.5 * sin(lat * 42.0 + snoise(q * 2.0) * 6.0);
+    dune *= smoothstep(0.35, 0.75, fbm(q * 1.7 + 5.0) * 0.5 + 0.5) * (1.0 - smoothstep(0.62, 0.9, abs(lat)));
+    albedo *= 0.92 + 0.18 * dune;
+    float bed = (1.0 - smoothstep(0.0, 0.055, abs(snoise(q * 2.2 + warp * 0.4)))) * uVein;
+    bed *= smoothstep(0.3, 0.7, fbm(q * 1.1 + 7.0) * 0.5 + 0.5);
+    albedo = mix(albedo, uC0 * 0.55, bed * 0.8);
+    albedo *= 1.0 - uCrater * smoothstep(0.58, 0.88, snoise(p * 11.0 + uSeed)) * 0.45;
+    // the ocean knob has nothing to flood on a dry world, so it sets the polar frost instead
+    albedo = mix(albedo, uC3, smoothstep(1.0 - uOcean * 0.4, 1.04 - uOcean * 0.4, abs(p.y) + n * 0.04));
+    rough = 0.96;
   }
+  // dust rolls over a silt world where cloud would sit on the others, so the haze is tinted, not white
+  bool dusty = uType > 4.5;
   float cl = uCloud * smoothstep(0.48, 0.78, fbm(p * 3.5 + vec3(uTime * 0.025, 0.0, 0.0) + warp * 0.5 + 11.0) * 0.5 + 0.5);
-  albedo = mix(albedo, vec3(0.96), cl);
+  albedo = mix(albedo, dusty ? mix(uC1, uC2, 0.6) * 1.18 : vec3(0.96), cl * (dusty ? 0.7 : 1.0));
   float nl = dot(N, L);
   float d = smoothstep(-0.12, 0.55, nl);
   if (uRingOn > 0.5) {                                        // the ring's shadow falls across the planet
@@ -161,13 +205,14 @@ void main(){
       }
     }
   }
-  float spec = pow(max(dot(reflect(-L, N), V), 0.0), mix(72.0, 8.0, rough)) * (1.0 - rough) * 0.7;
+  float spec = pow(max(dot(reflect(-L, Ns), V), 0.0), mix(72.0, 8.0, rough)) * (1.0 - rough) * 0.7;
   float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);
   vec3 sunCol = vec3(1.0, 0.86, 0.76);
   vec3 col = albedo * (0.035 + d * 1.15) * sunCol + spec * sunCol;
   col += uRim * fres * (0.32 + uHot * 0.8) * (0.35 + 0.65 * d);
+  col += uRim * fres * sheen * 0.22 * (0.25 + 0.75 * d);            // wet limb mirrors the sky
   col += uRim * pow(1.0 - max(dot(N, V), 0.0), 6.0) * 0.12;
-  col += emissive * uGlow;
+  col += emissive * uGlow * mix(1.0, clamp(1.0 - d * 1.6, 0.0, 1.0), night);
   // above 1, glow also lights the night side, so a planet without lava veins can still burn
   col += uRim * max(0.0, uGlow - 1.0) * 0.12 * (1.0 - d) * (0.4 + 0.6 * fres);
   gl_FragColor = vec4(col, 1.0);
@@ -268,22 +313,70 @@ void main(){
   gl_FragColor = vec4(col * lit, uAlpha);
 }`;
 
+// The photosphere. What makes a sphere read as a star rather than a lamp is, in order: differential
+// rotation (the equator laps the poles, so the surface shears), granulation cells split by dark
+// intergranular lanes, limb darkening, and a chromosphere rim that is a different colour from the disc.
 const SUN_FRAG = /* glsl */ `
-uniform vec3 uCore; uniform vec3 uEdge; uniform float uTime; uniform float uFade;
+uniform vec3 uCore; uniform vec3 uMid; uniform vec3 uEdge; uniform float uTime; uniform float uFade;
+uniform float uGran; uniform float uLimb; uniform float uSpots; uniform float uSpin; uniform float uFlare; uniform float uPulse;
 varying vec3 vN; varying vec3 vW; varying vec3 vL;
 ${NOISE}
 void main(){
   vec3 p = normalize(vL);
   vec3 V = normalize(cameraPosition - vW);
-  float g  = fbm(p * 4.0 + vec3(0.0, uTime * 0.05, 0.0));
-  float g2 = fbm(p * 11.0 - vec3(uTime * 0.08, 0.0, 0.0)) * 0.5;
-  float limb = pow(max(dot(normalize(vN), V), 0.0), 0.55);
-  vec3 col = mix(uEdge, uCore, limb) * (0.92 + g * 0.5 + g2 * 0.3);
-  float h = p.y * 0.5 + 0.5;
-  float cut = smoothstep(0.38, 0.0, h);
-  float stripe = 1.0 - 0.45 * cut * smoothstep(0.62, 0.66, fract((vW.y + uTime * 0.08) * 2.2));
-  col *= stripe;
+  float mu = max(dot(normalize(vN), V), 0.0);                 // 1 at the centre of the disc, 0 at the limb
+
+  float lat = asin(clamp(p.y, -1.0, 1.0));
+  float cl = cos(lat);
+  float lon = atan(p.z, p.x) + uTime * uSpin * (0.020 + 0.034 * cl * cl);
+  vec3 q = vec3(cl * cos(lon), p.y, cl * sin(lon));
+
+  float cell = pow(clamp(1.0 - abs(snoise(q * 22.0 + vec3(0.0, 0.0, uTime * 0.16))), 0.0, 1.0), 2.2);
+  float coarse = fbm(q * 5.0 + vec3(0.0, uTime * 0.05, 0.0)) * 0.5 + 0.5;
+  float gran = mix(1.0, 0.66 + 0.54 * cell + 0.26 * coarse, clamp(uGran, 0.0, 2.0));
+
+  // sunspots keep to two mid-latitude belts, each umbra wrapped in a lighter penumbra
+  float off = (abs(lat) - 0.28) / 0.17;                       // pow() is undefined on a negative base
+  float belt = exp(-off * off);
+  float sn = snoise(q * 3.1 + 17.0) * 0.5 + 0.5 + 0.3 * snoise(q * 7.0);
+  float spotF = clamp(uSpots, 0.0, 1.0) * belt;
+  float pen = smoothstep(0.50, 0.66, sn) * spotF;
+  float umbra = smoothstep(0.64, 0.75, sn) * spotF;
+  float dark = 1.0 - 0.8 * umbra - 0.3 * max(pen - umbra, 0.0);
+
+  float ld = 1.0 - clamp(uLimb, 0.0, 2.0) * (0.42 * (1.0 - mu) + 0.28 * (1.0 - mu) * (1.0 - mu));
+  float x = 1.0 - mu;
+  vec3 ramp = x < 0.5 ? mix(uCore, uMid, x * 2.0) : mix(uMid, uEdge, (x - 0.5) * 2.0);
+  vec3 col = ramp * gran * max(ld, 0.0) * dark;
+
+  // chromosphere: a thin hotter rim, combed into spicules that flicker on the flare pulse
+  float rim = smoothstep(0.4, 0.0, mu);
+  float spic = 0.5 + 0.5 * snoise(q * 24.0 + vec3(0.0, uTime * 0.7, 0.0));
+  col += mix(uEdge, vec3(1.0, 0.34, 0.2), 0.55) * rim * (0.14 + 0.4 * spic) * (0.55 + 0.9 * uFlare * (0.3 + 2.0 * uPulse));
   gl_FragColor = vec4(col * 0.95 * uFade, 1.0);
+}`;
+
+// The corona, on one back-face shell. Every fragment recovers how far its view ray passes from the
+// star's centre, so the halo is a function of distance in the sky rather than of the shell's geometry —
+// which is what lets streamers and prominences reach past the limb without a second camera-facing quad.
+const CORONA_FRAG = /* glsl */ `
+uniform vec3 uMid; uniform vec3 uEdge; uniform float uR; uniform float uTime; uniform float uFade;
+uniform float uCorona; uniform float uFlare; uniform float uPulse;
+varying vec3 vW;
+${NOISE}
+void main(){
+  vec3 V = normalize(vW - cameraPosition);
+  float b = length(cross(vW, V));                             // impact parameter of this ray to the origin
+  float d = b / max(1e-4, uR) - 1.0;
+  if (d < -0.004) discard;                                    // the photosphere owns the disc
+  vec3 rp = normalize(vW - V * dot(vW, V));                   // out from the centre, in the plane of the sky
+  float breathe = 0.9 + 0.1 * sin(uTime * 0.33) + 0.06 * sin(uTime * 0.87 + 1.7);
+  float streamer = fbm(rp * 3.0 + vec3(0.0, uTime * 0.02, 0.0)) * 0.5 + 0.5;
+  float wisp = clamp(0.55 + 0.45 * snoise(rp * 9.0 + uTime * 0.05), 0.0, 1.0);
+  float halo = exp(-max(d, 0.0) * 1.9) * (0.26 + 0.6 * streamer) * breathe;
+  float prom = exp(-max(d, 0.0) * 15.0) * pow(wisp, 3.0) * uFlare * (0.45 + 2.6 * uPulse);
+  vec3 col = mix(uEdge, uMid, 0.35) * halo * 0.55 + mix(uEdge, vec3(1.0, 0.42, 0.28), 0.6) * prom;
+  gl_FragColor = vec4(col * uCorona * uFade, 1.0);
 }`;
 
 const NEBULA_VERT = /* glsl */ `varying vec3 vDir; void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
@@ -389,7 +482,14 @@ export type AtmoUniforms = CutUniforms & { uRim: U<THREE.Color>; uHot: U<number>
 export type RingUniforms = { uMap: U<THREE.Texture>; uInner: U<number>; uOuter: U<number>; uHot: U<number>; uPlanet: U<THREE.Vector3>; uPlanetR: U<number>; uSeed: U<number> };
 export type ShellUniforms = CutUniforms & { uColor: U<THREE.Color>; uSeed: U<number>; uTime: U<number>; uAlpha: U<number>; uHi: U<number> };
 export type FaceUniforms = { uMap: U<THREE.Texture>; uR: U<number>; uSeed: U<number>; uAlpha: U<number>; uSpan: U<number> };
-type SunUniforms = { uCore: U<THREE.Color>; uEdge: U<THREE.Color>; uTime: U<number>; uFade: U<number> };
+type SunUniforms = {
+  uCore: U<THREE.Color>; uMid: U<THREE.Color>; uEdge: U<THREE.Color>; uTime: U<number>; uFade: U<number>;
+  uGran: U<number>; uLimb: U<number>; uSpots: U<number>; uSpin: U<number>; uFlare: U<number>; uPulse: U<number>;
+};
+type CoronaUniforms = {
+  uMid: U<THREE.Color>; uEdge: U<THREE.Color>; uR: U<number>; uTime: U<number>; uFade: U<number>;
+  uCorona: U<number>; uFlare: U<number>; uPulse: U<number>;
+};
 type NebulaUniforms = { uA: U<THREE.Color>; uB: U<THREE.Color>; uTint: U<THREE.Color>; uMix: U<number>; uFade: U<number>; uTime: U<number> };
 type StarUniforms = { uTime: U<number>; uMap: U<THREE.Texture> };
 type StreakUniforms = { uStretch: U<number>; uVanish: U<THREE.Vector2>; uOpacity: U<number>; uTime: U<number> };
@@ -537,10 +637,26 @@ export function planetDefaults(i: number): { seed: number; spinRate: number; str
   };
 }
 
+/**
+ * What a scale arrangement wants to say about one body instead of the stored row. Only the fields the
+ * arrangement actually computes are here; everything else still comes from the project's own config.
+ */
+export interface BodyOverride {
+  size?: number; tilt?: number; spin?: number; type?: PlanetType; ring?: RingConfig;
+  /** The star this body orbits, so no stored size can produce a planet larger than it. */
+  sunRadius?: number;
+}
+
 // One project → one body: tilt/spin groups, shader planet, atmosphere shell, cutaway group, optional ring.
 // Lighting comes from the world origin (the sun), so the body must sit away from (0,0,0).
-export function makeBody(p: Project, i: number): Body {
-  const cfg: PlanetFull = p.planet, size = cfg.size * PLANET_SCALE;
+export function makeBody(p: Project, i: number, over?: BodyOverride): Body {
+  const cfg: PlanetFull = over
+    ? { ...p.planet, ...(over.type ? { type: over.type } : {}), ...(over.size === undefined ? {} : { size: over.size }),
+        ...(over.tilt === undefined ? {} : { tilt: over.tilt }), ...(over.spin === undefined ? {} : { spin: over.spin }),
+        ...(over.ring && !p.planet.ring ? { ring: over.ring } : {}) }
+    : p.planet;
+  // the last line of the "nothing may outgrow its star" rule the API and the admin also enforce
+  const size = clampPlanetSize(cfg.size * PLANET_SCALE, over?.sunRadius ?? SUN_R_DEFAULT);
   const d = planetDefaults(i);
   const atmoT = cfg.atmo ?? d.atmo;
   const root = new THREE.Group();
@@ -605,6 +721,12 @@ export function disposeTree(root: THREE.Object3D): void {
 }
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
+/** FNV-1a. Repositories must land on the same patch of sky on every load, so the seed is the name. */
+function hash32(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return h >>> 0;
+}
 // one flight profile, used in both directions so out and back are exact mirrors: a smooth
 // build (no lurch), a broad peak, a smooth brake. speed01 = normalised |velocity|.
 const flightCurve = (t: number) => { const u = clamp01(t); return u * u * u * (u * (u * 6 - 15) + 10); }; // smootherstep
@@ -628,13 +750,32 @@ interface Flight {
 }
 interface Comet { active: boolean; t: number; dur: number; from: THREE.Vector3; to: THREE.Vector3; next: number; hist: THREE.Vector3[] }
 
-export function createSystem({ canvas, labelsEl, projects, scene: cfg, onSelect, onSunSelect, onFlightEvent, onBeltLevel, reducedMotion = false }: SystemOptions): SystemApi {
+/** A ring for a body the arrangement says is ringed but whose row never drew one. */
+const arrangedRing = (p: Project): RingConfig => ({ ca: p.planet.c2, cb: p.planet.c3, inner: 1.42, outer: 2.35, tilt: 0.12 });
+
+export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars, onSelect, onSunSelect, onFlightEvent, onBeltLevel, reducedMotion = false }: SystemOptions): SystemApi {
   // everything the admin can change; anything it does not set keeps the original constant
-  const SUN_R = cfg?.sunRadius ?? SUN_R_DEFAULT;
-  const BELT_R = cfg?.beltRadius ?? BELT_R_DEFAULT;
   const FOV = cfg?.fov ?? FOV_DEFAULT;
   const orbitScale = cfg?.orbitScale ?? 1;
-  const ORBITS = (cfg?.orbits?.length ? cfg.orbits : DEFAULT_ORBITS).map((r) => r * orbitScale);
+  const stored = (cfg?.orbits?.length ? cfg.orbits : DEFAULT_ORBITS).map((r) => r * orbitScale);
+  const mode: ScaleMode = cfg?.scaleMode ?? "stylised";
+  // One arrangement decides sizes, orbits, tilts, spins, the belt and what a scene unit is worth. In
+  // `stylised` only its auPerUnit is taken, so the stored orbits and sizes still draw the picture; in
+  // `relative` and `real` the arrangement wins and the per-project numbers stop having any effect.
+  const layout: Arrangement = arrange(mode, {
+    count: projects.length,
+    outerRadius: Math.max(20, ...stored),
+    spanAu: cfg?.spanAu ?? 30,
+    sunRadius: cfg?.sunRadius ?? SUN_R_DEFAULT,
+  });
+  const arranged = mode !== "stylised";
+  const bodyLayout = (i: number) => layout.bodies[Math.min(i, layout.bodies.length - 1)];
+  const SUN_R = arranged ? layout.sunRadius : (cfg?.sunRadius ?? SUN_R_DEFAULT);
+  // in `real` the star is a speck; the camera pose and the click target still need something to aim at
+  const SUN_FRAME = Math.max(SUN_R, 2.5);
+  const ORBITS = projects.map((_, i) => (arranged ? bodyLayout(i).orbit : stored[i] ?? DEFAULT_ORBITS[i] ?? 20));
+  const BELT_R = arranged ? layout.belt.radius : (cfg?.beltRadius ?? BELT_R_DEFAULT);
+  const BELT_W = Math.max(0.5, arranged ? layout.belt.width : (cfg?.beltWidth ?? 9));
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: "high-performance" });
   renderer.setClearColor(BG, 1);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
@@ -691,11 +832,95 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, onSelect,
   streaks.frustumCulled = false; streaks.visible = false;
   stars.add(streaks); // inherits the slow sky rotation
 
+  // ── constellations: one star per other repository, sized by its commit count, joined by main language.
+  // Two draw calls behind everything else; with no repositories to draw the sky is the plain starfield.
+  let conMat: ShaderMat<StarUniforms> | null = null;
+  if ((cfg?.constellations ?? true) && repoStars && repoStars.length > 0) {
+    const gain = Math.max(0, cfg?.constellationGain ?? 1);
+    const R = 1560;                                    // beyond the starfield, inside the nebula sky
+    const n = repoStars.length;
+    const cp = new Float32Array(n * 3), cc = new Float32Array(n * 3), cph = new Float32Array(n), csz = new Float32Array(n);
+    const col = new THREE.Color(), places: THREE.Vector3[] = [];
+    repoStars.forEach((rs, i) => {
+      const h = hash32(rs.name) / 4294967296, h2 = hash32(`${rs.name}·sky`) / 4294967296;
+      const th = h * Math.PI * 2, cy = h2 * 1.7 - 0.85, sy = Math.sqrt(Math.max(0, 1 - cy * cy));
+      const at = new THREE.Vector3(Math.cos(th) * sy * R, cy * R, Math.sin(th) * sy * R);
+      places.push(at);
+      cp[i * 3] = at.x; cp[i * 3 + 1] = at.y; cp[i * 3 + 2] = at.z;
+      const mag = clamp01(Math.log1p(Math.max(0, rs.commits)) / Math.log(600));
+      const lift = clamp01(Math.log1p(Math.max(0, rs.stars)) / Math.log(200)) * 0.18;
+      col.setHex(rs.colour).multiplyScalar(Math.min(1.15, 0.3 + 0.75 * mag + lift));
+      cc[i * 3] = col.r; cc[i * 3 + 1] = col.g; cc[i * 3 + 2] = col.b;
+      cph[i] = h2;
+      csz[i] = (1.6 + 5.0 * mag) * gain;
+    });
+    const conGeo = new THREE.BufferGeometry();
+    conGeo.setAttribute("position", new THREE.BufferAttribute(cp, 3));
+    conGeo.setAttribute("aColor", new THREE.BufferAttribute(cc, 3));
+    conGeo.setAttribute("aPhase", new THREE.BufferAttribute(cph, 1));
+    conGeo.setAttribute("aSize", new THREE.BufferAttribute(csz, 1));
+    conMat = new ShaderMat<StarUniforms>({ vertexShader: STAR_VERT, fragmentShader: STAR_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      uniforms: { uTime: { value: 0 }, uMap: { value: disc } } });
+    const conStars = new THREE.Points(conGeo, conMat);
+    conStars.frustumCulled = false; conStars.renderOrder = -1;
+    conStars.raycast = () => undefined;                // background art: it must never take a click
+    stars.add(conStars);
+
+    // one figure per language, chained nearest-first so it reads as a constellation rather than a fan
+    const byLang = new Map<string, number[]>();
+    repoStars.forEach((rs, i) => { const k = rs.language || "Other"; const a = byLang.get(k); if (a) a.push(i); else byLang.set(k, [i]); });
+    const lp: number[] = [], lc: number[] = [];
+    for (const idx of byLang.values()) {
+      if (idx.length < 2) continue;
+      const rest = idx.slice(1);
+      let cur = idx[0];
+      while (rest.length > 0) {
+        let bi = 0, bd = Infinity;
+        for (let k = 0; k < rest.length; k++) { const dd = places[cur].distanceToSquared(places[rest[k]]); if (dd < bd) { bd = dd; bi = k; } }
+        const nx = rest.splice(bi, 1)[0];
+        if (bd < (R * 1.1) ** 2) {                     // a line across the whole dome reads as noise, not a figure
+          const a = places[cur], b = places[nx];
+          lp.push(a.x, a.y, a.z, b.x, b.y, b.z);
+          col.setHex(repoStars[cur].colour).multiplyScalar(0.5);
+          lc.push(col.r, col.g, col.b, col.r, col.g, col.b);
+        }
+        cur = nx;
+      }
+    }
+    if (lp.length > 0) {
+      const lineGeo = new THREE.BufferGeometry();
+      lineGeo.setAttribute("position", new THREE.Float32BufferAttribute(lp, 3));
+      lineGeo.setAttribute("color", new THREE.Float32BufferAttribute(lc, 3));
+      const lines = new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.16 * Math.min(1.5, gain), depthWrite: false, blending: THREE.AdditiveBlending }));
+      lines.frustumCulled = false; lines.renderOrder = -1;
+      lines.raycast = () => undefined;
+      stars.add(lines);
+    }
+  }
+
   // sun
+  const sunCore = new THREE.Color(cfg?.sunColorCore ?? 0xffc978);
+  const sunEdge = new THREE.Color(cfg?.sunColorEdge ?? 0xff2bd6);
+  const sunMid = cfg?.sunColorMid === undefined ? sunCore.clone().lerp(sunEdge, 0.5) : new THREE.Color(cfg.sunColorMid);
+  const uPulse: U<number> = { value: 0 };          // flare(), shared by the photosphere and the corona
+  const uCoronaK: U<number> = { value: cfg?.sunCorona ?? 1 };
+  const uFlareK: U<number> = { value: cfg?.sunFlare ?? 1 };
   const sunMat = new ShaderMat<SunUniforms>({ vertexShader: V_WORLD, fragmentShader: SUN_FRAG,
-    uniforms: { uCore: { value: new THREE.Color(cfg?.sunColorCore ?? 0xffc978) }, uEdge: { value: new THREE.Color(cfg?.sunColorEdge ?? 0xff2bd6) }, uTime: { value: 0 }, uFade } });
+    uniforms: {
+      uCore: { value: sunCore }, uMid: { value: sunMid }, uEdge: { value: sunEdge }, uTime: { value: 0 }, uFade,
+      uGran: { value: cfg?.sunGranulation ?? 1 }, uLimb: { value: cfg?.sunLimb ?? 1 }, uSpots: { value: cfg?.sunSpots ?? 0 },
+      uSpin: { value: cfg?.sunSpin ?? 1 }, uFlare: uFlareK, uPulse,
+    } });
   const sun = new THREE.Mesh(new THREE.SphereGeometry(SUN_R, 96, 96), sunMat);
   scene.add(sun);
+  // the corona shell, and an invisible sphere that keeps the star clickable when it is a speck
+  const corona = new THREE.Mesh(new THREE.SphereGeometry(SUN_R * 4.0, 48, 32),
+    new ShaderMat<CoronaUniforms>({ vertexShader: V_WORLD, fragmentShader: CORONA_FRAG, side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      uniforms: { uMid: { value: sunMid }, uEdge: { value: sunEdge }, uR: { value: SUN_R }, uTime: { value: 0 }, uFade, uCorona: uCoronaK, uFlare: uFlareK, uPulse } }));
+  scene.add(corona);
+  const sunPick = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
+  sunPick.scale.setScalar(Math.max(SUN_R * 1.02, 2.4));
+  scene.add(sunPick);
   const coronaA = new THREE.Sprite(new THREE.SpriteMaterial({ map: disc, color: 0xff2bd6, transparent: true, opacity: 0.12, depthWrite: false, blending: THREE.AdditiveBlending }));
   coronaA.scale.setScalar(SUN_R * 7.5);
   const coronaB = new THREE.Sprite(new THREE.SpriteMaterial({ map: disc, color: 0xffb06b, transparent: true, opacity: 0.18, depthWrite: false, blending: THREE.AdditiveBlending }));
@@ -717,22 +942,31 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, onSelect,
     return { line, mat, hot: 0 };
   });
 
-  // asteroid belt
+  // asteroid belt: rocks spread across BELT_W with a thin vertical scatter, tinted off one base colour
   const BELT = Math.max(100, Math.min(8000, cfg?.beltDensity ?? 2200));
+  const beltThick = Math.max(0, cfg?.beltThickness ?? 1.2);
+  const rockK = Math.max(0.05, cfg?.beltRockSize ?? 1);
+  const beltHex = cfg?.beltColor ?? 0x5a5e69;
   const belt = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0),
-    new THREE.MeshStandardMaterial({ color: 0x5a5e69, roughness: 0.95, metalness: 0.05, flatShading: true }), BELT);
+    new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, metalness: 0.05, flatShading: true }), BELT);
   {
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), pos = new THREE.Vector3(), e = new THREE.Euler();
+    const tint = new THREE.Color();
+    // three uniform draws averaged: the rocks crowd the middle of the belt the way a real one does
+    const bell = () => (Math.random() + Math.random() + Math.random()) / 3 - 0.5;
     for (let i = 0; i < BELT; i++) {
       const a = Math.random() * Math.PI * 2;
-      const r = BELT_R + (Math.random() - 0.5) * 6.0 + (Math.random() - 0.5) * 3.5;
-      pos.set(Math.cos(a) * r, (Math.random() - 0.5) * 2.2, Math.sin(a) * r);
+      const r = BELT_R + bell() * BELT_W;                       // width and thickness are full extents
+      pos.set(Math.cos(a) * r, bell() * beltThick, Math.sin(a) * r);
       e.set(Math.random() * 6.28, Math.random() * 6.28, Math.random() * 6.28); q.setFromEuler(e);
-      const k = 0.08 + Math.pow(Math.random(), 3) * 0.4; s.set(k, k * (0.6 + Math.random() * 0.8), k);
+      const k = (0.08 + Math.pow(Math.random(), 3) * 0.4) * rockK; s.set(k, k * (0.6 + Math.random() * 0.8), k);
       m.compose(pos, q, s); belt.setMatrixAt(i, m);
+      belt.setColorAt(i, tint.setHex(beltHex).multiplyScalar(0.6 + Math.random() * 0.7));
     }
     belt.instanceMatrix.needsUpdate = true;
+    if (belt.instanceColor) belt.instanceColor.needsUpdate = true;
   }
+  belt.rotation.x = (cfg?.beltTilt ?? 0) * DEG;   // Euler XYZ: the per-frame y spin happens inside this tilt
   scene.add(belt);
 
   // comet — a head sprite trailing a fading line; crosses the sky every so often
@@ -790,11 +1024,17 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, onSelect,
   let domHot = -1;
   const bodies: SceneBody[] = projects.map((p, i) => {
     const r = ORBITS[i];
-    const omega = 0.06 * Math.pow(ORBITS[0] / r, 1.5);
+    const omega = 0.06 * Math.pow(ORBITS[0] / r, 1.5);   // Kepler-ish: the period grows with r^1.5
     const theta0 = (i * 2.399) % (Math.PI * 2);
-    const body = makeBody(p, i);
+    const L = bodyLayout(i);
+    // in an arranged mode the layout supplies the body; a ring is only ever added, never taken away,
+    // because a stored ring is a drawing decision and its colours are not the arrangement's to guess
+    const body = makeBody(p, i, arranged
+      ? { size: L.size, tilt: L.tilt, spin: L.spin, type: L.type, ring: L.ringed ? arrangedRing(p) : undefined, sunRadius: SUN_R }
+      : { sunRadius: SUN_R });
     const pick = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
-    pick.scale.setScalar(Math.max(body.size * 1.3, 2.4)); body.root.add(pick);
+    // a fat click target, but never so fat that neighbouring orbits overlap (they do at real scale)
+    pick.scale.setScalar(Math.max(body.size * 1.3, Math.min(2.4, r * 0.35))); body.root.add(pick);
     scene.add(body.root);
 
     const el = document.createElement("button");
@@ -869,7 +1109,7 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, onSelect,
   const pickables = bodies.map((b) => b.pick);
   function pickAt(): Pick | null {
     raycaster.setFromCamera(ndc, camera);
-    const sunHit: THREE.Intersection | undefined = raycaster.intersectObject(sun, false)[0];
+    const sunHit: THREE.Intersection | undefined = raycaster.intersectObject(sunPick, false)[0];
     const hits = raycaster.intersectObjects(pickables, false);
     let best: THREE.Intersection | null = null, bestIdx = -1;
     for (const hh of hits) {
@@ -918,7 +1158,7 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, onSelect,
     const dist = R * (b.ring ? 5.6 : 4.8);
     for (let k = 0; k < 8; k++) {
       outPos.copy(P).addScaledVector(tmp, dist);
-      if (outPos.length() > SUN_R * 2.0) break;
+      if (outPos.length() > SUN_FRAME * 2.0) break;
       tmp.addScaledVector(right, 0.45).normalize();
     }
     outPos.addScaledVector(UP, R * (b.ring ? 1.6 : 1.15) + R * 4.8 * Math.sin(inspect.pitch));
@@ -929,8 +1169,8 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, onSelect,
   function poseForSun(outPos: THREE.Vector3, outLook: THREE.Vector3) {
     tmp.copy(camPos).setY(0).normalize();
     right.crossVectors(tmp.clone().negate(), UP).normalize();
-    outPos.copy(tmp).multiplyScalar(SUN_R * 3.4).addScaledVector(UP, SUN_R * 0.9);
-    outLook.set(0, 0, 0).addScaledVector(right, SUN_R * 1.1);
+    outPos.copy(tmp).multiplyScalar(SUN_FRAME * 3.4).addScaledVector(UP, SUN_FRAME * 0.9);
+    outLook.set(0, 0, 0).addScaledVector(right, SUN_FRAME * 1.1);
   }
   const arcCtrl = new THREE.Vector3();
   function startFlight(kind: Flight["kind"], toPos: THREE.Vector3, toLook: THREE.Vector3, onDone?: () => void) {
@@ -1009,13 +1249,15 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, onSelect,
     canvas.style.cursor = rayHot >= 0 || sunHot ? "pointer" : dragging ? "grabbing" : orbiting && active ? "grab" : "";
 
     sunMat.uniforms.uTime.value = t;
+    corona.material.uniforms.uTime.value = t;
+    uPulse.value = flareT;
+    if (conMat) conMat.uniforms.uTime.value = t;
     nebula.material.uniforms.uTime.value = t;
     starMat.uniforms.uTime.value = t;
-    sun.rotation.y = t * 0.03;
     flareT += (0 - flareT) * Math.min(1, dt * 1.6);
     const pulse = (1 + 0.12 * Math.sin(t * 0.9) + 0.06 * Math.sin(t * 2.3)) * (1 + 3.5 * flareT);
-    coronaA.material.opacity = 0.12 * uFade.value * pulse * (sunHot ? 1.5 : 1);
-    coronaB.material.opacity = 0.18 * uFade.value * pulse;
+    coronaA.material.opacity = 0.12 * uFade.value * pulse * uCoronaK.value * (sunHot ? 1.5 : 1);
+    coronaB.material.opacity = 0.18 * uFade.value * pulse * uCoronaK.value;
     coronaB.scale.setScalar(SUN_R * 3.6 * (0.98 + 0.03 * Math.sin(t * 1.7)));
     { tmp.set(0, 0, 0).project(camera); const off = Math.hypot(tmp.x, tmp.y); anamorphic.material.opacity = uFade.value * (0.13 + 0.5 * flareT) * (1 - clamp01(off * 0.9)) * (tmp.z < 1 ? 1 : 0); anamorphic.scale.x = SUN_R * (22 + 40 * flareT); }
     belt.rotation.y = tOrbit * 0.02;
@@ -1172,6 +1414,7 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, onSelect,
     setThrottle(k) { view.throttle = Math.min(1, Math.max(-0.6, k)); },
     heading(): Heading {
       return { theta: view.theta, phi: view.phi, roll: camera.rotation.z, speed: warp, flying: flight.active, flightT: flight.t, flightDur: flight.dur, hot: hotIdx, sunHot,
+        auPerUnit: layout.auPerUnit,
         pos: { x: camPos.x, y: camPos.y, z: camPos.z }, bodies: bodies.map((b) => ({ id: b.p.id, x: b.pos.x, y: b.pos.y, z: b.pos.z, r: b.r, size: b.size })) };
     },
     project(v: Vec3): Vec3 { const q = new THREE.Vector3(v.x, v.y, v.z).project(camera); return { x: (q.x * 0.5 + 0.5) * w, y: (-q.y * 0.5 + 0.5) * h, z: q.z }; },

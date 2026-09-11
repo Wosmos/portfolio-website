@@ -118,6 +118,11 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
             <span className="planet__hint" id="planet-hint">click the planet to see what it is made of</span>
             {moons.length > 0 && <span className="planet__moon k" id="moon-name" hidden />}
             <button className="sf sf--btn pj__cut" id="cutbtn" type="button"><span className="sf__in">cut it open</span></button>
+            {/* the one control that survives solo, because it is the way back out of it */}
+            <button className="solo" id="solobtn" type="button" aria-pressed="false" title="Just the planet — hide everything else">
+              <span className="solo__i" aria-hidden="true"><i /><i /><i /><i /></span>
+              <span className="solo__t">just the planet</span>
+            </button>
           </div>
           <div className="callouts callouts--grid" id="callouts" hidden />
           {moons.length > 0 && (

@@ -230,8 +230,10 @@ const TIPS = {
 /** Every fold inside the project modal, so one control can open or shut all of them. */
 const MODAL_FOLDS = ["proj.basics", "proj.copy", "proj.github", "proj.planet", "proj.moons", "planet.colours", "planet.surface", "planet.ring", "planet-sizes"] as const;
 
-/** How wide the preview stands. Remembered, because it is a working preference, not a per-project one. */
-const PREVIEW_SIZES = ["card", "stage", "wide"] as const;
+/** How wide the preview stands. Remembered, because it is a working preference, not a per-project one.
+ *  `full` is the planet over the whole modal with the knobs out of the way — the same "just the
+ *  planet" mode the ship and the project page have, so a size is judged where it is actually seen. */
+const PREVIEW_SIZES = ["card", "stage", "wide", "full"] as const;
 type PreviewSize = (typeof PREVIEW_SIZES)[number];
 
 function PlanetEditor({ planet, orbit, sunRadius, moons, onChange, onOrbit }: {
@@ -251,7 +253,12 @@ function PlanetEditor({ planet, orbit, sunRadius, moons, onChange, onOrbit }: {
   const shown = (moons ?? []).filter((m) => m.visible).length;
 
   return (
-    <div className={`pled pled--${size}`}>
+    <div
+      className={`pled pled--${size}`}
+      // The modal closes on Escape. In `full` the key belongs to the preview first, or a glance at the
+      // planet costs you the edit you were part-way through.
+      onKeyDown={(e) => { if (e.key === "Escape" && size === "full") { e.stopPropagation(); setSize("stage"); } }}
+    >
       <div className="pled__knobs">
         <div className="pled__pick">
           {PLANET_TYPES.map((t) => (
@@ -343,7 +350,9 @@ function PlanetEditor({ planet, orbit, sunRadius, moons, onChange, onOrbit }: {
         <PlanetPreview planet={planet} moons={moons} />
         {shown > 0 && <p className="hint">{shown} {shown === 1 ? "moon" : "moons"}, drawn here as they are on the site.</p>}
         {/* the same body at the three sizes it is actually seen at, because a size that reads on a
-            stage can be a smudge on a card. Folded away by default: each one is its own GL context. */}
+            stage can be a smudge on a card. Folded away by default: each one is its own GL context —
+            and in `full` it is not rendered at all, so a phone is never asked for four of them. */}
+        {size !== "full" && (
         <Fold id="planet-sizes" title="at every size" note="deck · card · strip">
           <div className="pled__sizes">
             {([["stage", 240], ["card", 132], ["strip", 68]] as const).map(([label, px]) => (
@@ -354,6 +363,7 @@ function PlanetEditor({ planet, orbit, sunRadius, moons, onChange, onOrbit }: {
             ))}
           </div>
         </Fold>
+        )}
       </div>
     </div>
   );

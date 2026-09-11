@@ -312,3 +312,32 @@ canvas.planet { touch-action: pan-y; }
 .prose hr { border: 0; height: 1px; background: var(--line); margin: 6px 0; }
 .prose strong { color: var(--fg); font-weight: 500; }
 .prose em { color: var(--fg-2); }
+
+/* ── solo: the planet and nothing else ───────────────────
+   The stage is promoted where it stands rather than moved: PlanetCanvases binds every listener by id,
+   so reparenting the canvas would silently break drag, the cutaway and the moon legend. The view's own
+   ResizeObserver sees the new box and reframes the camera, so nothing has to be remounted. */
+.solo { position: absolute; right: 4px; top: 4px; z-index: 6; display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 10px; font-size: 10px; letter-spacing: .09em; text-transform: uppercase; color: rgba(242,245,255,.55);
+  background: rgba(5,10,16,.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  box-shadow: inset 0 0 0 1px rgba(0,229,255,.2); transition: color .18s, box-shadow .18s; }
+.solo:hover, .solo:focus-visible { color: var(--cy); box-shadow: inset 0 0 0 1px rgba(0,229,255,.48); }
+.solo__i { position: relative; width: 12px; height: 12px; flex: none; }
+.solo__i i { position: absolute; width: 4px; height: 4px; border: 1px solid currentColor; }
+.solo__i i:nth-child(1) { left: 0; top: 0; border-right: 0; border-bottom: 0; }
+.solo__i i:nth-child(2) { right: 0; top: 0; border-left: 0; border-bottom: 0; }
+.solo__i i:nth-child(3) { left: 0; bottom: 0; border-right: 0; border-top: 0; }
+.solo__i i:nth-child(4) { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+
+html.is-solo, html.is-solo body { overflow: hidden; }
+html.is-solo .top, html.is-solo .foot, html.is-solo .pj__text,
+html.is-solo .pj__about, html.is-solo .pj__nav, html.is-solo .pj__built,
+html.is-solo #callouts, html.is-solo #moons, html.is-solo .pj__stagek { display: none; }
+/* aspect-ratio 1/1 is what fights landscape, and max-height caps it well short of the viewport */
+html.is-solo .pj__stage { position: fixed; inset: 0; z-index: 40; aspect-ratio: auto; max-height: none;
+  background: var(--bg, #05070b); display: grid; }
+html.is-solo .pj__stage .planet { position: absolute; inset: 0; width: 100%; height: 100%; }
+html.is-solo .pj__cut { bottom: max(18px, env(safe-area-inset-bottom, 0px)); }
+html.is-solo .solo { right: max(14px, env(safe-area-inset-right, 0px)); top: 14px; }
+html.is-solo .solo__t { display: none; }
+html.is-solo .solo { padding: 8px; color: var(--cy); box-shadow: inset 0 0 0 1px rgba(0,229,255,.45); }

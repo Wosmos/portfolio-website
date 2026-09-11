@@ -247,6 +247,24 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   const closeSheet = (): void => setSheet(false);
   listen(grip, "click", () => setSheet(!sheetOpen()));
 
+  // ── solo: the planet and nothing else ──
+  // Not the Fullscreen API. Safari on iOS refuses it on anything but a video, and that is the device
+  // this is for — so the cockpit is hidden in CSS instead, which behaves the same everywhere.
+  const soloBtn = $<HTMLButtonElement>("#solo");
+  const soloOn = (): boolean => deck.classList.contains("is-solo");
+  function setSolo(on: boolean): void {
+    if (on === soloOn()) return;
+    deck.classList.toggle("is-solo", on);
+    soloBtn.setAttribute("aria-pressed", String(on));
+    soloBtn.title = on ? "Bring the cockpit back (f or esc)" : "Just the planet — hide the cockpit (f)";
+    if (on) { closeSheet(); dismissRotate(); }
+    // the page cannot scroll in here, so a vertical drag should pitch the camera instead of doing nothing
+    orbitCanvas.style.touchAction = on ? "none" : "";
+    audio.tick();
+  }
+  const toggleSolo = (): void => setSolo(!soloOn());
+  listen(soloBtn, "click", toggleSolo);
+
   // one line, once a session, dismissible: a phone on its side is the closest thing to a canopy
   const ROTATE_KEY = "wsf-rotate";
   const landscape = (): boolean => matchMedia("(orientation: landscape)").matches;
@@ -1127,7 +1145,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (kIdx === KONAMI.length) { kIdx = 0; hyper(); findEgg("konami", "random"); return; }
     const k = e.key.toLowerCase();
     if (e.key === "/") { e.preventDefault(); showCmd(); findEgg("cmdline", "random"); return; }
-    if (e.key === "Escape") { if (panelOpen) { closePanel(); return; } if (sheetOpen()) { closeSheet(); return; } abortTour(); if (system?.focusedId()) closeHud(true); }
+    if (e.key === "Escape") { if (panelOpen) { closePanel(); return; } if (sheetOpen()) { closeSheet(); return; } if (soloOn()) { setSolo(false); return; } abortTour(); if (system?.focusedId()) closeHud(true); }
     if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1);
     if (k === "x") toggleCutaway();
     if (/^[1-8]$/.test(e.key)) { const p = projects[Number(e.key) - 1]; if (p) select(p); }
@@ -1136,6 +1154,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (k === "d") { findEgg("diag", "random"); openPanel("diag"); }
     if (k === "b") { findEgg("blackbox", "random"); openPanel("bbox"); }
     if (k === "f") { whisper(); findEgg("fact", "space"); }
+    if (k === "v") toggleSolo();                            // just the planet, nothing else on screen
     if (e.key === "?") { findEgg("manifest", "random"); openPanel("secrets"); }
     // typing the pilot's handle anywhere
     typed = (typed + k).slice(-5);
@@ -1144,7 +1163,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   });
   // A wheel over a panel, the readout or the dashboard scrolls that thing. Only the open view and the
   // zoom rocker move the ship, and nothing moves it while a panel or the command line is up.
-  const COCKPIT = ".dash, .hud, .panel, .cmd, .toast, .deck__id, .callout-labels, .beacon, .rotate";
+  const COCKPIT = ".dash, .hud, .panel, .cmd, .toast, .deck__id, .callout-labels, .beacon, .rotate, .solo";
   listen(window, "wheel", (e) => {
     if (!system || panelOpen !== null || !cmd.hidden) return;
     const el = e.target instanceof Element ? e.target : null;
@@ -1242,7 +1261,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     gsap.killTweensOf([boot, deck, hud, panel, beacon]);
     for (const ws of sockets) { try { ws.close(); } catch { /* already closed */ } } sockets.clear();
     system?.dispose(); system = null;
-    deck.classList.remove("is-sheet", "is-refuse", "is-flying");
+    deck.classList.remove("is-sheet", "is-refuse", "is-flying", "is-solo");
     labelsEl?.remove(); labelsEl = null;
     clearCallouts();
     audio.setMuted(true); // AudioApi has no dispose; silence the orphaned context so nothing plays over the next route

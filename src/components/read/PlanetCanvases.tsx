@@ -95,6 +95,29 @@ export default function PlanetCanvases({ cutaway = false, projects = staticProje
         cutBtn.addEventListener("click", onBtn);
         offs.push(() => cutBtn.removeEventListener("click", onBtn));
 
+        // Solo: the stage is promoted in place, never reparented. Every listener above is bound by id
+        // through document.querySelector, so moving the canvas in the DOM would quietly break all of
+        // them; a class on <html> is enough, and the view's own ResizeObserver reframes the camera.
+        const soloBtn = document.querySelector<HTMLButtonElement>("#solobtn");
+        if (soloBtn) {
+          const root = document.documentElement;
+          const stageCanvas = canvases[0] ?? null;
+          const setSolo = (on: boolean): void => {
+            root.classList.toggle("is-solo", on);
+            soloBtn.setAttribute("aria-pressed", String(on));
+            soloBtn.title = on ? "Back to the page" : "Just the planet — hide everything else";
+            // there is no page to scroll in here, so a vertical drag should turn the planet instead
+            if (stageCanvas) stageCanvas.style.touchAction = on ? "none" : "";
+          };
+          const onSolo = (): void => { audio.click(); setSolo(!root.classList.contains("is-solo")); };
+          const onKey = (e: KeyboardEvent): void => {
+            if (e.key === "Escape" && root.classList.contains("is-solo")) setSolo(false);
+          };
+          soloBtn.addEventListener("click", onSolo);
+          addEventListener("keydown", onKey);
+          offs.push(() => { soloBtn.removeEventListener("click", onSolo); removeEventListener("keydown", onKey); setSolo(false); });
+        }
+
         if (callouts) {
           callouts.replaceChildren(
             ...view.layers.map((L, k) => {

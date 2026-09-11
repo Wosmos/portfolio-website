@@ -442,3 +442,42 @@ html.is-deck :focus-visible { outline: 1px solid var(--cy); outline-offset: 3px;
   .grain, .hud__desc::after, .lamp.warn, .beacon i, .deck.is-flying { animation: none; }
   .sheet, .grip__v, .lock { transition: none; }
 }
+
+/* ── solo: the planet and nothing else ───────────────────
+   Not the Fullscreen API — Safari on iOS refuses it on anything but a video, and a phone is exactly
+   what this is for. Hiding the cockpit in CSS behaves identically on every device, and because every
+   overlay is already anchored to --chrome and --flank, zeroing those reflows the rest for free. */
+.solo { position: absolute; right: 14px; top: 14px; z-index: 9; display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 10px; font-size: 10px; letter-spacing: .09em; text-transform: uppercase; color: rgba(242,245,255,.62);
+  background: rgba(5,10,16,.62); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+  box-shadow: inset 0 0 0 1px rgba(0,229,255,.22); transition: color .18s, box-shadow .18s; }
+.solo:hover, .solo:focus-visible { color: var(--cy); box-shadow: inset 0 0 0 1px rgba(0,229,255,.5); }
+/* four corner ticks: the same bracket the target lock draws, which is what the button does to the view */
+.solo__i { position: relative; width: 12px; height: 12px; flex: none; }
+.solo__i i { position: absolute; width: 4px; height: 4px; border: 1px solid currentColor; }
+.solo__i i:nth-child(1) { left: 0; top: 0; border-right: 0; border-bottom: 0; }
+.solo__i i:nth-child(2) { right: 0; top: 0; border-left: 0; border-bottom: 0; }
+.solo__i i:nth-child(3) { left: 0; bottom: 0; border-right: 0; border-top: 0; }
+.solo__i i:nth-child(4) { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+
+/* everything the wheel guard calls chrome, plus the two it does not name */
+.deck.is-solo .dash,
+.deck.is-solo .hud,
+.deck.is-solo .panel,
+.deck.is-solo .deck__id,
+.deck.is-solo .deck__mark,
+.deck.is-solo .switch--deck,
+.deck.is-solo .hint,
+.deck.is-solo .reticle,
+.deck.is-solo .callout-labels,
+.deck.is-solo .callouts,
+.deck.is-solo .rotate,
+.deck.is-solo .beacon,
+.deck.is-solo .frame__svg { display: none; }
+/* the toast still speaks — an easter egg found in here would otherwise happen in silence */
+.deck.is-solo .toast { bottom: 18px; }
+.deck.is-solo .solo { color: var(--cy); box-shadow: inset 0 0 0 1px rgba(0,229,255,.45); }
+.deck.is-solo .solo__t { display: none; }   /* out of the way once you are in it */
+.deck.is-solo .solo { padding: 8px; }
+/* both phone layouts hang their offsets off these, so zeroing them is the whole reflow */
+.deck.is-solo { --chrome: 0px; --flank: 0px; }

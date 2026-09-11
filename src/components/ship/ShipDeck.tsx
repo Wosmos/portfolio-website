@@ -150,6 +150,12 @@ export default function ShipDeck({ initialTarget, lastPush = null, projects, orb
 
         <span className="hint">each planet is a project · click one to fly · drag to look · zoom from the console rocker</span>
 
+        {/* the one control that survives solo mode, because it is the way back out of it */}
+        <button id="solo" className="solo" type="button" aria-pressed="false" title="Just the planet — hide the cockpit (f)">
+          <span className="solo__i" aria-hidden="true"><i /><i /><i /><i /></span>
+          <span className="solo__t">just the planet</span>
+        </button>
+
         {/* one quiet line, once a session: a phone on its side is the closest thing to a canopy */}
         <div id="rotate" className="rotate" hidden>
           <span>turn the phone · wider canopy</span>

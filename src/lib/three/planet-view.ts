@@ -35,7 +35,10 @@ export function createPlanetView({ canvas, project, index = 0, interactive = tru
   b.root.position.copy(P);
   scene.add(b.root);
   const extent = b.size * (b.cfg.ring ? b.extent * 0.98 : b.extent) * fit;
-  const camDir = new THREE.Vector3(0.42, 0.34, -1).normalize();
+  // Off the sun's axis on purpose. Looking straight down the light leaves the whole disc lit, which is
+  // what made these read as marbles: no terminator, no shape. From here roughly two thirds of the face
+  // is lit and the rest falls into night, which is the single strongest cue that it is a sphere.
+  const camDir = new THREE.Vector3(0.86, 0.3, -0.42).normalize();
   const dist = (): number => (extent / Math.tan(((camera.fov / 2) * Math.PI) / 180)) * (camera.aspect < 1 ? 1 / camera.aspect : 1) * 0.94;
   const placeCamera = (): void => { camera.position.copy(P).addScaledVector(camDir, dist()); camera.lookAt(P); };
 

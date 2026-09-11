@@ -311,7 +311,7 @@ html.is-deck :focus-visible { outline: 1px solid var(--cy); outline-offset: 3px;
    Landscape: the same screens as two thin flanks with an empty middle — the canopy layout. */
 @media (max-width: 900px) {
   /* --rail is the instrument bar's own height; --chrome adds the handle, the gaps and the safe area */
-  :root { --rail: 110px; --chrome: calc(var(--rail) + 60px + env(safe-area-inset-bottom, 0px)); }
+  :root { --rail: 120px; --chrome: calc(var(--rail) + 60px + env(safe-area-inset-bottom, 0px)); }
   .frame__svg { display: none; }
   .hint { display: none; }
   .dossier__stats { grid-template-columns: repeat(2, 1fr); }
@@ -329,7 +329,7 @@ html.is-deck :focus-visible { outline: 1px solid var(--cy); outline-offset: 3px;
   .rail { grid-area: rail; }
   .screen--mid { grid-template-rows: minmax(0, 1fr) auto; gap: 5px; padding: 6px 8px; }
   .screen--mid canvas { height: 60px; }
-  .lamp { height: 30px; width: auto; min-width: 0; flex: 1 1 0; } .lamp::after { font-size: 8px; }
+  .lamp { height: 40px; width: auto; min-width: 0; flex: 1 1 0; } .lamp::after { font-size: 8px; }
   .lamps { gap: 6px; }
 
   /* the handle: a labelled grab bar that also reads out where the ship is */
@@ -347,27 +347,32 @@ html.is-deck :focus-visible { outline: 1px solid var(--cy); outline-offset: 3px;
   /* The sheet slides over the glass rather than pushing the rail up: animating a height on a page that
      is already spending its frames on WebGL janks, and transform + opacity cost the compositor nothing.
      Shut, it is out of the focus order and takes no layout. */
-  .sheet { position: absolute; left: 0; right: 0; bottom: calc(var(--chrome) + 4px); z-index: 7;
-    height: min(68svh, 580px); grid-template-rows: minmax(0, 1fr) auto auto; gap: 6px;
+  .sheet { position: absolute; left: 8px; right: 8px; bottom: calc(var(--chrome) + 8px); z-index: 7;
+    height: auto; max-height: min(74svh, 620px); grid-template-rows: auto auto auto; align-content: start; gap: 6px;
     overflow-y: auto; overscroll-behavior: contain;
     opacity: 0; visibility: hidden; transform: translateY(12px);
     transition: opacity .22s, transform .28s var(--ease), visibility .28s; }
   .deck.is-sheet .sheet { opacity: 1; visibility: visible; transform: none; }
 
-  .sheet .screen--left { grid-template-rows: auto minmax(0, 1fr) auto; }
+  /* all eight projects at once: a list that clips to four rows reads as if there are only four */
+  .sheet .screen--left { grid-template-rows: auto auto auto; }
+  .sheet .targets { overflow: visible; }
   /* eight targets in two columns fit a phone without a 350px-tall list */
   .targets { grid-template-columns: 1fr 1fr; gap: 4px; mask-image: none; padding: 0; touch-action: pan-y; }
-  .tgt { min-height: 42px; align-items: center; font-size: 10px; padding: 0 8px; background: rgba(0,229,255,.05); }
-  .tgt--sun { min-height: 42px; margin-top: 6px; }
+  .tgt { min-height: 44px; align-items: center; font-size: 10px; padding: 0 8px; background: rgba(0,229,255,.05); }
+  .tgt--sun { min-height: 44px; margin-top: 6px; }
   .screen--ctl { grid-template-rows: auto auto auto; gap: 6px; }
-  .bank { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 42px; gap: 5px; }
+  .bank { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 44px; gap: 5px; }
   .sw { grid-template-columns: 7px 15px 1fr; font-size: 8.5px; }
   .sw--wide { grid-column: span 3; }
   .zoom { grid-template-columns: 44px 1fr 44px auto; gap: 8px; padding: 4px 6px; touch-action: none; }
-  .zoom__btn { height: 34px; font-size: 16px; }
-  .screen--right { grid-template-columns: 100px minmax(0, 1fr); gap: 10px; }
-  .screen--right canvas { display: block; width: 100px; height: 100px; }
-  .tele__row { padding: 4px 0; min-height: 20px; }
+  .zoom__btn { height: 38px; font-size: 16px; }
+  .screen--right { grid-template-columns: 92px minmax(0, 1fr); gap: 10px; }
+  .screen--right canvas { display: block; width: 92px; height: 92px; }
+  /* two columns of three: a readout row a thumb can actually hit, without a 240px-tall column */
+  .tele { grid-template-columns: 1fr 1fr; gap: 2px 8px; }
+  .tele__row { min-height: 40px; padding: 4px 7px; }
+  .tele__row[data-act] { background: rgba(0,229,255,.05); }
 
   /* the readout floats over the glass above the rail instead of reserving a band of it */
   .hud, .panel { top: auto; bottom: calc(var(--chrome) + 10px); left: 8px; right: 8px; width: auto; transform: none;
@@ -391,11 +396,13 @@ html.is-deck :focus-visible { outline: 1px solid var(--cy); outline-offset: 3px;
   .screen { background: rgba(5,10,16,.66); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); }
   /* the middle must not take a pointer, and .deck > * outranks a bare .dash selector */
   .deck > .dash { pointer-events: none; }
-  .dash { inset: 0; height: auto; padding: 8px; gap: 8px;
+  .dash { inset: 0; height: auto; gap: 8px;
+    padding: 8px calc(8px + env(safe-area-inset-right, 0px)) 8px calc(8px + env(safe-area-inset-left, 0px));
     grid-template-columns: var(--flank) minmax(0, 1fr) var(--flank); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas: "port . stbd" "port2 . stbd2"; transform: none; }
   .sheet, .rail { display: contents; }
-  .sheet { height: auto; visibility: visible; overflow: visible; }
+  /* display:contents drops the sheet's own box, but visibility inherits — and belt-and-braces on the rest */
+  .sheet { height: auto; visibility: visible; overflow: visible; opacity: 1; transform: none; }
   .screen { pointer-events: auto; }
   .screen--left { grid-area: port; } .screen--ctl { grid-area: port2; }
   .screen--mid { grid-area: stbd; } .screen--right { grid-area: stbd2; }
@@ -416,8 +423,9 @@ html.is-deck :focus-visible { outline: 1px solid var(--cy); outline-offset: 3px;
   /* five lamps in a 142px flank: let them shrink instead of overflowing the screen's clip */
   .lamps { gap: 3px; }
   .lamp { height: 15px; width: auto; min-width: 0; flex: 1 1 0; } .lamp::after { font-size: 7px; }
-  .tele { font-size: 9px; }
+  .tele { font-size: 9px; grid-template-columns: 1fr; gap: 0; }
   .tele__row { padding: 1px 0; min-height: 0; }
+  .tele__row[data-act] { background: none; }
   .tele__row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tele__row b { font-size: 9px; max-width: 58%; }
   .screen { padding: 6px 7px; }
@@ -430,4 +438,7 @@ html.is-deck :focus-visible { outline: 1px solid var(--cy); outline-offset: 3px;
   .cmd { bottom: 54px; } .toast { bottom: 12px; }
   #dash { touch-action: none; }
 }
-@media (prefers-reduced-motion: reduce) { .grain, .hud__desc::after, .lamp.warn, .beacon i, .deck.is-flying { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .grain, .hud__desc::after, .lamp.warn, .beacon i, .deck.is-flying { animation: none; }
+  .sheet, .grip__v, .lock { transition: none; }
+}

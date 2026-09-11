@@ -3,6 +3,7 @@
 // Ported from prototypes/ship/scene.js; `makeBody` is shared with planet-view.ts.
 
 import * as THREE from "three";
+import { lowPower } from "@/lib/device";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
@@ -104,6 +105,7 @@ uniform float uRingOn; uniform vec3 uRingN; uniform vec3 uPlanetC; uniform float
 ${moons > 0 ? `uniform vec4 uMoons[${moons}];    // xyz world centre, w radius — zeroed while hidden` : ""}
 varying vec3 vN; varying vec3 vW; varying vec3 vL;
 ${NOISE}
+${BRDF}
 ${CUT_GLSL}
 // Sharpens a 0–1 band value towards a step. At uBandSharp 0 the mix returns the sine untouched, which
 // is what keeps a planet with no bandSharp set looking exactly as it did.
@@ -264,7 +266,7 @@ ${moons > 0 ? `  // Moons, analytically, against the sun direction — no shadow
   float graze = 1.0 - smoothstep(0.0, 0.5, nl);
   vec3 sunCol = mix(vec3(1.0, 0.86, 0.76), vec3(1.0, 0.5, 0.27), graze * 0.82);
   // glint: a mirror lobe, and only where there is something to mirror — water or ice
-  float spec = pow(max(dot(reflect(-L, Ns), V), 0.0), mix(150.0, 26.0, rough)) * glint * 0.9;
+  float spec = ggx(Ns, V, L, mix(0.05, 0.5, rough)) * glint * 2.1;
   float limb = 1.0 - max(dot(Ng, V), 0.0);
   float fres = pow(limb, 3.0);
   vec3 col = albedo * (0.035 + d * 1.15) * sunCol + spec * sunCol;
@@ -282,6 +284,22 @@ ${moons > 0 ? `  // Moons, analytically, against the sun direction — no shadow
   gl_FragColor = vec4(col, 1.0);
 }`;
 
+// GGX: the specular shape a rough surface actually has. Phong gave water a round dot; this gives the
+// stretched, grazing-angle glint you see on a real sea, and lets roughness mean something physical.
+const BRDF = /* glsl */ `
+float ggx(vec3 N, vec3 V, vec3 L, float rough){
+  float a = max(0.035, rough * rough);
+  vec3 H = normalize(V + L);
+  float nh = max(dot(N, H), 0.0), nv = max(dot(N, V), 1e-4), nl = max(dot(N, L), 0.0);
+  float a2 = a * a;
+  float dd = nh * nh * (a2 - 1.0) + 1.0;
+  float D = a2 / max(1e-6, 3.14159265 * dd * dd);                 // microfacet distribution
+  float k = a * 0.5;                                              // Smith, height-correlated enough for this
+  float G = (nl / (nl * (1.0 - k) + k)) * (nv / (nv * (1.0 - k) + k));
+  float F = 0.04 + 0.96 * pow(1.0 - max(dot(H, V), 0.0), 5.0);    // Schlick, dielectric
+  return D * G * F / max(1e-4, 4.0 * nv * nl) * nl;
+}`;
+
 const ATMO_FRAG = /* glsl */ `
 uniform vec3 uRim; uniform float uHot; uniform float uAlpha;
 varying vec3 vN; varying vec3 vW;
@@ -292,7 +310,10 @@ void main(){
   vec3 V = normalize(cameraPosition - vW);
   vec3 L = normalize(-vW);
   float mu = abs(dot(N, V));
-  float f = pow(1.0 - mu, 2.6);                                     // air mass along this ray
+  // The shell is additive, so whatever it contributes over the disc is light added to the surface —
+  // at 2.6 it still put ~7% of the rim colour across the middle of the face, which lifted the blacks
+  // and flattened the terminator. The air belongs at the limb: a steeper falloff keeps it there.
+  float f = pow(1.0 - mu, 5.0);
   float nl = dot(N, L);
   float day = 0.45 + 0.55 * smoothstep(-0.3, 0.5, nl);
   // Rayleigh: the longest paths are the ones grazing the terminator, and they arrive red. The shell
@@ -301,7 +322,7 @@ void main(){
   vec3 tint = mix(uRim, vec3(1.0, 0.44, 0.21), clamp(sunset, 0.0, 1.0) * 0.85);
   // forward scattering: looking into the sun through the shell lights the whole limb
   float fwd = pow(max(0.0, -dot(V, L)) * 0.5 + 0.5, 3.0);
-  float a = f * (uAlpha + uHot * 0.6) * day * (0.78 + 0.85 * fwd);
+  float a = f * (uAlpha + uHot * 0.6) * day * (0.78 + 0.85 * fwd) * 1.35;   // narrower band, so it may be brighter in it
   a += pow(1.0 - mu, 7.0) * smoothstep(-0.02, 0.3, nl) * (0.5 + 0.5 * fwd) * uAlpha * 1.7;   // thin day rim
   gl_FragColor = vec4(tint, a);
 }`;
@@ -316,6 +337,7 @@ uniform float uType; uniform float uSeed; uniform float uTime; uniform float uHo
 uniform vec3 uPlanet; uniform float uPlanetR;
 varying vec3 vN; varying vec3 vW; varying vec3 vL;
 ${NOISE}
+${BRDF}
 // One height field, three samples: two crater scales over a low swell. Differenced along the tangents
 // it gives the bowls a normal, which is the difference between craters and a speckled ball.
 float mRelief(vec3 p, float sd){
@@ -369,7 +391,7 @@ void main(){
   if (along > 0.0) d *= 0.04 + 0.96 * smoothstep(uPlanetR * 0.7, uPlanetR * 1.15, length(rel - L * along));
   // the last light before night has crossed the most regolith and comes back the reddest
   vec3 sunCol = mix(vec3(1.0, 0.9, 0.82), vec3(1.0, 0.48, 0.26), (1.0 - smoothstep(0.0, 0.34, nl)) * 0.8);
-  float spec = pow(max(dot(reflect(-L, N), V), 0.0), mix(120.0, 22.0, rough)) * glint * 0.7;
+  float spec = ggx(N, V, L, mix(0.06, 0.55, rough)) * glint * 1.6;
   // Planetshine: the lit face of the planet lights the moon's night side, dimming as the planet's own
   // phase wanes — a moon between the sun and its planet sees a new planet and gets nothing back.
   vec3 pdir = rel / pdist;
@@ -418,6 +440,7 @@ const SHELL_FRAG = /* glsl */ `
 uniform vec3 uColor; uniform float uSeed; uniform float uTime; uniform float uAlpha; uniform float uHi;
 varying vec3 vN; varying vec3 vW; varying vec3 vL;
 ${NOISE}
+${BRDF}
 ${CUT_GLSL}
 void main(){
   if (inWedge(vW)) discard;
@@ -430,7 +453,7 @@ void main(){
   vec3 base = uColor * (0.55 + 0.6 * g1);
   base = mix(base, base * 1.5 + vec3(0.06), veins);            // hotter veins
   float d = max(0.0, dot(N, L));
-  float spec = pow(max(dot(reflect(-L, N), V), 0.0), 24.0) * 0.3;
+  float spec = ggx(N, V, L, 0.34) * 0.5;
   vec3 col = base * (0.22 + 0.9 * d) + spec * uColor;
   col *= gl_FrontFacing ? 1.0 : 0.62;                             // inner faces darker
   col = mix(col, col * 1.6 + vec3(0.12), uHi);
@@ -858,6 +881,8 @@ export interface MoonBody {
   st: number; ct: number;
   /** Hover/focus glow: the target a pointer sets, and the eased value the shader and the scale read. */
   want: number; hot: number;
+  /** Eased label opacity. A hard 0/1 from the collision test made the name flicker as the moon orbited. */
+  labK: number;
 }
 
 /** The moons a row asks to draw: visible ones, in the order given, capped at `MOON_MAX`. */
@@ -887,7 +912,7 @@ function makeMoon(m: MoonConfig, i: number, k: number, of: number, planetSize: n
   mesh.scale.setScalar(size);
   const tilt = m.tilt * DEG;
   const phase = m.phase === 0 ? (k * Math.PI * 2) / Math.max(1, of) : m.phase * DEG;
-  return { cfg: m, mesh, size, dist, omega: m.speed * TURNS, phase, st: Math.sin(tilt), ct: Math.cos(tilt), want: 0, hot: 0 };
+  return { cfg: m, mesh, size, dist, omega: m.speed * TURNS, phase, st: Math.sin(tilt), ct: Math.cos(tilt), want: 0, hot: 0, labK: 0 };
 }
 
 /**
@@ -1397,7 +1422,12 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
   const travelDir = new THREE.Vector3(0, 0, -1);
 
   // post
-  const composer = new EffectComposer(renderer);
+  // The composer owns the render path, so the renderer's own `antialias` never runs — every planet edge
+  // and ring line crawls without this. three's default target is already HalfFloat; what it lacks is
+  // multisampling, and that is the whole difference on a silhouette.
+  const aaSamples = lowPower() ? 0 : 4;
+  const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: aaSamples });
+  const composer = new EffectComposer(renderer, rt);
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.5 * (cfg?.bloom ?? 1), 0.55, 0.8);
   composer.addPass(bloom);
@@ -1654,7 +1684,7 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
       shadows[k * 4] = moonW.x; shadows[k * 4 + 1] = moonW.y; shadows[k * 4 + 2] = moonW.z; shadows[k * 4 + 3] = wr;
       const el = b.moonEls[k];
       el.classList.toggle("is-hot", lit);
-      if (b.moonLab < 0.004 && !lit) { if (el.style.opacity !== "0") el.style.opacity = "0"; continue; }
+      if (b.moonLab < 0.004 && !lit) { mn.labK = 0; if (el.style.opacity !== "0") el.style.opacity = "0"; continue; }
       project(moonW);
       const mdist = moonW.distanceTo(camPos);
       const mpx = (moonRadius(mn, sc) * h) / (tan2 * mdist);
@@ -1667,9 +1697,10 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
       if (clear > 0) moonLabXY.push(x, y);
       // a picked moon keeps its name whatever it collides with: it is the one thing you asked to read
       if (lit) clear = 1;
+      mn.labK += (clear - mn.labK) * Math.min(1, dt * 7);      // fade in and out of a collision, never blink
       el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
       // a moon round the back is still named, just fainter, so the list and the view agree
-      el.style.opacity = String(Math.max(b.moonLab, lit ? 1 : 0) * clear * (lit || mdist < dcam ? 1 : 0.4) * (scr.z < 1 ? 1 : 0) * (1 - Math.max(warp, tunnel)) * (1 - b.mix));
+      el.style.opacity = String(Math.max(b.moonLab, lit ? 1 : 0) * mn.labK * (lit || mdist < dcam ? 1 : 0.4) * (scr.z < 1 ? 1 : 0) * (1 - Math.max(warp, tunnel)) * (1 - b.mix));
     }
   }
 

@@ -8,7 +8,8 @@ import { clampDescription, OG_SIZE } from "@/lib/seo";
 import { pad2 } from "@/lib/text";
 import PostMeta from "@/components/read/PostMeta";
 
-export const revalidate = 3600;
+// No window: the page is rebuilt when a save or the publish button says so, not on a timer.
+export const revalidate = false;
 
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
   return (await getPosts()).map((p) => ({ slug: p.slug }));

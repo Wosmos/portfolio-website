@@ -7,7 +7,8 @@ import PlanetCanvases from "@/components/read/PlanetCanvases";
 import ProjectCard from "@/components/read/ProjectCard";
 import { toProjects } from "@/components/read/project-props";
 
-export const revalidate = 3600;
+// No window: the page is rebuilt when a save or the publish button says so, not on a timer.
+export const revalidate = false;
 
 const DESCRIPTION = "Every project: what each one is, what it is built from, and where it runs.";
 

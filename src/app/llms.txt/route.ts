@@ -5,7 +5,8 @@ import { ym } from "@/lib/text";
 // llmstxt.org: one plain-text map of the site for models, so an assistant can answer from the same
 // facts the pages show instead of scraping a WebGL canvas. Built from the content readers, so it
 // cannot drift; the hour is only a safety net behind the content tag an admin save revalidates.
-export const revalidate = 3600;
+// No window: the page is rebuilt when a save or the publish button says so, not on a timer.
+export const revalidate = false;
 
 const section = (title: string, lines: readonly string[]): string => `## ${title}\n\n${lines.join("\n")}`;
 

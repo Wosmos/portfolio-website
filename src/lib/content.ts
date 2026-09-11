@@ -5,8 +5,9 @@
 // Testimonials are the one exception, deliberately: hiding every quote must remove the section from the
 // site rather than resurrect the sample quotes, so that reader returns an empty list.
 //
-// Results are cached per request and revalidated on a tag, so an admin save can drop the cache
-// immediately (see revalidateContent) instead of waiting for the hourly window.
+// Results are cached with no expiry at all and dropped only on a tag, so the cache is exactly as
+// old as the last save or publish — never a stale hour, never a needless rebuild. An admin save calls
+// revalidateContent(); the publish button drops the rendered pages alongside it.
 
 import { revalidateTag, unstable_cache } from "next/cache";
 import { asc, eq } from "drizzle-orm";
@@ -52,7 +53,7 @@ export function revalidateContent(): void { revalidateTag(CONTENT_TAG, "max"); }
 export function revalidateKey(key: ContentKey): void { revalidateTag(`content:${key}`, "max"); }
 
 const cached = <T>(key: string, fn: () => Promise<T>): (() => Promise<T>) =>
-  unstable_cache(fn, ["content", key], { tags: [CONTENT_TAG, `content:${key}`], revalidate: 3600 });
+  unstable_cache(fn, ["content", key], { tags: [CONTENT_TAG, `content:${key}`], revalidate: false });
 
 // Field names are the column names, camelCased, and the scene reads them straight off this object —
 // see SceneSettings in src/lib/three/types.ts. Nothing translates between the two, so they must match.

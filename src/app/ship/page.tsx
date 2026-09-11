@@ -7,7 +7,8 @@ import { SITE_URL } from "@/data/portfolio";
 import { absoluteUrl, clampDescription, SITE_NAME } from "@/lib/seo";
 import "@/styles/ship.css";
 
-export const revalidate = 3600;
+// No window: the page is rebuilt when a save or the publish button says so, not on a timer.
+export const revalidate = false;
 
 export async function generateMetadata(): Promise<Metadata> {
   const [person, projects] = await Promise.all([getPerson(), getProjects()]);

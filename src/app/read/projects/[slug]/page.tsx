@@ -13,7 +13,8 @@ import { Chips } from "@/components/read/ProjectCard";
 import FlyLink from "@/components/read/FlyLink";
 import { toProjects } from "@/components/read/project-props";
 
-export const revalidate = 3600;
+// No window: the page is rebuilt when a save or the publish button says so, not on a timer.
+export const revalidate = false;
 // no `dynamicParams = false`: a project added in the admin has to render before the next build,
 // and an unknown slug still 404s below.
 

@@ -7,7 +7,9 @@ import type { MoonConfigJson } from "@/db/schema";
 import { escapeHtml } from "@/lib/text";
 
 const API = "https://api.github.com";
-const REVALIDATE = 3600;
+/** No window. GitHub data is dropped by the publish button through GITHUB_TAG, like everything else. */
+const REVALIDATE = false;
+export const GITHUB_TAG = "github";
 const OWNER = "Wosmos";
 
 export interface RepoMeta {
@@ -34,7 +36,7 @@ function headers(accept = "application/vnd.github+json"): HeadersInit {
 }
 async function gh<T>(path: string, accept?: string): Promise<T | null> {
   try {
-    const r = await fetch(`${API}${path}`, { headers: headers(accept), next: { revalidate: REVALIDATE } });
+    const r = await fetch(`${API}${path}`, { headers: headers(accept), next: { revalidate: REVALIDATE, tags: [GITHUB_TAG] } });
     if (!r.ok) return null;
     return (accept?.includes("raw") ? ((await r.text()) as unknown as T) : ((await r.json()) as T));
   } catch {
@@ -388,7 +390,7 @@ export async function getContributions(user = "Wosmos"): Promise<Contributions |
   try {
     const r = await fetch(`https://github.com/users/${encodeURIComponent(user)}/contributions`, {
       headers: { "x-requested-with": "XMLHttpRequest", "user-agent": "wosmos-portfolio", accept: "text/html" },
-      next: { revalidate: REVALIDATE },
+      next: { revalidate: REVALIDATE, tags: [GITHUB_TAG] },
     });
     if (!r.ok) return null;
     const html = await r.text();

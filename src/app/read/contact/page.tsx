@@ -3,7 +3,8 @@ import { getPerson } from "@/lib/content";
 import { OG_SIZE } from "@/lib/seo";
 import ContactForm from "@/components/read/ContactForm";
 
-export const revalidate = 3600;
+// No window: the page is rebuilt when a save or the publish button says so, not on a timer.
+export const revalidate = false;
 
 export async function generateMetadata(): Promise<Metadata> {
   const person = await getPerson();

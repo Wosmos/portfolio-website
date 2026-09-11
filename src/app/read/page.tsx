@@ -15,7 +15,8 @@ import FlyLink from "@/components/read/FlyLink";
 import ResumeLink from "@/components/read/ResumeLink";
 import { toMatrixProjects, toProjects } from "@/components/read/project-props";
 
-export const revalidate = 3600;
+// No window: the page is rebuilt when a save or the publish button says so, not on a timer.
+export const revalidate = false;
 
 export async function generateMetadata(): Promise<Metadata> {
   const person = await getPerson();

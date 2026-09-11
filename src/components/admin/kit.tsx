@@ -269,6 +269,10 @@ export function Danger({ label = "delete", armedLabel = "click again", onConfirm
 const TIP_GAP = 8;
 const TIP_EDGE = 10;
 const TIP_WIDE = 280;
+/** On a narrow screen 280px is most of the width, so the bubble may take at most this share of it. */
+const TIP_SHARE = 0.62;
+/** Below this the bubble would show a line and a half of a three-line tip; it goes on the other side. */
+const TIP_MIN_H = 72;
 
 /**
  * A focusable trigger with a bubble that is always in the accessibility tree (so `aria-describedby`
@@ -296,15 +300,23 @@ export function Tooltip({ text, children }: { text: string; children?: ReactNode
     const place = (): void => {
       const b = btn.current;
       if (!b) return;
-      t.style.maxWidth = `${Math.min(TIP_WIDE, innerWidth - TIP_EDGE * 2)}px`;
+      // 280 is two thirds of a 420px phone, which is how a tip came to blanket the screen. The share
+      // is the binding limit there and the pixel width is on a desktop, so both are applied.
+      t.style.maxWidth = `${Math.round(Math.min(TIP_WIDE, innerWidth * TIP_SHARE, innerWidth - TIP_EDGE * 2))}px`;
       const r = b.getBoundingClientRect();
       const above = r.top - TIP_GAP - TIP_EDGE;
       const below = innerHeight - r.bottom - TIP_GAP - TIP_EDGE;
-      const up = t.offsetHeight <= above || above >= below;
-      t.style.maxHeight = `${Math.max(48, Math.round(up ? above : below))}px`;
+      // Above unless it does not fit and below is roomier — but never into a slot so short that the
+      // text would be cut; a tip squeezed into 48px was the "the description disappears" report.
+      const natural = t.scrollHeight;
+      const up = natural <= above || (above >= below && above >= TIP_MIN_H) || below < TIP_MIN_H;
+      t.style.maxHeight = `${Math.max(TIP_MIN_H, Math.round(up ? above : below))}px`;
+      // One read for both, after the box is final: offsetWidth/Height each force their own layout.
       const h = t.offsetHeight;
       const w = t.offsetWidth;
       const top = up ? r.top - TIP_GAP - h : r.bottom + TIP_GAP;
+      // Centred on the trigger. The CSS used to add translateX(-50%) on top of this, which slid the
+      // bubble a further half-width past the clamp — off the edge, or over the control it describes.
       const left = r.left + r.width / 2 - w / 2;
       t.style.top = `${Math.round(Math.min(Math.max(TIP_EDGE, top), Math.max(TIP_EDGE, innerHeight - h - TIP_EDGE)))}px`;
       t.style.left = `${Math.round(Math.min(Math.max(TIP_EDGE, left), Math.max(TIP_EDGE, innerWidth - w - TIP_EDGE)))}px`;
@@ -316,13 +328,23 @@ export function Tooltip({ text, children }: { text: string; children?: ReactNode
     return () => { removeEventListener("scroll", place, true); removeEventListener("resize", place); };
   }, [open]);
 
-  const bubble = <span role="tooltip" id={id} ref={bub} className={`tip__bub${open ? " is-on" : ""}`}>{text}</span>;
+  // A tip too long for the room it has scrolls, so the pointer has to be able to reach it: entering
+  // the bubble keeps it open, which a bare pointerleave on the trigger would otherwise end.
+  const bubble = (
+    <span
+      role="tooltip" id={id} ref={bub} className={`tip__bub${open ? " is-on" : ""}`}
+      onPointerEnter={() => setOpen(true)} onPointerLeave={() => setOpen(false)}
+    >{text}</span>
+  );
   return (
     <span className="tip">
       <button
         type="button" className="tip__btn" ref={btn} aria-describedby={id} aria-label={children ? undefined : "what this does"}
-        onPointerEnter={() => setOpen(true)} onPointerLeave={() => setOpen(false)}
+        onPointerEnter={(e) => { if (e.pointerType !== "touch") setOpen(true); }}
+        onPointerLeave={(e) => { if (e.pointerType !== "touch") setOpen(false); }}
         onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}
+        // A tap fires pointerenter and click together, so on touch the hover opened it and the click
+        // shut it again. There, the tap is the only opener; with a mouse it stays a toggle.
         onClick={() => setOpen((v) => !v)}
         onKeyDown={(e) => { if (e.key === "Escape" && open) { e.stopPropagation(); setOpen(false); } }}
       >

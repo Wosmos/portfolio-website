@@ -7,12 +7,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useCached } from "@/lib/admin-cache";
-import { Empty, Skeleton } from "../kit";
-
-/** Local, so this panel does not depend on the shared kit's tooltip landing first. */
-function Tip({ text, children }: { text: string; children: React.ReactNode }) {
-  return <span className="dtip" tabIndex={0} data-tip={text} aria-label={text}>{children}<i aria-hidden="true">?</i></span>;
-}
+// One tooltip in the admin, not two. This panel used to keep a private CSS-only copy, which any
+// overflow:hidden ancestor clipped and which sat below the modal in the stacking order.
+import { Empty, Skeleton, Tooltip } from "../kit";
 
 interface Slice { key: string; count: number }
 interface Day { day: string; pageviews: number; visits: number; uniques: number }
@@ -60,7 +57,7 @@ function Kpi({ value, label, sub, delta, tip }: { value: string; label: string; 
     <div className="sf sf--thin stat">
       <div className="sf__in">
         <b>{value}</b>
-        <span>{tip ? <Tip text={tip}>{label}</Tip> : label}</span>
+        <span>{tip ? <Tooltip text={tip}>{label}</Tooltip> : label}</span>
         <small>
           {sub}
           {delta !== null && delta !== undefined && (
@@ -123,7 +120,7 @@ function Bars({ title, rows = [], empty, tip }: { title: string; rows?: readonly
   return (
     <div className="sf sf--thin">
       <div className="sf__in" style={{ padding: "14px 16px" }}>
-        <p className="panel__h">{tip ? <Tip text={tip}>{title}</Tip> : title}</p>
+        <p className="panel__h">{tip ? <Tooltip text={tip}>{title}</Tooltip> : title}</p>
         {rows.length ? (
           <div className="bars">
             {rows.slice(0, 8).map((r) => (
@@ -177,7 +174,7 @@ function Funnel({ stats }: { stats: Stats }) {
   return (
     <div className="sf sf--thin">
       <div className="sf__in" style={{ padding: "14px 16px" }}>
-        <p className="panel__h"><Tip text="Each step counts pageviews in this window, not one person walking the whole path.">the path to a message</Tip></p>
+        <p className="panel__h"><Tooltip text="Each step counts pageviews in this window, not one person walking the whole path.">the path to a message</Tooltip></p>
         <div className="funnel">
           {steps.map((s, i) => (
             <div key={s.key} style={{ "--w": `${Math.max(3, pct(s.n, top))}%` } as React.CSSProperties}>
@@ -207,7 +204,7 @@ function Intent({ rows, recent }: { rows?: readonly Slice[]; recent?: readonly R
   return (
     <div className="sf sf--thin">
       <div className="sf__in" style={{ padding: "14px 16px" }}>
-        <p className="panel__h"><Tip text="Worked out from behaviour: contact, résumé, depth, return visits, project interest.">how interested they were</Tip></p>
+        <p className="panel__h"><Tooltip text="Worked out from behaviour: contact, résumé, depth, return visits, project interest.">how interested they were</Tooltip></p>
         <div className="share">
           {derived.map((r) => <i key={r.key} style={{ width: `${pct(r.count, total)}%`, background: INTENT_COLOUR[r.key] ?? INTENT_COLOUR.passing }} title={`${r.key} · ${r.count}`} />)}
         </div>

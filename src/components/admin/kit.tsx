@@ -167,8 +167,19 @@ export function Text({ value, onChange, ...rest }: { value: string; onChange: (v
 export function Area({ value, onChange, tall, ...rest }: { value: string; onChange: (v: string) => void; tall?: boolean } & Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, "value" | "onChange">) {
   return <textarea className={tall ? "tall" : undefined} value={value} onChange={(e) => onChange(e.target.value)} {...rest} />;
 }
-export function Num({ value, onChange, step = 1, ...rest }: { value: number; onChange: (v: number) => void; step?: number } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "step">) {
-  return <input type="number" step={step} value={Number.isFinite(value) ? value : 0} onChange={(e) => onChange(e.target.value === "" ? 0 : Number(e.target.value))} {...rest} />;
+/**
+ * A number field that never blocks its own form.
+ *
+ * `step` used to reach the DOM, and a browser refuses to submit a form holding a number that is not on
+ * the step grid — so a sun radius of 102.66 in a field stepping by 0.25, or a moon size of 0.211 in one
+ * stepping by 0.02, disabled the save button with no message anywhere. Both values are legitimate: one
+ * comes from a star preset and the other from hashing a folder name. The step is kept in the signature
+ * because callers describe their field with it, but it is not handed to the browser; the API is what
+ * enforces the real windows, and it says which field and why.
+ */
+export function Num({ value, onChange, step, ...rest }: { value: number; onChange: (v: number) => void; step?: number } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "step">) {
+  void step;   // described by the caller, deliberately not handed to the browser
+  return <input type="number" step="any" value={Number.isFinite(value) ? value : 0} onChange={(e) => onChange(e.target.value === "" ? 0 : Number(e.target.value))} {...rest} />;
 }
 export function Check({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   const id = `c-${label.replace(/\W+/g, "-")}`;
@@ -1172,11 +1183,15 @@ export function MoonRow({ moon, onChange, onRemove }: { moon: Moon; onChange: (m
         />
         <small title={moon.path || "added by hand"}>{moon.path || "by hand"}</small>
       </div>
-      <label className="moon__n"><span>size</span><input type="number" step={0.02} min={0.02} value={moon.size} onChange={(e) => set("size", Number(e.target.value))} /></label>
-      <label className="moon__n"><span>orbit</span><input type="number" step={0.1} min={0.2} value={moon.orbit} onChange={(e) => set("orbit", Number(e.target.value))} /></label>
-      <label className="moon__n"><span>speed</span><input type="number" step={0.5} value={moon.speed} onChange={(e) => set("speed", Number(e.target.value))} /></label>
-      <label className="moon__n"><span>tilt</span><input type="number" step={1} value={moon.tilt} onChange={(e) => set("tilt", Number(e.target.value))} /></label>
-      <label className="moon__n"><span>phase</span><input type="number" step={5} value={moon.phase} onChange={(e) => set("phase", Number(e.target.value))} /></label>
+      {/* step="any" on every one of these on purpose. A step of 0.02 makes the browser reject 0.211 —
+          and 0.211 is exactly what moon detection hashes out of a folder name, so a project with
+          detected moons failed validation and its save button did nothing at all, silently. The API
+          is what enforces the real windows; the browser only has to let the form submit. */}
+      <label className="moon__n"><span>size</span><input type="number" step="any" min={0.02} value={moon.size} onChange={(e) => set("size", Number(e.target.value))} /></label>
+      <label className="moon__n"><span>orbit</span><input type="number" step="any" min={0.2} value={moon.orbit} onChange={(e) => set("orbit", Number(e.target.value))} /></label>
+      <label className="moon__n"><span>speed</span><input type="number" step="any" value={moon.speed} onChange={(e) => set("speed", Number(e.target.value))} /></label>
+      <label className="moon__n"><span>tilt</span><input type="number" step="any" value={moon.tilt} onChange={(e) => set("tilt", Number(e.target.value))} /></label>
+      <label className="moon__n"><span>phase</span><input type="number" step="any" value={moon.phase} onChange={(e) => set("phase", Number(e.target.value))} /></label>
       <label className="moon__n moon__n--wide">
         <span>type</span>
         <select value={moon.type} onChange={(e) => set("type", asType(e.target.value))}>

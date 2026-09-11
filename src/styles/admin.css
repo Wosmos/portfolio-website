@@ -525,3 +525,27 @@
 .pled--full .pled__knobs { display: none; }
 .pled--full .pled__view { position: static; max-width: none; }
 .pled--full .pled__view canvas { max-height: 74vh; width: auto; margin: 0 auto; aspect-ratio: 1 / 1; }
+
+/* the catalogue picker: a search box over a list too long for a <select> */
+.pick { display: grid; gap: 6px; min-width: 0; }
+.pick__bar { display: flex; align-items: center; gap: 8px; }
+.pick__in { flex: 1; min-width: 0; padding: 7px 9px; font: inherit; font-size: 12px; color: var(--fg);
+  background: var(--adm-card-2); border: 0; box-shadow: inset 0 0 0 1px rgba(0,229,255,.2); }
+.pick__in:focus-visible { outline: none; box-shadow: inset 0 0 0 1px rgba(0,229,255,.55); }
+.pick__n { font-size: 10px; letter-spacing: .06em; color: rgba(242,245,255,.45); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pick__list { max-height: 268px; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 1px;
+  background: var(--adm-card-2); box-shadow: inset 0 0 0 1px rgba(0,229,255,.14); }
+.pick__head { position: sticky; top: 0; z-index: 1; padding: 5px 9px; font-size: 9.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: rgba(242,245,255,.42); background: var(--adm-card); }
+.pick__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 10px; width: 100%; padding: 7px 9px; text-align: left; }
+.pick__row:hover, .pick__row:focus-visible { background: rgba(0,229,255,.09); outline: none; }
+.pick__row b { font-size: 12px; font-weight: 500; color: var(--fg); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick__row i { font-style: normal; font-size: 10.5px; color: var(--cy); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pick__row small { grid-column: 1 / -1; font-size: 10.5px; line-height: 1.45; color: rgba(242,245,255,.52); }
+.pick__none { padding: 10px 9px; font-size: 11px; color: rgba(242,245,255,.45); }
+.hint.is-bad { color: #ff6a8a; }
+/* a star's published figures, beside the picker */
+.starfx { display: grid; gap: 3px; margin: 2px 0 4px; }
+.starfx > div { display: flex; align-items: baseline; gap: 8px; font-size: 11px; }
+.starfx dt { color: rgba(242,245,255,.48); letter-spacing: .06em; text-transform: uppercase; font-size: 9.5px; min-width: 92px; }
+.starfx dd { color: var(--fg); font-variant-numeric: tabular-nums; }

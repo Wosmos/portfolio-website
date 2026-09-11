@@ -13,14 +13,15 @@
 
 import { ArrowDownIcon, ArrowUpIcon } from "@phosphor-icons/react";
 import dynamic from "next/dynamic";
-import { useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { maxPlanetSize } from "@/lib/scale";
+import { DEFAULT_FRAME, applyBody, type BodyFacts } from "@/lib/catalog";
 import {
   Area, Badge, Bone, Btn, Check, Chip, Chips, Count, Danger, Empty, Field, Fold, Lines, LiveNote, Modal,
   MoonRow, MOON_CAP, MOON_CAP_TIP, Num, Pager, Row as FieldRow, Search, Section, Select, Skeleton, Slider,
   Swatches, Table, Text, Toggle, Toolbar, Tooltip, applySort, detectMoons, newMoon, pageOf, readMoons,
-  FoldAll, useFold, usePref, useRepos, useResource, usePager, useSearch, useSort, useSunRadius, useToast, writeMoons,
-  type AdminRepo, type Column, type Moon, type MoonTree, type WithId,
+  FoldAll, Picker, useFold, usePref, useRepos, useResource, usePager, useSearch, useSort, useSunRadius, useToast, writeMoons,
+  type AdminRepo, type Column, type Moon, type MoonTree, type PickerItem, type WithId,
 } from "../kit";
 
 const PlanetPreview = dynamic(() => import("../PlanetPreview"), { ssr: false, loading: () => <Bone height={200} /> });
@@ -228,7 +229,7 @@ const TIPS = {
 } as const;
 
 /** Every fold inside the project modal, so one control can open or shut all of them. */
-const MODAL_FOLDS = ["proj.basics", "proj.copy", "proj.github", "proj.planet", "proj.moons", "planet.colours", "planet.surface", "planet.ring", "planet-sizes"] as const;
+const MODAL_FOLDS = ["proj.basics", "proj.copy", "proj.github", "proj.planet", "proj.moons", "planet.catalogue", "planet.colours", "planet.surface", "planet.ring", "planet-sizes"] as const;
 
 /** How wide the preview stands. Remembered, because it is a working preference, not a per-project one.
  *  `full` is the planet over the whole modal with the knobs out of the way — the same "just the
@@ -267,6 +268,12 @@ function PlanetEditor({ planet, orbit, sunRadius, moons, onChange, onOrbit }: {
           <Btn onClick={() => onChange(randomise(planet))}>randomise</Btn>
           <Btn onClick={() => onChange(reset(planet))} title="clears every knob back to the scene's own defaults">reset</Btn>
         </div>
+        <Fold id="planet.catalogue" title="model it on a real world" note="87 in the catalogue">
+          <WorldCatalogue
+            sunRadius={sunRadius}
+            onPick={(next, nextOrbit) => { onChange(next); onOrbit(nextOrbit); }}
+          />
+        </Fold>
         <div className="fields fields--3">
           <Field label="type" tip={TIPS.type}><Select value={planet.type} onChange={(v) => set("type", v)} options={PLANET_TYPES} /></Field>
           <Field label="orbit" tip={TIPS.orbit}><Num value={orbit} onChange={onOrbit} step={1} /></Field>
@@ -806,5 +813,89 @@ function NewProject({ github, sunRadius, onCancel, onCreate }: {
         </Fold>
       </form>
     </Modal>
+  );
+}
+
+// ── the world catalogue ──
+
+interface BodyRow extends BodyFacts {
+  id: number; slug: string; name: string; kind: string; system: string; parent: string; note: string;
+}
+
+const KIND_LABEL: Readonly<Record<string, string>> = {
+  planet: "planets", dwarf: "dwarf planets", moon: "moons", exoplanet: "exoplanets",
+};
+const KIND_ORDER = ["planet", "dwarf", "moon", "exoplanet"];
+
+const km = (v: number): string =>
+  v >= 10_000 ? `${Math.round(v).toLocaleString("en-GB")} km` : `${Number(v.toFixed(v < 100 ? 1 : 0)).toLocaleString("en-GB")} km`;
+const au = (v: number): string => (v >= 100 ? `${Math.round(v)} au` : `${Number(v.toFixed(v < 0.1 ? 4 : 2))} au`);
+
+/**
+ * Pick a real world and the planet becomes it — surface, colours, knobs, size, tilt, spin, ring and
+ * orbit, which is what the owner asked for. Everything lands in the form, so nothing is written until
+ * the project is saved and the preview beside it shows the result first.
+ */
+function WorldCatalogue({ sunRadius, onPick }: { sunRadius: number; onPick: (planet: Planet, orbit: number) => void }) {
+  const [rows, setRows] = useState<BodyRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [last, setLast] = useState<BodyRow | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const r = await fetch("/api/admin/presets/bodies");
+        const body: unknown = await r.json().catch(() => null);
+        if (!alive) return;
+        if (!r.ok || !Array.isArray(body)) { setError("the world catalogue is not available"); setLoading(false); return; }
+        setRows(body as BodyRow[]);
+      } catch { if (alive) setError("no connection"); }
+      if (alive) setLoading(false);
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  const items: PickerItem[] = useMemo(() => {
+    const sorted = [...rows].sort((a, b) => {
+      const ka = KIND_ORDER.indexOf(a.kind), kb = KIND_ORDER.indexOf(b.kind);
+      if (ka !== kb) return ka - kb;
+      return a.semiMajorAu - b.semiMajorAu;
+    });
+    return sorted.map((b) => ({
+      id: b.slug,
+      label: b.name,
+      group: KIND_LABEL[b.kind] ?? b.kind,
+      meta: km(b.radiusKm),
+      note: `${b.planet.type}${b.parent ? ` · moon of ${b.parent}` : ""} · ${b.system} · ${au(b.semiMajorAu)}`,
+      terms: `${b.system} ${b.parent} ${b.note} ${b.planet.type}`,
+    }));
+  }, [rows]);
+
+  const take = (slug: string): void => {
+    const row = rows.find((b) => b.slug === slug);
+    if (!row) return;
+    // the sun's real radius, not the frame's default, so the size cap is the one this scene enforces
+    const { planet, orbit } = applyBody(row, { ...DEFAULT_FRAME, sunRadius });
+    setLast(row);
+    onPick(planet as Planet, orbit);
+  };
+
+  const missing = last ? [last.tiltDeg === null ? "tilt" : null, last.dayHours === null ? "rotation" : null].filter((x): x is string => x !== null) : [];
+
+  return (
+    <div className="fields">
+      <Picker
+        items={items} label="search — name, system, surface" loading={loading} error={error} onPick={take}
+        hint="the planet takes the body's surface, colours, size, tilt, spin, ring and orbit. Nothing is saved until you save the project."
+      />
+      {last && (
+        <p className="hint">
+          modelled on <b>{last.name}</b> — {last.note}
+          {missing.length > 0 && <> Its {missing.join(" and ")} {missing.length === 1 ? "has" : "have"} never been measured, so {missing.length === 1 ? "that knob is" : "those knobs are"} left at the scene default.</>}
+        </p>
+      )}
+    </div>
   );
 }

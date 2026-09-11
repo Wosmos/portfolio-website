@@ -223,6 +223,14 @@ export const sceneConfig = pgTable("scene_config", {
   beltRockSize: real("belt_rock_size").default(1).notNull(),
   beltColor: integer("belt_color").default(0x8b7d6b).notNull(),
   beltTilt: real("belt_tilt").default(0).notNull(),
+  /** Which catalogue star is at the centre, empty for the scene's own sun. */
+  sunStar: varchar("sun_star", { length: 64 }).default("").notNull(),
+  /**
+   * What one solar radius is worth in scene units. A star preset writes `sunAnchor × radiusSolar`,
+   * so the true ratios hold *and* the owner's own choice of scale survives: with the anchor at 60,
+   * picking the Sun returns to 60 rather than collapsing to the built-in default of 6.
+   */
+  sunAnchor: real("sun_anchor").default(6).notNull(),
   /** The other repositories, drawn as constellations whose stars are sized by commit count. */
   constellations: boolean("constellations").default(true).notNull(),
   constellationGain: real("constellation_gain").default(1).notNull(),
@@ -354,4 +362,67 @@ export const adminLogins = pgTable("admin_logins", {
   /** Hashed like a visitor id — enough to spot an attack, useless as an address. */
   fromHash: varchar("from_hash", { length: 64 }).default("").notNull(),
   userAgent: text("user_agent").default("").notNull(),
+});
+
+// ── catalogue ───────────────────────────────────────────
+// Real stars and real worlds, offered in the admin as presets. Seeded from src/data/catalog.ts and
+// owned by the admin afterwards, so a figure can be corrected or a body added without a deploy.
+// Nothing public reads these: they are reference data that only ever writes into a project's planet
+// or the scene's sun.
+
+/** About thirty famous stars, each carrying its real physics and the sun shader's eleven fields. */
+export const starPresets = pgTable("star_presets", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 64 }).notNull().unique(),
+  name: text("name").notNull(),
+  /** In words a visitor would use — "red supergiant", "white dwarf". */
+  kind: text("kind").default("").notNull(),
+  /** Spectral class, or WD for a white dwarf. */
+  cls: varchar("cls", { length: 2 }).default("G").notNull(),
+  constellation: text("constellation").default("").notNull(),
+  note: text("note").default("").notNull(),
+  /** Radius in solar radii — the number that makes UY Scuti 1,708 times the Sun. */
+  radiusSolar: real("radius_solar").notNull(),
+  tempK: real("temp_k").default(5772).notNull(),
+  luminositySolar: real("luminosity_solar").default(1).notNull(),
+  massSolar: real("mass_solar").default(1).notNull(),
+  distanceLy: real("distance_ly").default(0).notNull(),
+  /** The eleven sun fields on scene_config, ready to be written across. */
+  colorCore: integer("color_core").default(0xfff3c4).notNull(),
+  colorMid: integer("color_mid").default(0xffb547).notNull(),
+  colorEdge: integer("color_edge").default(0xff7a1a).notNull(),
+  intensity: real("intensity").default(1).notNull(),
+  granulation: real("granulation").default(1).notNull(),
+  limb: real("limb").default(1).notNull(),
+  spots: real("spots").default(0).notNull(),
+  spin: real("spin").default(1).notNull(),
+  corona: real("corona").default(1).notNull(),
+  flare: real("flare").default(1).notNull(),
+  visible: boolean("visible").default(true).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+});
+
+/** Planets, dwarf planets, moons and exoplanets — the bodies a project's planet can be modelled on. */
+export const bodyPresets = pgTable("body_presets", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 64 }).notNull().unique(),
+  name: text("name").notNull(),
+  /** planet · dwarf · moon · exoplanet. */
+  kind: varchar("kind", { length: 12 }).default("planet").notNull(),
+  /** The star it goes round, so the picker can group by system. */
+  system: text("system").default("").notNull(),
+  /** For a moon, the planet it orbits. Empty otherwise. */
+  parent: text("parent").default("").notNull(),
+  note: text("note").default("").notNull(),
+  radiusKm: real("radius_km").notNull(),
+  /** Distance from its star. A moon carries its planet's, which is where it actually sits. */
+  semiMajorAu: real("semi_major_au").notNull(),
+  /** Null where it has not been measured — which is every exoplanet in the catalogue. */
+  tiltDeg: real("tilt_deg"),
+  dayHours: real("day_hours"),
+  ringed: boolean("ringed").default(false).notNull(),
+  /** How it looks. `size` here is a placeholder; applying one derives it from radiusKm. */
+  planet: jsonb("planet").$type<PlanetConfigJson>().notNull(),
+  visible: boolean("visible").default(true).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
 });

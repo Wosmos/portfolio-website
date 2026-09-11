@@ -4,12 +4,14 @@
 // Every field is read back defensively: the row gains columns faster than the API does, so a value the
 // endpoint has not learned to send yet falls back to the same default the database column carries.
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LIGHT_YEAR_AU, arrange, isScaleMode, maxPlanetSize, type ScaleMode } from "@/lib/scale";
 import {
-  Btn, Choice, ColourRamp, Danger, Field, Fold, LogSlider, Num, Section, Skeleton, Slider, Swatches,
-  Toggle, Tooltip, useSingle, useToast, type ChoiceOption,
+  Btn, Choice, ColourRamp, Danger, Field, Fold, LogSlider, Num, Picker, Section, Skeleton, Slider,
+  Swatches, Toggle, Tooltip, useSingle, useToast, type ChoiceOption, type PickerItem,
 } from "../kit";
+import { RESCALES, type Rescale } from "@/lib/catalog";
+import type { StarApplyResult } from "@/app/api/admin/scene/star/route";
 
 // A type alias rather than an interface: it has to be assignable to the endpoint's loose record shape.
 type Scene = {
@@ -157,6 +159,8 @@ function Form({ initial, save, refresh }: {
 
   return (
     <form className="fields" onSubmit={(e) => { e.preventDefault(); setBusy(true); void save(form).finally(() => setBusy(false)); }}>
+      <StarCatalogue sunRadius={form.sunRadius} onApplied={() => void refresh()} />
+
       <div className="sf scaleblk">
         <div className="sf__in">
           <Section title="scale" tip="how the real solar system is squeezed onto a screen. The mode decides what a size and a distance mean." />
@@ -267,4 +271,167 @@ function report(body: unknown, form: Scene, applyAll: boolean): string {
     sun !== null ? `sun ${sun.toFixed(2)}` : null,
     `span ${auText(span)}`,
   ].filter((s): s is string => s !== null).join(" · ");
+}
+
+// ── the star catalogue ──
+
+interface StarRow {
+  id: number; slug: string; name: string; kind: string; cls: string; constellation: string; note: string;
+  radiusSolar: number; tempK: number; luminositySolar: number; massSolar: number; distanceLy: number;
+}
+
+const RESCALE_LABEL: Readonly<Record<Rescale, string>> = {
+  none: "leave the system alone",
+  planets: "scale the planets with the star",
+  distances: "scale the distances too",
+  refit: "lay the system out again to fit",
+};
+
+const CLASS_ORDER = ["G", "K", "M", "F", "A", "B", "WD"];
+const GROUP: Readonly<Record<string, string>> = {
+  G: "sun-like", K: "orange and red giants", M: "red dwarfs, giants and hypergiants",
+  F: "yellow-white", A: "white and blue-white", B: "blue supergiants", WD: "white dwarfs",
+};
+
+const solarR = (r: number): string => (r >= 100 ? `${Math.round(r).toLocaleString("en-GB")}× sun` : `${Number(r.toFixed(r < 1 ? 3 : 2))}× sun`);
+
+/**
+ * Pick a real star. Applying one sets the sun's whole shader configuration and its radius at the true
+ * ratio to the Sun — which for the hypergiants is destructive, so nothing is written until the preview
+ * has said, in real numbers, what it will do.
+ */
+function StarCatalogue({ sunRadius, onApplied }: { sunRadius: number; onApplied: () => void }) {
+  const [stars, setStars] = useState<StarRow[]>([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [picked, setPicked] = useState<StarRow | null>(null);
+  const [rescale, setRescale] = useState<Rescale>("refit");
+  const [preview, setPreview] = useState<StarApplyResult | null>(null);
+  const [busy, setBusy] = useState(false);
+  const { say } = useToast();
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const r = await fetch("/api/admin/presets/stars");
+        const body: unknown = await r.json().catch(() => null);
+        if (!alive) return;
+        if (!r.ok || !Array.isArray(body)) { setError("the star catalogue is not available"); setLoading(false); return; }
+        setStars(body as StarRow[]);
+      } catch { if (alive) setError("no connection"); }
+      if (alive) setLoading(false);
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  const items: PickerItem[] = useMemo(() => {
+    const sorted = [...stars].sort((a, b) => {
+      const ca = CLASS_ORDER.indexOf(a.cls), cb = CLASS_ORDER.indexOf(b.cls);
+      return ca !== cb ? ca - cb : a.radiusSolar - b.radiusSolar;
+    });
+    return sorted.map((s) => ({
+      id: s.slug,
+      label: s.name,
+      group: GROUP[s.cls] ?? s.cls,
+      meta: solarR(s.radiusSolar),
+      note: `${s.kind}${s.constellation && s.constellation !== "—" ? ` · ${s.constellation}` : ""} · ${Math.round(s.tempK).toLocaleString("en-GB")} K`,
+      terms: `${s.kind} ${s.constellation} ${s.note} ${s.cls}`,
+    }));
+  }, [stars]);
+
+  // Every pick re-previews, and so does every change of what the planets should do — the sentence the
+  // confirm shows has to describe the button that is actually there.
+  const ask = async (slug: string, how: Rescale): Promise<void> => {
+    setBusy(true);
+    try {
+      const r = await fetch("/api/admin/scene/star", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slug, rescale: how, preview: true }),
+      });
+      const body: unknown = await r.json().catch(() => null);
+      if (!r.ok) { say("could not work out what that would do", true); setPreview(null); return; }
+      setPreview(body as StarApplyResult);
+    } catch { say("no connection", true); setPreview(null); } finally { setBusy(false); }
+  };
+
+  const pick = (slug: string): void => {
+    const row = stars.find((s) => s.slug === slug) ?? null;
+    setPicked(row);
+    if (row) void ask(slug, rescale);
+  };
+  const choose = (how: Rescale): void => {
+    setRescale(how);
+    if (picked) void ask(picked.slug, how);
+  };
+
+  const apply = async (): Promise<void> => {
+    if (!picked) return;
+    setBusy(true);
+    try {
+      const r = await fetch("/api/admin/scene/star", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slug: picked.slug, rescale, preview: false }),
+      });
+      const body: unknown = await r.json().catch(() => null);
+      if (!r.ok) {
+        const said = typeof body === "object" && body !== null && "error" in body ? String((body as { error: unknown }).error) : "";
+        say(said || `could not apply that star (${r.status})`, true);
+        return;
+      }
+      const done = body as StarApplyResult;
+      say(`${done.star.name} is the star now · sun ${done.sun.sunRadius.toFixed(2)}`);
+      setPreview(done);
+      onApplied();
+    } catch { say("no connection — nothing was changed", true); } finally { setBusy(false); }
+  };
+
+  const options: ChoiceOption<Rescale>[] = RESCALES.map((r) => ({
+    value: r,
+    label: RESCALE_LABEL[r],
+    note: preview && preview.rescale === r ? preview.note : undefined,
+  }));
+
+  return (
+    <div className="sf">
+      <div className="sf__in">
+        <Section title="put a real star at the centre" tip="thirty-one real stars with their published radius, temperature and luminosity. Picking one writes the sun's whole appearance, and its radius at the true ratio to the Sun." />
+        <div className="fields fields--2">
+          <Picker
+            items={items} label="search the catalogue — name, kind, constellation"
+            loading={loading} error={error} onPick={pick}
+            hint={`the star now is ${sunRadius.toFixed(2)} scene units — whatever that is, it is what one solar radius means here, so every pick is a true ratio against it`}
+          />
+          <div className="fields">
+            {picked ? (
+              <>
+                <p className="panel__h">{picked.name}</p>
+                <p className="hint">{picked.note}</p>
+                <dl className="starfx">
+                  <div><dt>radius</dt><dd>{solarR(picked.radiusSolar)}</dd></div>
+                  <div><dt>temperature</dt><dd>{Math.round(picked.tempK).toLocaleString("en-GB")} K</dd></div>
+                  <div><dt>luminosity</dt><dd>{picked.luminositySolar >= 1000 ? `${Math.round(picked.luminositySolar).toLocaleString("en-GB")}×` : `${Number(picked.luminositySolar.toFixed(3))}×`} sun</dd></div>
+                  <div><dt>mass</dt><dd>{Number(picked.massSolar.toFixed(2))}× sun</dd></div>
+                  <div><dt>distance</dt><dd>{picked.distanceLy < 1 ? "—" : `${Number(picked.distanceLy.toFixed(1)).toLocaleString("en-GB")} ly`}</dd></div>
+                </dl>
+                <Section title="and the planets" tip="the star's radius is applied at its true ratio, so a hypergiant will swallow the orbits unless the system moves with it." />
+                <Choice name="star-rescale" value={rescale} onChange={choose} options={options} />
+                {preview && <p className="hint is-bad">{preview.impact.warning}</p>}
+                <div className="scaleblk__go">
+                  <Danger
+                    label={busy ? "working…" : `make ${picked.name} the star`}
+                    armedLabel="click again — this rewrites the sun and every planet"
+                    size="md" onConfirm={() => void apply()}
+                  />
+                  <Btn onClick={() => { setPicked(null); setPreview(null); }}>cancel</Btn>
+                </div>
+              </>
+            ) : (
+              <p className="hint">Pick a star to see what it would do. Nothing is written until you confirm it.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

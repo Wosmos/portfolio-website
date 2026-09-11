@@ -6,6 +6,7 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 import { eq } from "drizzle-orm";
+import { BODY_PRESETS, STAR_PRESETS } from "../data/catalog";
 import { getDb } from "./client";
 import * as t from "./schema";
 import type { PlanetConfigJson } from "./schema";
@@ -97,7 +98,9 @@ async function main(): Promise<void> {
   console.log(`education ✓ (${staticEducation.length})`);
 
   const haveTestimonials = await db.select({ id: t.testimonials.id }).from(t.testimonials).limit(1);
-  if (!haveTestimonials[0]) {
+  // The sample quotes were removed from the static records when the site went live, so this list can
+  // legitimately be empty now — and insert().values([]) throws rather than doing nothing.
+  if (!haveTestimonials[0] && staticTestimonials.length > 0) {
     await db.insert(t.testimonials).values(
       staticTestimonials.map((x, i) => ({
         quote: x.quote, name: x.name, role: x.role, company: x.company, link: x.link ?? "",
@@ -105,15 +108,85 @@ async function main(): Promise<void> {
       })),
     );
     console.log(`testimonials ✓ (${staticTestimonials.length} samples)`);
-  } else console.log("testimonials — left alone (already has rows)");
+  } else console.log(`testimonials — left alone (${haveTestimonials[0] ? "already has rows" : "no samples to seed"})`);
 
   const haveFacts = await db.select({ id: t.eggFacts.id }).from(t.eggFacts).limit(1);
-  if (!haveFacts[0]) {
+  if (!haveFacts[0] && staticFacts.length > 0) {
     await db.insert(t.eggFacts).values(staticFacts.map((f, i) => ({ kind: f.kind, text: f.text, visible: true, sortOrder: i })));
     console.log(`secret facts ✓ (${staticFacts.length})`);
   } else console.log("secret facts — left alone (already has rows)");
 
+  await seedCatalogue(db);
+
   console.log("\nseed complete.");
+}
+
+/**
+ * The star and world catalogue. Upserted by slug rather than seed-if-empty, so a corrected figure in
+ * catalog.ts reaches an existing database — but `visible` and `sortOrder` are only set on insert, so
+ * a row the admin has hidden or reordered stays that way.
+ */
+async function seedCatalogue(db: NonNullable<ReturnType<typeof getDb>>): Promise<void> {
+  // A bad figure should fail here, loudly, rather than in a 400 from a save months later.
+  for (const b of BODY_PRESETS) checkLook(b.slug, b.planet);
+
+  let stars = 0;
+  for (const [i, x] of STAR_PRESETS.entries()) {
+    const row = {
+      slug: x.slug, name: x.name, kind: x.kind, cls: x.cls, constellation: x.constellation, note: x.note,
+      radiusSolar: x.radiusSolar, tempK: x.tempK, luminositySolar: x.luminositySolar,
+      massSolar: x.massSolar, distanceLy: x.distanceLy,
+      colorCore: x.colorCore, colorMid: x.colorMid, colorEdge: x.colorEdge,
+      intensity: x.intensity, granulation: x.granulation, limb: x.limb,
+      spots: x.spots, spin: x.spin, corona: x.corona, flare: x.flare,
+    };
+    const had = await db.select({ id: t.starPresets.id }).from(t.starPresets).where(eq(t.starPresets.slug, x.slug));
+    if (had[0]) await db.update(t.starPresets).set(row).where(eq(t.starPresets.id, had[0].id));
+    else { await db.insert(t.starPresets).values({ ...row, visible: true, sortOrder: i }); stars++; }
+  }
+  console.log(`stars \u2713 (${STAR_PRESETS.length} in the catalogue, ${stars} new)`);
+
+  let bodies = 0;
+  for (const [i, x] of BODY_PRESETS.entries()) {
+    const row = {
+      slug: x.slug, name: x.name, kind: x.kind, system: x.system, parent: x.parent, note: x.note,
+      radiusKm: x.radiusKm, semiMajorAu: x.semiMajorAu, tiltDeg: x.tiltDeg, dayHours: x.dayHours,
+      ringed: x.ringed, planet: x.planet,
+    };
+    const had = await db.select({ id: t.bodyPresets.id }).from(t.bodyPresets).where(eq(t.bodyPresets.slug, x.slug));
+    if (had[0]) await db.update(t.bodyPresets).set(row).where(eq(t.bodyPresets.id, had[0].id));
+    else { await db.insert(t.bodyPresets).values({ ...row, visible: true, sortOrder: i }); bodies++; }
+  }
+  console.log(`worlds \u2713 (${BODY_PRESETS.length} in the catalogue, ${bodies} new)`);
+}
+
+/** The same windows /api/admin/projects enforces, checked at authoring time. */
+const LOOK_RANGES: readonly (readonly [keyof PlanetConfigJson, number, number])[] = [
+  ["ocean", 0, 1], ["cloud", 0, 1], ["crater", 0, 1], ["vein", 0, 1],
+  ["atmo", 0, 1], ["atmoAlpha", 0, 1], ["bandSharp", 0, 1],
+  ["glow", 0, 3], ["bands", 1, 60], ["spin", -20, 20], ["tilt", -360, 360], ["seed", 0, 10_000],
+];
+const PLANET_TYPES = ["gas", "rocky", "lava", "ice", "liquid", "muddy"];
+
+function checkLook(slug: string, p: PlanetConfigJson): void {
+  const fail = (why: string): never => { throw new Error(`catalog: ${slug} — ${why}`); };
+  if (!PLANET_TYPES.includes(p.type)) fail(`type ${p.type} is not one of ${PLANET_TYPES.join(", ")}`);
+  for (const key of ["c0", "c1", "c2", "c3", "rim"] as const) {
+    const v = p[key];
+    if (!Number.isInteger(v) || v < 0 || v > 0xffffff) fail(`${key} is not a colour`);
+  }
+  for (const [key, min, max] of LOOK_RANGES) {
+    const v = p[key];
+    if (v === undefined) continue;
+    if (typeof v !== "number" || !Number.isFinite(v) || v < min || v > max) fail(`${key} is ${String(v)}, outside ${min}\u2026${max}`);
+  }
+  if (p.ring) {
+    for (const key of ["ca", "cb"] as const) {
+      const v = p.ring[key];
+      if (!Number.isInteger(v) || v < 0 || v > 0xffffff) fail(`ring.${key} is not a colour`);
+    }
+    if (!(p.ring.inner > 0) || !(p.ring.outer > p.ring.inner)) fail("ring radii must be 0 < inner < outer");
+  }
 }
 
 main().catch((e: unknown) => { console.error(e); process.exit(1); });

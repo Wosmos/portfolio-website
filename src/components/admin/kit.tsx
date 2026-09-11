@@ -1193,3 +1193,79 @@ export function MoonRow({ moon, onChange, onRemove }: { moon: Moon; onChange: (m
     </div>
   );
 }
+
+// ── picker ──
+
+export interface PickerItem {
+  id: string;
+  label: string;
+  /** Optional heading the item is filed under, so a long list reads as a few short ones. */
+  group?: string;
+  /** The one line under the label. */
+  note?: string;
+  /** The figures on the right — kept short, they are set in tabular numerals. */
+  meta?: string;
+  /** Free text the search also matches, so "red supergiant" finds Betelgeuse. */
+  terms?: string;
+}
+
+/**
+ * A search box over a list too long for a `<select>` — the star catalogue is thirty rows and the
+ * world catalogue is nearly ninety. Nothing is chosen until a row is clicked, so it can sit beside a
+ * destructive control without being one.
+ */
+export function Picker({ items, label, hint, loading, error, onPick, max = 120 }: {
+  items: readonly PickerItem[];
+  label: string;
+  hint?: string;
+  loading?: boolean;
+  error?: string;
+  onPick: (id: string) => void;
+  max?: number;
+}) {
+  const [q, setQ] = useState("");
+  const hits = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    const matched = needle
+      ? items.filter((i) => `${i.label} ${i.group ?? ""} ${i.note ?? ""} ${i.terms ?? ""}`.toLowerCase().includes(needle))
+      : items;
+    return matched.slice(0, max);
+  }, [items, q, max]);
+
+  // one heading per run of the same group, rather than a map — the list is already in the order it
+  // should read in, and re-sorting it here would fight whatever the caller chose
+  const rows: { head: string | null; item: PickerItem }[] = [];
+  let last = "";
+  for (const item of hits) {
+    const g = item.group ?? "";
+    rows.push({ head: g && g !== last ? g : null, item });
+    last = g;
+  }
+
+  return (
+    <div className="pick">
+      <div className="pick__bar">
+        <input
+          className="pick__in" type="search" value={q} placeholder={label} aria-label={label}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <span className="pick__n">{loading ? "…" : `${hits.length}${hits.length < items.length ? ` of ${items.length}` : ""}`}</span>
+      </div>
+      {hint && !error && <p className="hint">{hint}</p>}
+      {error && <p className="hint is-bad">{error}</p>}
+      <ul className="pick__list">
+        {rows.map(({ head, item }) => (
+          <li key={item.id}>
+            {head && <p className="pick__head">{head}</p>}
+            <button type="button" className="pick__row" onClick={() => onPick(item.id)}>
+              <b>{item.label}</b>
+              {item.meta && <i>{item.meta}</i>}
+              {item.note && <small>{item.note}</small>}
+            </button>
+          </li>
+        ))}
+        {!loading && !hits.length && <li className="pick__none">nothing matches that.</li>}
+      </ul>
+    </div>
+  );
+}

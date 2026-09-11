@@ -32,7 +32,7 @@ export async function POST(request: Request): Promise<Response> {
     if (result === "ok") return say({ success: true }, 200);
     if (result === "throttled") return say({ error: "Too many attempts. Try again later." }, 429);
     if (result === "unconfigured") {
-      console.error("[admin] login: ADMIN_USERNAME or ADMIN_PASSWORD_HASH is not set");
+      console.error("[admin] login: ADMIN_USERNAME or ADMIN_PASSWORD_HASH is missing or malformed");
       return say({ error: "Admin access is not configured" }, 500);
     }
     return say({ error: "Wrong username or password" }, 401);

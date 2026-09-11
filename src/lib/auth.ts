@@ -94,10 +94,32 @@ export function adminBase(): string | null {
 
 export type LoginResult = "ok" | "invalid" | "throttled" | "unconfigured";
 
+/** bcrypt's own shape: $2<variant>$<cost>$<22 salt + 31 digest>. */
+const BCRYPT = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/;
+let hashWarned = false;
+
+// These two arrive mangled in the two ways this project has actually hit. A dashboard paste brings
+// surrounding quotes or stray whitespace; a local .env.local has to write the hash as \$2b\$12\$…
+// because next's dotenv would otherwise expand $2b and $12 into nothing. Undoing both here means one
+// string works in either place, instead of the same value being right locally and wrong in production.
+function envValue(raw: string | undefined): string {
+  return (raw ?? "").trim().replace(/^(["'])([\s\S]*)\1$/, "$2").replace(/\\\$/g, "$");
+}
+
 export async function login(username: string, password: string): Promise<LoginResult> {
-  const expectedUser = process.env.ADMIN_USERNAME;
-  const hash = process.env.ADMIN_PASSWORD_HASH;
+  const expectedUser = envValue(process.env.ADMIN_USERNAME);
+  const hash = envValue(process.env.ADMIN_PASSWORD_HASH);
   if (!expectedUser || !hash) return "unconfigured";
+  // bcryptjs answers a plain false for a hash that is not a hash — it does not throw — so a truncated
+  // or expanded value is indistinguishable from a wrong password at the API, and you spend an hour
+  // retyping a password that was always right. A malformed hash is a configuration fault; say so.
+  if (!BCRYPT.test(hash)) {
+    if (!hashWarned) {
+      hashWarned = true;
+      console.error(`[auth] ADMIN_PASSWORD_HASH is not a bcrypt hash (${hash.length} chars, expected 60) — it is probably dotenv-expanded or truncated`);
+    }
+    return "unconfigured";
+  }
 
   const h = await headers();
   const ua = h.get("user-agent") ?? "";

@@ -225,7 +225,9 @@ void main(){
   // cloud is smooth and flat, so it undoes the relief and the glint underneath it
   N = normalize(mix(N, Ng, cl)); glint *= 1.0 - cl;
   float nl = dot(N, L);
-  float d = smoothstep(-0.12, 0.55, nl);
+  // A real terminator is narrow. Spread over 0.67 of the cosine it washed two thirds of the disc into
+  // an even glow, which is what made these read as flat marbles however much surface detail they had.
+  float d = smoothstep(-0.04, 0.22, nl);
   // planetshine: what the night side gets back from whatever else is in the system
   float shine = 0.0;
   if (uRingOn > 0.5) {                                        // the ring's shadow falls across the planet
@@ -269,14 +271,19 @@ ${moons > 0 ? `  // Moons, analytically, against the sun direction — no shadow
   float spec = ggx(Ns, V, L, mix(0.05, 0.5, rough)) * glint * 2.1;
   float limb = 1.0 - max(dot(Ng, V), 0.0);
   float fres = pow(limb, 3.0);
-  vec3 col = albedo * (0.035 + d * 1.15) * sunCol + spec * sunCol;
+  // 0.035 of ambient on a near-white albedo is a visible grey; a body in vacuum has almost none, and
+  // what little the night side gets comes from the ring and the moons below, not from nowhere.
+  vec3 col = albedo * (0.012 + d * 1.02) * sunCol + spec * sunCol;
   // limb reddening: near the edge the line of sight crosses far more atmosphere than at the centre
   col = mix(col, col * vec3(1.1, 0.82, 0.6), pow(limb, 2.0) * 0.5 * d);
   // and a thin bright rim of forward-scattered light, day side only
   col += uRim * pow(limb, 6.0) * 0.65 * smoothstep(-0.04, 0.34, nl);
-  col += uRim * fres * (0.32 + uHot * 0.8) * (0.35 + 0.65 * d);
-  col += uRim * fres * sheen * 0.22 * (0.25 + 0.75 * d);            // wet limb mirrors the sky
-  col += uRim * pow(limb, 6.0) * 0.12;
+  // Every one of these is scattered sunlight, so none of it exists where the sun does not reach. They
+  // used to carry a floor (0.35, 0.25, and one term with no day term at all), which painted the whole
+  // night limb in the rim colour — that cyan crescent was the planet's dark side, lit by nothing.
+  // Only uHot survives into the night, because lava is its own light source.
+  col += uRim * fres * 0.32 * d + uRim * fres * uHot * 0.8;
+  col += uRim * fres * sheen * 0.22 * d;                            // wet limb mirrors the sky
   col += albedo * shine;                                            // ring- and moonlight on the dark side
   col += emissive * uGlow * mix(1.0, clamp(1.0 - d * 1.6, 0.0, 1.0), night);
   // above 1, glow also lights the night side, so a planet without lava veins can still burn
@@ -315,7 +322,9 @@ void main(){
   // and flattened the terminator. The air belongs at the limb: a steeper falloff keeps it there.
   float f = pow(1.0 - mu, 5.0);
   float nl = dot(N, L);
-  float day = 0.45 + 0.55 * smoothstep(-0.3, 0.5, nl);
+  // Air glows because sunlight passes through it. Behind the terminator there is none, bar the little
+  // that bends round — so the floor is 0.05, not 0.45, and the ring of light ends where the day does.
+  float day = 0.05 + 0.95 * smoothstep(-0.16, 0.3, nl);
   // Rayleigh: the longest paths are the ones grazing the terminator, and they arrive red. The shell
   // keeps its own colour high on the day side and turns to sunset where it thins into night.
   float sunset = (1.0 - smoothstep(-0.22, 0.46, nl)) * pow(1.0 - mu, 1.4);
@@ -1429,7 +1438,9 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
   const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: aaSamples });
   const composer = new EffectComposer(renderer, rt);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.5 * (cfg?.bloom ?? 1), 0.55, 0.8);
+  // Threshold 0.8 let a lit planet bloom, which is why every body wore a halo — a planet reflects light,
+// it does not emit it. At 1.15 only the star, its corona and the lava veins cross the line.
+  const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.5 * (cfg?.bloom ?? 1), 0.5, 1.15);
   composer.addPass(bloom);
   const blurU: BlurUniforms = { tDiffuse: { value: null }, uStrength: { value: 0 }, uCenter: { value: new THREE.Vector2(0.5, 0.5) } };
   const blur = new ShaderPass(new ShaderMat<BlurUniforms>({ uniforms: blurU, vertexShader: POST_VERT, fragmentShader: RADIAL_BLUR_FRAG }));
@@ -1560,9 +1571,14 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
   const camTarget = new THREE.Vector3(), lookTarget = new THREE.Vector3();
   const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), right = new THREE.Vector3(), shake = new THREE.Vector3(), ringQ = new THREE.Quaternion();
 
+  /** How far round from the star the arrival pose sits, in radians — about 50°. */
+  const SUN_OFF_AXIS = 0.88;
   function poseFor(b: SceneBody, outPos: THREE.Vector3, outLook: THREE.Vector3) {
     const P = b.pos, R = b.size;
-    tmp.copy(P).negate().normalize().applyAxisAngle(UP, holdAngle + inspect.yaw);   // station-keeping drift + inspect yaw
+    // Off the sun's axis on purpose. -P points straight at the star, so arriving along it put the camera
+    // between sun and planet and lit the whole disc — no terminator, and a lit sphere with no terminator
+    // reads as a flat disc however much detail its surface has.
+    tmp.copy(P).negate().normalize().applyAxisAngle(UP, SUN_OFF_AXIS + holdAngle + inspect.yaw);
     right.crossVectors(tmp.clone().negate(), UP).normalize();
     const dist = R * (b.ring ? 5.6 : 4.8);
     for (let k = 0; k < 8; k++) {

@@ -16,6 +16,9 @@ import type { StarApplyResult } from "@/app/api/admin/scene/star/route";
 // A type alias rather than an interface: it has to be assignable to the endpoint's loose record shape.
 type Scene = {
   id: number;
+  /** Which catalogue star is at the centre, "" for the scene's own sun. Read-only here — only the star
+   *  catalogue's own confirm writes it, so a normal "save the system" can never touch it by accident. */
+  sunStar: string;
   sunRadius: number; sunColorCore: number; sunColorMid: number; sunColorEdge: number; sunIntensity: number;
   sunGranulation: number; sunLimb: number; sunSpots: number; sunSpin: number; sunCorona: number; sunFlare: number;
   orbitScale: number; scaleMode: ScaleMode; spanAu: number;
@@ -27,6 +30,7 @@ type Scene = {
 
 /** The scene_config defaults, repeated here so a column the API has not started returning still edits. */
 const DEFAULTS: Omit<Scene, "id"> = {
+  sunStar: "",
   sunRadius: 6, sunColorCore: 0xfff3c4, sunColorMid: 0xffb547, sunColorEdge: 0xff7a1a, sunIntensity: 1,
   sunGranulation: 1, sunLimb: 1, sunSpots: 0, sunSpin: 1, sunCorona: 1, sunFlare: 1,
   orbitScale: 1, scaleMode: "stylised", spanAu: 30,
@@ -44,6 +48,7 @@ const mode = (v: unknown): ScaleMode => (typeof v === "string" && isScaleMode(v)
 function fill(raw: Raw): Scene {
   return {
     id: num(raw["id"], 1),
+    sunStar: typeof raw["sunStar"] === "string" ? raw["sunStar"] : DEFAULTS.sunStar,
     sunRadius: num(raw["sunRadius"], DEFAULTS.sunRadius),
     sunColorCore: num(raw["sunColorCore"], DEFAULTS.sunColorCore),
     sunColorMid: num(raw["sunColorMid"], DEFAULTS.sunColorMid),
@@ -112,9 +117,15 @@ const TIPS = {
 
 export default function ScenePanel() {
   const { value, loading, save, refresh } = useSingle<Raw>("scene");
+  // A star apply or an auto-arrange writes straight to the database from a fetch of their own, bypassing
+  // `save`, so the sun/scale fields this same form is showing would otherwise sit stale until the page
+  // was reloaded — the whole reason "what's selected" was hard to trust. Bumping the key forces a full
+  // remount from the freshly refreshed row, the same way switching projects does in the panel next door.
+  const [bump, setBump] = useState(0);
+  const hardRefresh = async (): Promise<void> => { await refresh(); setBump((b) => b + 1); };
   if (loading || !value) return <Skeleton rows={6} />;
   const row = fill(value);
-  return <Form key={row.id} initial={row} save={save} refresh={refresh} />;
+  return <Form key={`${row.id}-${bump}`} initial={row} save={save} refresh={hardRefresh} />;
 }
 
 function Form({ initial, save, refresh }: {
@@ -159,7 +170,7 @@ function Form({ initial, save, refresh }: {
 
   return (
     <form className="fields" onSubmit={(e) => { e.preventDefault(); setBusy(true); void save(form).finally(() => setBusy(false)); }}>
-      <StarCatalogue sunRadius={form.sunRadius} onApplied={() => void refresh()} />
+      <StarCatalogue sunRadius={form.sunRadius} current={form.sunStar} onApplied={() => void refresh()} />
 
       <div className="sf scaleblk">
         <div className="sf__in">
@@ -300,7 +311,7 @@ const solarR = (r: number): string => (r >= 100 ? `${Math.round(r).toLocaleStrin
  * ratio to the Sun — which for the hypergiants is destructive, so nothing is written until the preview
  * has said, in real numbers, what it will do.
  */
-function StarCatalogue({ sunRadius, onApplied }: { sunRadius: number; onApplied: () => void }) {
+function StarCatalogue({ sunRadius, current, onApplied }: { sunRadius: number; current: string; onApplied: () => void }) {
   const [stars, setStars] = useState<StarRow[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -324,6 +335,15 @@ function StarCatalogue({ sunRadius, onApplied }: { sunRadius: number; onApplied:
     })();
     return () => { alive = false; };
   }, []);
+
+  // Show the star that is actually applied without needing a click first — otherwise the only trace
+  // of "what's selected" was the moment you picked it, gone the instant you navigated away and back.
+  useEffect(() => {
+    if (!current || picked) return;
+    const found = stars.find((s) => s.slug === current);
+    if (found) setPicked(found);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only stars finishing its own load should trigger this
+  }, [stars, current]);
 
   const items: PickerItem[] = useMemo(() => {
     const sorted = [...stars].sort((a, b) => {
@@ -398,8 +418,11 @@ function StarCatalogue({ sunRadius, onApplied }: { sunRadius: number; onApplied:
         <Section title="put a real star at the centre" tip="thirty-one real stars with their published radius, temperature and luminosity. Picking one writes the sun's whole appearance, and its radius at the true ratio to the Sun." />
         <div className="fields fields--2">
           <Picker
+            // The row lit is whichever star is under consideration right now — set on load to
+            // whatever is actually applied, and moved the instant a different one is clicked, so
+            // browsing candidates has the same immediate feedback as any other picker in the panel.
             items={items} label="search the catalogue — name, kind, constellation"
-            loading={loading} error={error} onPick={pick}
+            loading={loading} error={error} onPick={pick} selected={picked?.slug ?? current ?? null}
             hint={`the star now is ${sunRadius.toFixed(2)} scene units — whatever that is, it is what one solar radius means here, so every pick is a true ratio against it`}
           />
           <div className="fields">

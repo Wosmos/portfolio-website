@@ -332,7 +332,16 @@ canvas.planet { touch-action: pan-y; }
 html.is-solo, html.is-solo body { overflow: hidden; }
 html.is-solo .top, html.is-solo .foot, html.is-solo .pj__text,
 html.is-solo .pj__about, html.is-solo .pj__nav, html.is-solo .pj__built,
-html.is-solo #callouts, html.is-solo #moons, html.is-solo .pj__stagek { display: none; }
+html.is-solo #moons, html.is-solo .pj__stagek { display: none; }
+/* "just the planet" still means just the planet with the lid shut — but with it open, what it is made
+   of is the one thing worth keeping on screen. #callouts already carries its own [hidden] from the cut
+   button's own on/off state, so this only has to reposition it as a floating card over the stage
+   instead of the block of page flow it is the rest of the time. */
+html.is-solo #callouts { position: fixed; right: max(14px, env(safe-area-inset-right, 0px)); bottom: max(64px, env(safe-area-inset-bottom, 0px));
+  z-index: 41; width: min(320px, calc(100vw - 28px)); max-height: min(52svh, 420px); overflow-y: auto; overscroll-behavior: contain;
+  padding: 10px; background: rgba(5,10,16,.82); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  box-shadow: inset 0 0 0 1px rgba(0,229,255,.28), 0 10px 30px rgba(0,0,0,.5); }
+html.is-solo .callouts--grid { grid-template-columns: 1fr; }
 /* aspect-ratio 1/1 is what fights landscape, and max-height caps it well short of the viewport */
 html.is-solo .pj__stage { position: fixed; inset: 0; z-index: 40; aspect-ratio: auto; max-height: none;
   background: var(--bg, #05070b); display: grid; }

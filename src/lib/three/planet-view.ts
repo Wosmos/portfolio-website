@@ -50,6 +50,7 @@ export function createPlanetView({ canvas, project, index = 0, interactive = tru
   const cut = b.cut;
   const tmp = new THREE.Vector3(), ringQ = new THREE.Quaternion(), cutQ = new THREE.Quaternion();
   const cx = new THREE.Vector3(), cz = new THREE.Vector3();
+  const faceN = new THREE.Vector3(), faceP = new THREE.Vector3(), faceV = new THREE.Vector3();
   // moons: hot is what the pointer is on, lit is what a legend row asked for — either one brightens it
   let moonHot = -1, moonLit = -1, moonsHidden = false;
   const moonW = new THREE.Vector3();
@@ -93,7 +94,19 @@ export function createPlanetView({ canvas, project, index = 0, interactive = tru
       applyCut(u, cut.amount, P, cx, cz);
       applyCut(b.atmo.material.uniforms, cut.amount, P, cx, cz);
       for (const m of cut.shells) { applyCut(m.material.uniforms, cut.amount, P, cx, cz); m.material.uniforms.uAlpha.value = Math.min(1, cut.amount * 3); m.material.uniforms.uTime.value = t; }
-      for (const f of cut.faces) f.material.uniforms.uAlpha.value = Math.min(1, cut.amount * 3);
+      // Same fade as the ship deck: a flat cut face read fine only when it happened to face the camera,
+      // and the floor — nothing ever re-aims it — foreshortens into a slab with no depth as soon as
+      // it turns edge-on. That is what a flat surface does; fading it out by how face-on it actually
+      // is lets it, instead of holding a constant opacity across every angle.
+      { const base = Math.min(1, cut.amount * 3);
+        for (const f of cut.faces) {
+          f.updateWorldMatrix(true, false);
+          f.getWorldQuaternion(cutQ); f.getWorldPosition(faceP);
+          faceN.set(0, 0, 1).applyQuaternion(cutQ);
+          faceV.subVectors(camera.position, faceP).normalize();
+          const onAxis = Math.abs(faceN.dot(faceV));
+          f.material.uniforms.uAlpha.value = base * Math.pow(onAxis, 0.55);
+        } }
       cut.faceH.material.uniforms.uSpan.value = cut.amount;
       cut.faceB.rotation.y = (-cut.amount * Math.PI) / 2;
     } else if (cut.group.visible) {

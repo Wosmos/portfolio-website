@@ -109,8 +109,21 @@ export async function POST(request: Request): Promise<Response> {
     // `stylised` returns the hand-picked orbits whatever the star is, so on its own a refit around a
     // hypergiant leaves all eight orbits inside the photosphere — which is exactly the thing the
     // option exists to avoid. Push the whole arrangement out until the innermost one clears it.
+    //
+    // But only when the CHOSEN star actually makes that worse than it already was. `impact.swallowed`
+    // is how many orbits sit inside the star that is there right now; a scene whose sun has been
+    // resized well past the stylised layout's own scale (this owner's is 60, ten times the built-in 6)
+    // can already have several orbits inside it before anyone touches the picker at all. This bug was
+    // found the hard way: it once fired for the plain Sun itself, because 17 < 60 is true regardless
+    // of which star that 60 came from, and it multiplied every orbit by 5.6x on what should have read
+    // as a same-size, do-nothing pick. Comparing against how many were ALREADY swallowed — not
+    // against a fixed multiple of the new radius — is what makes refit idempotent: picking the same
+    // or a smaller star than what is already there never spreads anything further.
     const innermost = plan ? Math.min(...plan.bodies.map((b) => b.orbit)) : 0;
-    const spread = plan && innermost > 0 ? Math.max(1, (sun.sunRadius * CLEARANCE) / innermost) : 1;
+    const wouldSwallow = plan ? plan.bodies.filter((b) => b.orbit <= sun.sunRadius).length : 0;
+    const spread = plan && innermost > 0 && wouldSwallow > impact.swallowed
+      ? Math.max(1, (sun.sunRadius * CLEARANCE) / innermost)
+      : 1;
 
     const bodies = projects.map((p, i) => {
       const fitted = plan?.bodies[i];

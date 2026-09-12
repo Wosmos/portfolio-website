@@ -1569,7 +1569,8 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
   const lookAhead = new THREE.Vector3(), lookPose = new THREE.Vector3(), vanish = new THREE.Vector3();
   const camPos = camera.position, lookCur = lookBase.clone();
   const camTarget = new THREE.Vector3(), lookTarget = new THREE.Vector3();
-  const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), right = new THREE.Vector3(), shake = new THREE.Vector3(), ringQ = new THREE.Quaternion();
+  const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), right = new THREE.Vector3(), shake = new THREE.Vector3(), ringQ = new THREE.Quaternion(), worldQ = new THREE.Quaternion();
+  const faceN = new THREE.Vector3(), faceP = new THREE.Vector3(), faceV = new THREE.Vector3();
 
   /** How far round from the star the arrival pose sits, in radians — about 50°. */
   const SUN_OFF_AXIS = 0.88;
@@ -1790,10 +1791,29 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
       if (c.amount > 0.002 || c.target > 0) {
         if (!c.group.visible) { c.group.visible = true; }
         if (c.target > 0 && c.tm < 0.3) { tmp.subVectors(camPos, b.pos).setY(0).normalize(); c.group.rotation.y = Math.atan2(tmp.x, tmp.z) - Math.PI / 4; }
-        const q = c.group.quaternion; const cx = new THREE.Vector3(1, 0, 0).applyQuaternion(q), cz = new THREE.Vector3(0, 0, 1).applyQuaternion(q);
+        // World, not local: c.group sits under spin -> tilt -> root, and a body's own axial tilt (and,
+        // while it is not frozen, its spin) rotate that whole chain. Reading c.group.quaternion alone
+        // discarded that parent rotation, so the wedge the fragment shader cuts along drifted away
+        // from the flat faces and shell rims that actually draw it — on a tilted planet the two no
+        // longer agreed, and the mismatch showed up as a slab of surface poking through the cutaway.
+        c.group.updateWorldMatrix(true, false); c.group.getWorldQuaternion(worldQ);
+        const cx = new THREE.Vector3(1, 0, 0).applyQuaternion(worldQ), cz = new THREE.Vector3(0, 0, 1).applyQuaternion(worldQ);
         applyCut(b.planet.material.uniforms, c.amount, b.pos, cx, cz); applyCut(b.atmo.material.uniforms, c.amount, b.pos, cx, cz);
         for (const m of c.shells) { applyCut(m.material.uniforms, c.amount, b.pos, cx, cz); m.material.uniforms.uAlpha.value = Math.min(1, c.amount * 3); m.material.uniforms.uTime.value = t; }
-        for (const f of c.faces) f.material.uniforms.uAlpha.value = Math.min(1, c.amount * 3);
+        // A flat cut face read fine when the auto-orient happened to angle it toward the camera, but
+        // any other view of it — most of all the horizontal floor, which nothing here ever re-aims —
+        // foreshortens into a slab of colour slicing across the planet with no depth to it at all.
+        // A real flat surface does exactly that as it turns edge-on; the fix is to let it, fading the
+        // face out by how face-on it actually is rather than holding it at a constant opacity.
+        const base = Math.min(1, c.amount * 3);
+        for (const f of c.faces) {
+          f.updateWorldMatrix(true, false);
+          f.getWorldQuaternion(worldQ); f.getWorldPosition(faceP);
+          faceN.set(0, 0, 1).applyQuaternion(worldQ);
+          faceV.subVectors(camPos, faceP).normalize();
+          const onAxis = Math.abs(faceN.dot(faceV));
+          f.material.uniforms.uAlpha.value = base * Math.pow(onAxis, 0.55);
+        }
         c.faceH.material.uniforms.uSpan.value = c.amount;
         c.faceB.rotation.y = -c.amount * Math.PI / 2;
         c.group.scale.setScalar(1);

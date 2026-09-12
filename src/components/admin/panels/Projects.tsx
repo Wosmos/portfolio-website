@@ -270,7 +270,7 @@ function PlanetEditor({ planet, orbit, sunRadius, moons, onChange, onOrbit }: {
         </div>
         <Fold id="planet.catalogue" title="model it on a real world" note="87 in the catalogue">
           <WorldCatalogue
-            sunRadius={sunRadius}
+            sunRadius={sunRadius} planet={planet}
             onPick={(next, nextOrbit) => { onChange(next); onOrbit(nextOrbit); }}
           />
         </Fold>
@@ -836,7 +836,7 @@ const au = (v: number): string => (v >= 100 ? `${Math.round(v)} au` : `${Number(
  * orbit, which is what the owner asked for. Everything lands in the form, so nothing is written until
  * the project is saved and the preview beside it shows the result first.
  */
-function WorldCatalogue({ sunRadius, onPick }: { sunRadius: number; onPick: (planet: Planet, orbit: number) => void }) {
+function WorldCatalogue({ sunRadius, planet, onPick }: { sunRadius: number; planet: Planet; onPick: (planet: Planet, orbit: number) => void }) {
   const [rows, setRows] = useState<BodyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -856,6 +856,19 @@ function WorldCatalogue({ sunRadius, onPick }: { sunRadius: number; onPick: (pla
     })();
     return () => { alive = false; };
   }, []);
+
+  // There is nowhere on a project that records which catalogue body it was modelled on — reopening
+  // the modal otherwise showed no trace at all of a pick made in an earlier session. Colours and
+  // surface type together are close enough to a fingerprint: if the planet's ramp exactly matches one
+  // catalogue entry, that is almost certainly where it came from, so it is shown as selected again.
+  useEffect(() => {
+    if (rows.length === 0 || last) return;
+    const found = rows.find((b) =>
+      b.planet.type === planet.type && b.planet.c0 === planet.c0 && b.planet.c1 === planet.c1 &&
+      b.planet.c2 === planet.c2 && b.planet.c3 === planet.c3 && b.planet.rim === planet.rim);
+    if (found) setLast(found);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a one-time match against the planet this editor opened with
+  }, [rows]);
 
   const items: PickerItem[] = useMemo(() => {
     const sorted = [...rows].sort((a, b) => {
@@ -888,6 +901,7 @@ function WorldCatalogue({ sunRadius, onPick }: { sunRadius: number; onPick: (pla
     <div className="fields">
       <Picker
         items={items} label="search — name, system, surface" loading={loading} error={error} onPick={take}
+        selected={last?.slug ?? null}
         hint="the planet takes the body's surface, colours, size, tilt, spin, ring and orbit. Nothing is saved until you save the project."
       />
       {last && (

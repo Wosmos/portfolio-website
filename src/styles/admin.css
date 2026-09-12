@@ -549,3 +549,6 @@
 .starfx > div { display: flex; align-items: baseline; gap: 8px; font-size: 11px; }
 .starfx dt { color: rgba(242,245,255,.48); letter-spacing: .06em; text-transform: uppercase; font-size: 9.5px; min-width: 92px; }
 .starfx dd { color: var(--fg); font-variant-numeric: tabular-nums; }
+/* the row currently applied, in a picker */
+.pick__row.is-on { background: rgba(0,229,255,.1); box-shadow: inset 2px 0 0 var(--cy); }
+.pick__row.is-on b { color: var(--cy); display: inline-flex; align-items: center; gap: 6px; }

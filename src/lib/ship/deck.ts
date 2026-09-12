@@ -1235,14 +1235,22 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     deck.setAttribute("aria-hidden", "false");
     anim(gsap.to(deck, { opacity: 1, duration: 1.2, ease: "power2.out", delay: 0.3 }));
     anim(gsap.from($$(".deck__id, .deck__mark, .screen, .keys"), { opacity: 0, y: 10, duration: 0.8, stagger: 0.08, ease: "power3.out", delay: 0.5 }));
+    // Nothing here checked whether the tab was even visible: the full scene, its bloom pass and this
+    // instrument loop all ran at full rate in a backgrounded tab exactly as they would on screen — the
+    // one page on the site that never had a reason to spare a laptop while it sat in another tab.
     let lastT = performance.now();
     const loop = (now: number): void => {
       rafId = window.requestAnimationFrame(loop);
+      if (document.hidden) return;
       const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
       fps.frames++; if (now - fps.last > 1000) { fps.value = fps.frames; fps.frames = 0; fps.last = now; }
       tickEnergy(dt); drawRadar(); drawDash(); drawLock(dt); drawCallouts();
     };
     loop(performance.now());
+    listen(document, "visibilitychange", () => {
+      sys.setPaused(document.hidden);
+      if (!document.hidden) lastT = performance.now();
+    });
     scheduleBeacon();
     console.log("%c wosmo · flight deck ", "background:#050508;color:#00e5ff;font:12px/1.6 ui-monospace,monospace;border:1px solid #00e5ff;padding:4px 8px",
       `\n  1–8  jump · 0  the sun · t  tour · /  command line · p m c  panels · ? the secrets manifest\n  ${SECRETS.length} secrets are hidden in here and you have found ${found.size}. try f, and try holding the sun.\n`);

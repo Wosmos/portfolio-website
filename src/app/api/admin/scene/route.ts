@@ -18,8 +18,16 @@ const mode = (value: unknown, key: string): string => {
 };
 
 const parse: Parse<typeof t.sceneConfig> = (input, base) =>
-  build(input, (f) => ({
-    sunRadius: f.of("sunRadius", base?.sunRadius ?? 6, positive),
+  build(input, (f) => {
+    const sunRadius = f.of("sunRadius", base?.sunRadius ?? 6, positive);
+    return {
+    sunRadius,
+    // A hand save is a deliberate override — the picker's "currently applied" only means something
+    // while the sun's own numbers are still exactly what that preset produced, so this is the one
+    // place that ever clears it. sunAnchor is reset to the value just saved, so the next star picked
+    // scales against the sun as it stands now, not against whatever anchor an old preset left behind.
+    sunStar: "",
+    sunAnchor: sunRadius,
     sunColorCore: f.colour("sunColorCore", base?.sunColorCore ?? 0xfff3c4),
     sunColorEdge: f.colour("sunColorEdge", base?.sunColorEdge ?? 0xff7a1a),
     sunIntensity: f.num("sunIntensity", base?.sunIntensity ?? 1, { min: 0, max: 20 }),
@@ -50,7 +58,8 @@ const parse: Parse<typeof t.sceneConfig> = (input, base) =>
     constellations: f.bool("constellations", base?.constellations ?? true),
     constellationGain: f.num("constellationGain", base?.constellationGain ?? 1, { min: 0, max: 3 }),
     updatedAt: new Date(),
-  }));
+    };
+  });
 
 const handlers = createSingleton({ name: "scene", table: t.sceneConfig, parse });
 export const GET = handlers.GET;

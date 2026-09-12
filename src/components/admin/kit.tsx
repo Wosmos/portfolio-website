@@ -9,7 +9,7 @@ import { createContext, useCallback, useContext, useEffect, useId, useMemo, useR
 import { createPortal } from "react-dom";
 import {
   ArrowDownIcon, ArrowUpIcon, ArrowsDownUpIcon, CaretDoubleLeftIcon, CaretDoubleRightIcon, CaretDownIcon,
-  CaretLeftIcon, CaretRightIcon, CircleDashedIcon, DotOutlineIcon, MagnifyingGlassIcon, QuestionIcon, XIcon,
+  CaretLeftIcon, CaretRightIcon, CheckIcon, CircleDashedIcon, DotOutlineIcon, MagnifyingGlassIcon, QuestionIcon, XIcon,
 } from "@phosphor-icons/react";
 
 /**
@@ -1229,13 +1229,15 @@ export interface PickerItem {
  * world catalogue is nearly ninety. Nothing is chosen until a row is clicked, so it can sit beside a
  * destructive control without being one.
  */
-export function Picker({ items, label, hint, loading, error, onPick, max = 120 }: {
+export function Picker({ items, label, hint, loading, error, onPick, selected = null, max = 120 }: {
   items: readonly PickerItem[];
   label: string;
   hint?: string;
   loading?: boolean;
   error?: string;
   onPick: (id: string) => void;
+  /** The id currently applied, if any — marked in the list so picking one is not the only trace of it. */
+  selected?: string | null;
   max?: number;
 }) {
   const [q, setQ] = useState("");
@@ -1272,8 +1274,11 @@ export function Picker({ items, label, hint, loading, error, onPick, max = 120 }
         {rows.map(({ head, item }) => (
           <li key={item.id}>
             {head && <p className="pick__head">{head}</p>}
-            <button type="button" className="pick__row" onClick={() => onPick(item.id)}>
-              <b>{item.label}</b>
+            <button
+              type="button" className={`pick__row${item.id === selected ? " is-on" : ""}`}
+              aria-current={item.id === selected ? "true" : undefined} onClick={() => onPick(item.id)}
+            >
+              <b>{item.id === selected && <CheckIcon aria-hidden="true" weight="bold" />}{item.label}</b>
               {item.meta && <i>{item.meta}</i>}
               {item.note && <small>{item.note}</small>}
             </button>

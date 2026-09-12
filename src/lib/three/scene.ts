@@ -422,6 +422,12 @@ uniform sampler2D uMap; uniform float uInner; uniform float uOuter; uniform floa
 uniform vec3 uPlanet; uniform float uPlanetR; uniform float uSeed;
 varying vec3 vW; varying vec3 vL; varying vec3 vN;
 ${NOISE}
+${BRDF}
+// The geometry is a flat disc, so its true normal never varies — which is what made every band read
+// as one painted flat colour with no relief. Real rings are countless particles at slightly different
+// heights; the cheap version of that is bending the shading normal by the profile's own radial slope,
+// so a boundary between two bands catches the light like a groove instead of a printed line, and
+// giving that bent normal a real specular lobe so it can glint the way loose, icy debris actually does.
 void main(){
   float rr = length(vL.xy);
   float r = clamp((rr - uInner) / (uOuter - uInner), 0.0, 1.0);
@@ -429,16 +435,24 @@ void main(){
   float ang = atan(vL.y, vL.x);
   float grain = 0.93 + 0.07 * snoise(vec3(ang * 4.0, r * 60.0, uSeed));          // faint azimuthal texture
   float dens = prof.a * grain;
-  vec3 L = normalize(-vW); vec3 V = normalize(cameraPosition - vW); vec3 N = normalize(vN);
+  vec3 L = normalize(-vW); vec3 V = normalize(cameraPosition - vW);
+  vec3 Ng = normalize(vN);
+  float eps = 1.0 / uOuter;
+  float rA = clamp(r - eps, 0.0, 1.0), rB = clamp(r + eps, 0.0, 1.0);
+  float dA = texture2D(uMap, vec2(rA, 0.5)).a, dB = texture2D(uMap, vec2(rB, 0.5)).a;
+  vec3 radial = normalize(vec3(vL.xy, 0.0));
+  // a real groove would tilt only a few degrees; 0.35 rad keeps it a ripple, not a corrugation
+  vec3 N = normalize(Ng - radial * clamp((dB - dA) * 6.0, -0.35, 0.35));
   float nl = dot(N, L), nv = dot(N, V);
   float sameSide = step(0.0, nl * nv);
   float direct = 0.5 + 0.5 * abs(nl);
   float scatter = 0.18 + 0.55 * (1.0 - dens) * pow(max(0.0, -dot(V, L)), 1.5);   // sun behind the ring → thin parts glow
   float shade = mix(scatter, direct, sameSide);
+  float spec = ggx(N, V, L, 0.42) * sameSide * (0.3 + 0.7 * dens);
   vec3 toP = uPlanet - vW; float tp = dot(toP, L);
   vec3 closest = vW + L * max(tp, 0.0);
   float shadow = tp > 0.0 ? smoothstep(uPlanetR * 0.88, uPlanetR * 1.14, length(closest - uPlanet)) : 1.0;
-  vec3 col = prof.rgb * shade * (0.12 + 0.88 * shadow) * (1.0 + uHot * 0.25);
+  vec3 col = (prof.rgb * shade + spec * 0.6) * (0.12 + 0.88 * shadow) * (1.0 + uHot * 0.25);
   float alpha = dens * mix(0.5, 0.95, sameSide) * (0.9 + uHot * 0.1);
   gl_FragColor = vec4(col, alpha);
 }`;

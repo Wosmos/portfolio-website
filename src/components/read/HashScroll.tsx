@@ -1,6 +1,10 @@
 "use client";
 // One place that honours #section links, including arrivals from another page. The reveal animations
 // change section heights as they run, so the target is scrolled to again once things settle.
+//
+// A route with no hash lands at the top — App Router does not do this on its own between sibling
+// routes under the same layout (e.g. the projects list to a project page), so scrolled deep into a
+// list and picking one landed on the new page already scrolled to wherever the list had been.
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
@@ -9,7 +13,7 @@ export default function HashScroll() {
   const path = usePathname();
   useEffect(() => {
     const id = location.hash.slice(1);
-    if (!id) return;
+    if (!id) { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); return; }
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     let tries = 0, raf = 0;
     const timers: number[] = [];

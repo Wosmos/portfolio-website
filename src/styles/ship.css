@@ -298,7 +298,7 @@ html.is-deck :focus-visible { outline: 1px solid var(--cy); outline-offset: 3px;
 
 .toast { position: absolute; left: 50%; bottom: 26%; transform: translate(-50%, 10px); padding: 10px 16px; background: rgba(5,5,8,.9); border: 1px solid rgba(0,229,255,.4); color: var(--cy); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; opacity: 0; transition: opacity .3s, transform .3s var(--ease); pointer-events: none; z-index: 5; }
 .toast.is-on { opacity: 1; transform: translate(-50%, 0); }
-.toast--fact { max-width: min(620px, 84vw); font-size: 12.5px; line-height: 1.55; letter-spacing: .01em; text-transform: none; text-align: center; color: var(--fg); border-color: rgba(0,229,255,.6); box-shadow: 0 0 30px rgba(0,229,255,.14); }
+.toast--fact { max-width: min(620px, 84vw); font-size: 12.5px; line-height: 1.55; letter-spacing: .01em; text-transform: none; text-align: center; color: var(--fg); border-color: rgba(0,229,255,.6); box-shadow: 0 0 30px rgba(0,229,255,.14); pointer-events: auto; cursor: pointer; }
 .toast--fact b { display: block; margin-bottom: 5px; font-size: 8.5px; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; color: var(--cy); }
 
 @media (max-width: 1280px) {

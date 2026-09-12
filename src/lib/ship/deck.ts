@@ -210,12 +210,19 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   const blackBox = readBlackBox();
   const fps: Fps = { frames: 0, last: performance.now(), value: 0 };
 
+  /** Reading time for a fact, not a fixed guess: roughly 13 characters a second, comfortably slower
+   *  than average reading pace, floored so even the shortest line holds a moment and capped so a long
+   *  one cannot hang forever if nobody dismisses it. */
+  const factMs = (text: string): number => Math.min(15000, Math.max(6500, text.length * 75));
   function showToast(msg: string, ms = 2600, fact = false): void {
     if (fact) toast.innerHTML = msg; else toast.textContent = msg;
     toast.classList.toggle("toast--fact", fact);
     toast.classList.add("is-on");
-    clear(toastTimer); toastTimer = timer(() => toast.classList.remove("is-on"), ms);
+    clear(toastTimer); toastTimer = timer(() => toast.classList.remove("is-on"), fact ? factMs(toast.textContent ?? "") : ms);
   }
+  // A fact is meant to be read, not glanced at and lost — clicking it dismisses early instead of
+  // waiting out the full reading time, and the cursor says so.
+  listen(toast, "click", () => { if (toast.classList.contains("toast--fact")) { clear(toastTimer); toast.classList.remove("is-on"); } });
   function scramble(el: HTMLElement, text: string, d = 0.7): gsap.core.Tween {
     const chars = "▚▞▟▙◢◣◤◥█▓▒░ABCDEFGHKLMNPRSTUVWXYZ0123456789"; const o = { p: 0 };
     return anim(gsap.to(o, { p: 1, duration: reduced ? 0 : d, ease: "power2.out",

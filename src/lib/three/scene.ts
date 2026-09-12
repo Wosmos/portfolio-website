@@ -1092,7 +1092,11 @@ function speedOf(fn: (t: number) => number, t: number): number { const h = 0.002
 const vmax = (fn: (t: number) => number) => { let m = 0; for (let i = 0; i <= 400; i++) m = Math.max(m, speedOf(fn, i / 400)); return m; };
 const VMAX_OUT = vmax(easeOut), VMAX_BACK = vmax(easeBack);
 // flight time grows with distance: a hop to the next orbit is short, crossing the system is long
-const flightDuration = (dist: number) => Math.min(4.6, Math.max(1.5, 0.9 + dist * 0.0175));
+// Longer across the board than the original calibration: a floor that still feels like travel
+// rather than a cut, a ceiling long enough for a real cross-system hop to read as one, and a per-unit
+// rate raised to match so a far planet still takes noticeably longer than a near one, not just longer
+// than the floor.
+const flightDuration = (dist: number) => Math.min(7.0, Math.max(2.2, 1.4 + dist * 0.024));
 
 // ───────────────────────── scene ─────────────────────────
 

@@ -93,7 +93,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!db) return new NextResponse(null, { status: 204 });
 
   let body: Incoming;
-  try { body = (await request.json()) as Incoming; } catch { return NextResponse.json({ ok: false }, { status: 400 }); }
+  try { body = JSON.parse(raw) as Incoming; } catch { return NextResponse.json({ ok: false }, { status: 400 }); }
 
   const get = (n: string): string | null => request.headers.get(n);
   const ua = get("user-agent") ?? "";

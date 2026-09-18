@@ -82,9 +82,22 @@ export function useCached<T>(key: string, url: string, staleMs = DEFAULT_STALE):
   const reload = useCallback(() => fetchJson<T>(key, url), [key, url]);
 
   useEffect(() => {
-    const now = read<T>(key);
-    // nothing cached, or what is cached is old enough to be worth a background refresh
-    if (now.data === undefined || Date.now() - now.at > staleMs) void fetchJson<T>(key, url);
+    const check = (): void => {
+      if (document.hidden) return;
+      const now = read<T>(key);
+      // nothing cached, or what is cached is old enough to be worth a background refresh
+      if (now.data === undefined || Date.now() - now.at > staleMs) void fetchJson<T>(key, url);
+    };
+    check();
+    // a tab left open across days must keep noticing, not just show whatever it fetched at mount
+    const id = window.setInterval(check, staleMs);
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("focus", check);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("focus", check);
+    };
   }, [key, url, staleMs]);
 
   return {

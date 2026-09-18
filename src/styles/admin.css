@@ -151,6 +151,9 @@
 /* inbox */
 .inbox { display: grid; grid-template-columns: minmax(260px, 380px) minmax(0, 1fr); gap: 12px; align-items: start; }
 .inbox__list { display: grid; gap: 6px; max-height: 72vh; overflow-y: auto; }
+.msg-row { display: flex; align-items: center; gap: 8px; }
+.msg-row .msg { flex: 1 1 auto; }
+.msg-row__pick { flex: none; width: 14px; height: 14px; margin: 0; accent-color: var(--cy); }
 .msg { text-align: left; width: 100%; padding: 11px 13px; display: grid; gap: 3px; position: relative; isolation: isolate; }
 .msg::before { content: ""; position: absolute; inset: 0; z-index: -1; background: rgba(6,12,18,.6); box-shadow: inset 0 0 0 1px rgba(0,229,255,.12); clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
 .msg.is-on::before { background: rgba(0,229,255,.1); box-shadow: inset 0 0 0 1px rgba(0,229,255,.5); }

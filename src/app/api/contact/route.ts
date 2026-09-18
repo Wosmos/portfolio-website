@@ -48,8 +48,32 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (body === null || typeof body !== "object") return bad("Invalid JSON", 400);
     const raw = body as Record<string, unknown>;
 
-    // Honeypot: a hidden field real visitors never fill. Accept and drop, so the bot learns nothing.
-    if (typeof raw.website === "string" && raw.website.trim() !== "") return NextResponse.json({ success: true }, { status: 200 });
+    // Honeypot: a hidden field real visitors never fill. The bot still gets a plain "success" so it
+    // learns nothing, but the trip is logged and kept (state: "spam") instead of silently discarded —
+    // an off-screen-positioned honeypot used to get filled by browser/password-manager autofill on a
+    // real visitor's machine, and that message must stay recoverable, not vanish without a trace.
+    if (typeof raw.website === "string" && raw.website.trim() !== "") {
+      console.warn("[contact] honeypot tripped", { website: raw.website.slice(0, 80) });
+      const db = getDb();
+      if (db) {
+        const pick = (k: Field): string => (typeof raw[k] === "string" ? (raw[k] as string).slice(0, MAX[k]) : "");
+        try {
+          const get = (n: string): string | null => request.headers.get(n);
+          const ua = get("user-agent") ?? "";
+          const lang = (get("accept-language") ?? "").split(",")[0] ?? "";
+          const visitorId = await hashVisitor(clientIp(get), ua, lang);
+          const geo = geoFrom(get);
+          await db.insert(t.submissions).values({
+            name: pick("name"), email: pick("email"), subject: pick("subject"), message: pick("message"),
+            visitorId, country: geo.country, city: geo.city, referrer: (get("referer") ?? "").slice(0, 300),
+            userAgent: ua.slice(0, 300), emailId: "", state: "spam",
+          });
+        } catch (dbErr) {
+          console.error("[contact] could not store the flagged submission", dbErr instanceof Error ? dbErr.message : dbErr);
+        }
+      }
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
 
     const values: Record<Field, string> = { name: "", email: "", subject: "", message: "" };
     for (const field of FIELDS) {

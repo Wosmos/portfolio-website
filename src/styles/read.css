@@ -166,7 +166,10 @@ section { margin-top: clamp(56px, 10vh, 110px); scroll-margin-top: 80px; }
 .f__send > * { pointer-events: auto; }
 .f__send .sf--btn { margin-left: auto; --c: 8px; } .f__send .sf--btn > .sf__in { padding: 9px 18px; }
 .f__count { font-size: 10px; color: var(--fg-4); letter-spacing: .1em; flex: 0 0 auto; }
-.f--hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+/* display:none, not off-screen positioning — autofill/password managers skip display:none but will
+   still fill an absolutely-positioned field that's merely moved off-screen, which is how a real visitor
+   with a saved profile silently tripped the honeypot and lost their message */
+.f--hp { display: none; }
 .form__msg { font-size: 11px; color: var(--fg-3); flex: 1 1 6ch; }
 .form__msg.is-ok { color: var(--ok); } .form__msg.is-bad { color: var(--rd); }
 

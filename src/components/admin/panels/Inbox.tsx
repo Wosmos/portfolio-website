@@ -21,6 +21,8 @@ const when = (iso: string): string => {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 };
 
+type BulkResult = { id: number; ok: boolean; error?: string };
+
 export default function InboxPanel() {
   const [items, setItems] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +32,15 @@ export default function InboxPanel() {
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const { say } = useToast();
+
+  // Reply to several messages in one action — each still gets its own separate email.
+  const [checked, setChecked] = useState<Set<number>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkMode, setBulkMode] = useState<"same" | "each">("same");
+  const [bulkBody, setBulkBody] = useState("");
+  const [bulkDrafts, setBulkDrafts] = useState<Record<number, string>>({});
+  const [bulkSending, setBulkSending] = useState(false);
+  const [bulkResult, setBulkResult] = useState<BulkResult[] | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -78,6 +89,34 @@ export default function InboxPanel() {
     say("deleted"); setSelected(null); await load();
   }
 
+  function toggleChecked(id: number): void {
+    setChecked((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  }
+  function closeBulk(): void {
+    setBulkOpen(false); setChecked(new Set()); setBulkBody(""); setBulkDrafts({}); setBulkResult(null);
+  }
+  const checkedRows = items.filter((m) => checked.has(m.id));
+  const bulkReady = bulkMode === "same" ? bulkBody.trim() !== "" : checkedRows.every((m) => (bulkDrafts[m.id] ?? "").trim() !== "");
+
+  async function sendBulk(): Promise<void> {
+    if (!bulkReady || checkedRows.length === 0) return;
+    setBulkSending(true);
+    setBulkResult(null);
+    const body = { items: checkedRows.map((m) => ({ id: m.id, body: bulkMode === "same" ? bulkBody : (bulkDrafts[m.id] ?? "") })) };
+    const r = await fetch("/api/admin/submissions/reply-bulk", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const data: { results?: BulkResult[]; error?: string } = await r.json().catch(() => ({}));
+    setBulkSending(false);
+    if (!r.ok) { say(data.error ?? "could not send", true); return; }
+    const results = data.results ?? [];
+    setBulkResult(results);
+    const okIds = results.filter((x) => x.ok).map((x) => x.id);
+    say(okIds.length === results.length ? `sent to all ${results.length}` : `sent to ${okIds.length} of ${results.length}`, okIds.length < results.length);
+    await load();
+    // failures stay selected so a retry is one click; sent ones drop off the list
+    setChecked(new Set(results.filter((x) => !x.ok).map((x) => x.id)));
+    if (okIds.length === results.length) closeBulk();
+  }
+
   return (
     <div onKeyDown={(e) => { if (e.key === "Escape") setSelected(null); }}>
       <Toolbar>
@@ -95,20 +134,77 @@ export default function InboxPanel() {
         <Empty icon="✉" text={items.length ? "No message matches that." : "Nothing here. Messages from the contact form land in this list."} />
       ) : (
         <>
+          {checked.size > 0 && (
+            <div className="sf sf--thin" style={{ marginBottom: 10 }}>
+              <div className="sf__in acts" style={{ alignItems: "center" }}>
+                <b>{checked.size} selected</b>
+                <Btn onClick={() => setChecked(new Set())}>clear</Btn>
+                <Btn kind="primary" onClick={() => setBulkOpen(true)}>reply to selected</Btn>
+              </div>
+            </div>
+          )}
           <div className="inbox">
             <div className="inbox__list">
               {page.map((m) => (
-                <button key={m.id} type="button" className={`msg${m.id === selected ? " is-on" : ""}${m.state === "new" ? " is-new" : ""}`} onClick={() => void open(m)}>
-                  <span className="msg__when">{when(m.createdAt)}</span>
-                  <strong>{m.name}</strong>
-                  <em>{m.subject}</em>
-                  <p>{m.message.slice(0, 90)}</p>
-                </button>
+                <div key={m.id} className="msg-row">
+                  <input
+                    type="checkbox" className="msg-row__pick" checked={checked.has(m.id)}
+                    onChange={() => toggleChecked(m.id)} aria-label={`select ${m.name}`}
+                  />
+                  <button type="button" className={`msg${m.id === selected ? " is-on" : ""}${m.state === "new" ? " is-new" : ""}`} onClick={() => void open(m)}>
+                    <span className="msg__when">{when(m.createdAt)}</span>
+                    <strong>{m.name}</strong>
+                    <em>{m.subject}</em>
+                    <p>{m.message.slice(0, 90)}</p>
+                  </button>
+                </div>
               ))}
             </div>
 
             <div className="sf sf--thin">
-              {current ? (
+              {bulkOpen ? (
+                <div className="sf__in dbox__pane">
+                  <div className="row__top">
+                    <h3>reply to {checkedRows.length} {checkedRows.length === 1 ? "person" : "people"}</h3>
+                    <Btn onClick={closeBulk}>back</Btn>
+                  </div>
+                  <div className="tbar__chips" style={{ margin: "10px 0" }}>
+                    <Chip on={bulkMode === "same"} onClick={() => setBulkMode("same")}>same message to everyone</Chip>
+                    <Chip on={bulkMode === "each"} onClick={() => setBulkMode("each")}>write one each</Chip>
+                  </div>
+
+                  {bulkMode === "same" ? (
+                    <Section title="message" tip="sent to each person individually — nobody selected ever sees anyone else's address.">
+                      <Area value={bulkBody} onChange={setBulkBody} placeholder="Hi, thanks for reaching out…" />
+                    </Section>
+                  ) : (
+                    checkedRows.map((m) => (
+                      <Section key={m.id} title={`${m.name} · ${m.subject}`}>
+                        <Area
+                          value={bulkDrafts[m.id] ?? ""}
+                          onChange={(v) => setBulkDrafts((d) => ({ ...d, [m.id]: v }))}
+                          placeholder={`Hi ${m.name.split(" ")[0] ?? ""},`}
+                        />
+                      </Section>
+                    ))
+                  )}
+
+                  <div className="acts" style={{ marginTop: 10 }}>
+                    <Btn kind="primary" size="md" disabled={bulkSending || !bulkReady} onClick={() => void sendBulk()}>
+                      {bulkSending ? "sending…" : `send to ${checkedRows.length}`}
+                    </Btn>
+                  </div>
+
+                  {bulkResult && (
+                    <ul className="hint" style={{ marginTop: 10, display: "grid", gap: 4 }}>
+                      {bulkResult.map((r) => {
+                        const m = items.find((x) => x.id === r.id);
+                        return <li key={r.id}>{m?.name ?? r.id}: {r.ok ? "sent" : (r.error ?? "failed")}</li>;
+                      })}
+                    </ul>
+                  )}
+                </div>
+              ) : current ? (
                 <div className="sf__in dbox__pane">
                   <div>
                     <div className="row__top">

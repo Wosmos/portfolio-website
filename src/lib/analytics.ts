@@ -19,6 +19,7 @@ export type EventName =
   | "deck_start"        // {}
   | "deck_flight"       // { id }
   | "deck_panel"        // { panel }
+  | "deck_quality"      // { tier, from, fps, auto } — what the adaptive pass decided for this machine
   | "easter_egg";       // { egg }
 
 type Value = string | number | boolean | null;

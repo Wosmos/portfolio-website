@@ -4,6 +4,7 @@
 import type { PlanetConfig, PlanetType, Project } from "@/data/portfolio";
 import type { RepoStar } from "@/lib/github";
 import type { ScaleMode } from "@/lib/scale";
+import type { LiveQuality, Quality } from "@/lib/ship/quality";
 
 /**
  * The planet parameters the admin gained after `PlanetConfig` was written. Every one is optional and a
@@ -55,10 +56,10 @@ export const MOON_MAX = 6;
  * in scene.ts because the server pages render the legend from the same list and must not pull three.js
  * into their bundle to agree with the shader about which moons exist.
  */
-export function visibleMoons(moons: readonly MoonConfig[] | undefined): readonly MoonConfig[] {
-  if (!moons || moons.length === 0) return [];
+export function visibleMoons(moons: readonly MoonConfig[] | undefined, max = MOON_MAX): readonly MoonConfig[] {
+  if (!moons || moons.length === 0 || max <= 0) return [];
   const on = moons.filter((m) => m.visible);
-  return on.length > MOON_MAX ? on.slice(0, MOON_MAX) : on;
+  return on.length > max ? on.slice(0, max) : on;
 }
 /**
  * Where a moon points. A moon is a folder in the repository, so clicking one on the reading site opens
@@ -131,6 +132,10 @@ export interface SystemOptions {
   reducedMotion?: boolean;
   /** The repositories that are not projects, drawn as the constellation layer. */
   repoStars?: readonly RepoStar[];
+  /** How much to draw. Defaults to the full picture, which is what the reading site's views expect. */
+  quality?: Quality;
+  /** The GPU took the context away. The scene stops; the caller says so and offers a reload. */
+  onContextLost?: () => void;
 }
 /** The flight-deck scene. Same surface the prototype's ship.js used. */
 export interface SystemApi {
@@ -141,6 +146,15 @@ export interface SystemApi {
   unfocus(done?: () => void): void; next(): void; prev(): void; focusedId(): string | null; isFlying(): boolean;
   cutaway(id: string, on: boolean): void; cutawayOpen(id: string): boolean; layersOf(id: string): readonly Layer[];
   layerAnchors(id: string): readonly LayerAnchor[]; highlightLayer(id: string | null | undefined, k: number): void;
+  /** Resolves once every program is compiled, so the first frame does not stall under the pilot. */
+  ready(): Promise<void>;
+  /** Something happened outside the canvas (a key, the wheel): hold full frame rate a moment longer. */
+  poke(): void;
+  /** Rendered frames per second over the next `ms`, with the idle throttle held off for the duration. */
+  sample(ms: number): Promise<number>;
+  /** Re-tune the knobs that need no rebuild. */
+  setLive(q: LiveQuality): void;
+  setReducedMotion(v: boolean): void;
   dispose(): void;
 }
 export interface PlanetViewOptions {

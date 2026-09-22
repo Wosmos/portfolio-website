@@ -46,6 +46,8 @@ html.is-deck :focus-visible { outline: 1px solid var(--cy); outline-offset: 3px;
 .boot__role { margin: 14px 0 0; font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: var(--fg-3); }
 .boot__log { margin: 0; height: 0; overflow: hidden; width: 0; color: transparent; }
 .boot__btn { margin-top: clamp(40px, 8vh, 72px); }
+.boot__note { margin: 16px 0 0; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--am); }
+.boot__note b { font-weight: 700; color: var(--fg); }
 .boot__log .ok, .boot__log .bad { color: transparent; }
 .switch { margin-top: 22px; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg-3); border-bottom: 1px solid transparent; transition: color .2s, border-color .2s; }
 .switch:hover { color: var(--cy); border-color: var(--cy); }
@@ -438,10 +440,10 @@ html.is-deck :focus-visible { outline: 1px solid var(--cy); outline-offset: 3px;
   .cmd { bottom: 54px; } .toast { bottom: 12px; }
   #dash { touch-action: none; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .grain, .hud__desc::after, .lamp.warn, .beacon i, .deck.is-flying { animation: none; }
-  .sheet, .grip__v, .lock { transition: none; }
-}
+/* Stillness is a class the deck sets, not the media query directly: `auto` follows the system, and
+   the pilot can override it either way with `a` — a stylesheet cannot know about the override. */
+html.is-still .grain, .deck.is-still .hud__desc::after, .deck.is-still .lamp.warn, .deck.is-still .beacon i, .deck.is-still.is-flying { animation: none; }
+.deck.is-still .sheet, .deck.is-still .grip__v, .deck.is-still .lock { transition: none; }
 
 /* ── solo: the planet and nothing else ───────────────────
    Not the Fullscreen API — Safari on iOS refuses it on anything but a video, and a phone is exactly

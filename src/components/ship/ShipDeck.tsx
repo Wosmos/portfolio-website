@@ -39,6 +39,7 @@ export default function ShipDeck({ initialTarget, lastPush = null, projects, orb
         <pre id="boot-log" className="boot__log" aria-live="polite" />
         <button id="start" className="sf sf--cta boot__btn" type="button"><span className="sf__in">press start</span></button>
         <a className="switch" href="/read" data-door="read">prefer to read? · résumé site →</a>
+        <p id="boot-still" className="boot__note" hidden>motion is reduced by your system · press <b>A</b> for full motion</p>
       </section>
 
       {/* cockpit */}
@@ -102,6 +103,7 @@ export default function ShipDeck({ initialTarget, lastPush = null, projects, orb
               <button className="sw" type="button" data-tour><i className="sw__led" /><b>T</b><span>tour ×8</span></button>
               <button className="sw" type="button" data-cmd><i className="sw__led" /><b>/</b><span>commands</span></button>
               <button id="snd" className="sw" type="button" aria-pressed="true"><i className="sw__led" /><b>S</b><span>sound</span></button>
+              <button id="qual" className="sw" type="button" title="How much to draw · auto measures this machine (q)"><i className="sw__led" /><b>Q</b><span>quality</span></button>
               <button id="gyro" className="sw sw--wide" type="button" hidden><i className="sw__led" /><b>◎</b><span>tilt view</span></button>
             </div>
             {/* the only place a scroll wheel or a drag changes the zoom */}

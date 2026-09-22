@@ -8,7 +8,8 @@ import { ev } from "@/lib/analytics";
 import { DEFAULT_ORBITS, eggFacts as staticFacts, person, projects as staticProjects, experience, skills, LANG_COLORS, type EggFact, type Project } from "@/data/portfolio";
 import type { Contributions, RepoStar } from "@/lib/github";
 import { createAudio, MUTE_KEY, storedMuted } from "@/lib/audio";
-import type { FlightEventInfo, FlightEventName, SceneSettings, SystemApi, SystemOptions } from "@/lib/three/types";
+import { liveOf, probeTier, QUALITY_AUTO_KEY, QUALITY_CEILING_KEY, QUALITY_KEY, readOverride, TIER_ORDER, TIERS, type Tier } from "@/lib/ship/quality";
+import type { FlightEventInfo, FlightEventName, Heading, SceneSettings, SystemApi, SystemOptions } from "@/lib/three/types";
 
 // ── public contract ─────────────────────────────────────
 export interface LastPush { repo: string; at: string }
@@ -178,7 +179,6 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   const anim = <T extends gsap.core.Animation>(a: T): T => { tweens.add(a); return a; };
 
   // ── environment ───────────────────────────────────────
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const finePointer = matchMedia("(pointer: fine)").matches;
   const WS_URL = new URLSearchParams(location.search).get("ws") || "wss://echo.websocket.org";
   const audio = createAudio({ muted: storedMuted() });
@@ -209,6 +209,101 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   const lastPush: LastPush | null = opts.lastPush && REPO_SLUG.test(opts.lastPush.repo) ? opts.lastPush : null;
   const blackBox = readBlackBox();
   const fps: Fps = { frames: 0, last: performance.now(), value: 0 };
+
+  // ── motion ────────────────────────────────────────────
+  // `prefers-reduced-motion` is honoured, but it is also what GTK reports whenever desktop animations
+  // are switched off, so a Linux visitor can land here with a frozen sky and no idea why. The pilot
+  // can override either way with `a`; the choice is remembered, and `auto` follows the system live.
+  const MOTION_KEY = "wsf-motion";
+  type MotionMode = "auto" | "on" | "off";
+  const motionMq = matchMedia("(prefers-reduced-motion: reduce)");
+  let motionMode: MotionMode = "auto";
+  try { const v = localStorage.getItem(MOTION_KEY); if (v === "on" || v === "off") motionMode = v; } catch { /* auto */ }
+  const wantsStill = (): boolean => (motionMode === "auto" ? motionMq.matches : motionMode === "off");
+  let reduced = wantsStill();
+  const bootStill = $("#boot-still");
+  function applyMotion(): void {
+    reduced = wantsStill();
+    deck.classList.toggle("is-still", reduced); html.classList.toggle("is-still", reduced);
+    // the note is for the pilot whose system asked for stillness and may not know that it did
+    bootStill.hidden = !(reduced && motionMq.matches);
+    system?.setReducedMotion(reduced);
+  }
+  function toggleMotion(): void {
+    motionMode = reduced ? "on" : "off";
+    storageSet("local", MOTION_KEY, motionMode);
+    applyMotion();
+    showToast(reduced ? "motion · reduced" : "motion · full", 1800);
+  }
+  const onMotionPref = (): void => { if (motionMode === "auto") applyMotion(); };
+  motionMq.addEventListener("change", onMotionPref);
+  disposers.push(() => motionMq.removeEventListener("change", onMotionPref));
+  applyMotion();
+
+  // ── quality ───────────────────────────────────────────
+  // The tier is chosen before the scene exists because some of it is geometry. `builtTier` is what the
+  // scene was built with; a later change re-tunes the live knobs and takes full effect on the next load.
+  let qualityOverride = readOverride();
+  let tier: Tier = qualityOverride === "auto" ? probeTier(gpuName()) : qualityOverride;
+  const builtTier: Tier = tier;
+  const qualBtn = $<HTMLButtonElement>("#qual");
+  // the label is the tier; the lit LED means the pilot pinned it, dark means the deck is choosing
+  function renderQuality(): void {
+    const label = qualBtn.querySelector("span");
+    if (label) label.textContent = tier;
+    qualBtn.classList.toggle("is-on", qualityOverride !== "auto");
+    qualBtn.title = qualityOverride === "auto" ? `quality · ${tier}, measured on this machine · q to pin one` : `quality · ${tier}, pinned · q to cycle`;
+  }
+  function applyTier(next: Tier, why: "auto" | "pilot"): void {
+    tier = next;
+    system?.setLive(liveOf(TIERS[next]));
+    renderQuality();
+    const partial = why === "pilot" && TIERS[next].sphereSeg !== TIERS[builtTier].sphereSeg;
+    showToast(`quality · ${next}${why === "auto" ? " · auto" : ""}${partial ? " · reload for the full change" : ""}`, 2400);
+  }
+  function cycleQuality(): void {
+    const order: readonly (Tier | "auto")[] = ["auto", "low", "mid", "high"];
+    qualityOverride = order[(order.indexOf(qualityOverride) + 1) % order.length];
+    if (qualityOverride === "auto") {
+      // back to auto is a fresh start: forget the pin and the ceiling, measure again
+      try { localStorage.removeItem(QUALITY_KEY); localStorage.removeItem(QUALITY_CEILING_KEY); } catch { /* cosmetic */ }
+      applyTier(probeTier(gpuName()), "auto");
+      void adapt();
+    } else {
+      storageSet("local", QUALITY_KEY, qualityOverride);
+      applyTier(qualityOverride, "pilot");
+    }
+  }
+  listen(qualBtn, "click", cycleQuality);
+  renderQuality();
+  /**
+   * Measure, then step. Three seconds of rendered frames once the ship is holding still: a machine
+   * that clears 55 has headroom for the next tier up; one under 40 is asked for less. Only `auto`
+   * adapts — a pilot who picked a tier keeps it — and the verdict is remembered for the next visit,
+   * which is when the geometry knobs catch up.
+   */
+  async function adapt(): Promise<void> {
+    if (!system || qualityOverride !== "auto") return;
+    while (!disposed && system && (system.isFlying() || document.hidden)) await wait(600);
+    if (disposed || !system) return;
+    let hid = false;
+    const onVis = (): void => { if (document.hidden) hid = true; };
+    document.addEventListener("visibilitychange", onVis);
+    const f = await system.sample(3000);
+    document.removeEventListener("visibilitychange", onVis);
+    if (disposed || !system || hid || f <= 0 || qualityOverride !== "auto") return;
+    const i = TIER_ORDER.indexOf(tier);
+    // a tier this machine has already been stepped down from is not offered again — without the
+    // ceiling a borderline laptop would climb one visit and fall the next, forever
+    let ceiling: Tier | null = null;
+    try { const c = localStorage.getItem(QUALITY_CEILING_KEY); if (c === "mid" || c === "high") ceiling = c; } catch { /* no ceiling */ }
+    const up = TIER_ORDER[i + 1], down = TIER_ORDER[i - 1];
+    const next: Tier = f >= 55 && up && up !== ceiling ? up : f < 40 && down ? down : tier;
+    if (next === down) storageSet("local", QUALITY_CEILING_KEY, tier);
+    storageSet("local", QUALITY_AUTO_KEY, next);
+    ev("deck_quality", { tier: next, from: tier, fps: Math.round(f), auto: true });
+    if (next !== tier) applyTier(next, "auto");
+  }
 
   /** Reading time for a fact, not a fixed guess: roughly 13 characters a second, comfortably slower
    *  than average reading pace, floored so even the shortest line holds a moment and capped so a long
@@ -330,10 +425,12 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     void connect(log);
     await wait(reduced ? 0 : 500);
     if (disposed) return;
-    anim(gsap.to(boot, { opacity: 0, duration: 0.7, ease: "power2.inOut", onComplete: () => { boot.style.display = "none"; } }));
+    // the boot screen stays up until every shader is compiled, so the first frame the pilot sees is smooth
     const ok = await initDeck();
     if (!ok || disposed) return;
+    anim(gsap.to(boot, { opacity: 0, duration: 0.7, ease: "power2.inOut", onComplete: () => { boot.style.display = "none"; } }));
     setThrottle(throttle);
+    timer(() => { void adapt(); }, 2200);
     stirred();
     timer(offerRotate, 2600);
     const hour = new Date().getHours();
@@ -343,7 +440,11 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (to) timer(() => select(to), reduced ? 100 : 1400);
   }
   listen(startBtn, "click", () => { void start(); });
-  listen(window, "keydown", (e) => { if (!started && (e.key === "Enter" || e.key === " ")) void start(); });
+  listen(window, "keydown", (e) => {
+    if (started || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === "Enter" || e.key === " ") void start();
+    if (e.key.toLowerCase() === "a") toggleMotion();   // the boot note says so
+  });
   if (opts.initialTarget) {
     // arrived via "fly there": skip the press-start wait; the audio context resumes on the first gesture
     $(".boot__btn .sf__in").textContent = "launching …";
@@ -438,12 +539,11 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   every(renderTele, 250);
 
   // ── radar ─────────────────────────────────────────────
-  function drawRadar(): void {
+  function drawRadar(h: Heading): void {
     const c = radarCanvas, g = c.getContext("2d"); if (!g) return;
     const W = c.width, H = c.height, cx = W / 2, cy = H / 2;
     g.clearRect(0, 0, W, H);
-    if (!system) return;
-    const h = system.heading(), scale = (W / 2 - 12) / 118;
+    const scale = (W / 2 - 12) / 118;
     g.strokeStyle = "rgba(0,229,255,.16)"; g.lineWidth = 1;
     for (const b of h.bodies) { g.beginPath(); g.arc(cx, cy, b.r * scale, 0, Math.PI * 2); g.stroke(); }
     g.fillStyle = "#ffc978"; g.beginPath(); g.arc(cx, cy, 3.5, 0, Math.PI * 2); g.fill();
@@ -486,11 +586,17 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     vel: { cx: number; top: number; mid: number; foot: number };
     thr: DashBox; nrg: DashBox; read: number;
   }
-  let dashDpr = 1, dashW = 0, dashH = 0;
+  let dashDpr = 1, dashW = 0, dashH = 0, dashDirty = true;
+  // the box is measured when it changes, not on every frame: a layout read a frame is a layout a frame
+  const dashRo = new ResizeObserver(() => { dashDirty = true; });
+  dashRo.observe(dashCanvas); disposers.push(() => dashRo.disconnect());
+  listen(window, "resize", () => { dashDirty = true; });   // a zoom changes the pixel ratio, not the box
 
   function sizeDash(): void {
+    if (!dashDirty) return;
     const r = dashCanvas.getBoundingClientRect();
     if (r.width < 40 || r.height < 30) return;
+    dashDirty = false;
     dashDpr = Math.min(2, devicePixelRatio || 1);
     dashW = Math.round(r.width); dashH = Math.round(r.height);
     const bw = Math.round(dashW * dashDpr), bh = Math.round(dashH * dashDpr);
@@ -564,11 +670,11 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   }
 
   // horizon ball · heading tape · throttle · energy · velocity
-  function drawDash(): void {
-    const c = dashCanvas; if (!system) return;
+  function drawDash(h: Heading): void {
+    const c = dashCanvas;
     const g = c.getContext("2d"); if (!g) return;
     sizeDash();
-    const L = dashLayout(), h = system.heading();
+    const L = dashLayout();
     g.setTransform(dashDpr, 0, 0, dashDpr, 0, 0);
     g.clearRect(0, 0, L.w, L.h);
     g.font = `10px ${MONO}`; g.textBaseline = "top";
@@ -665,9 +771,8 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   // the bracket is recomputed here from the scene's last camera, so a raw copy chatters by a frame;
   // easing it makes it settle, and lets it stay on the destination for the whole flight
   const lockAt = { x: 0, y: 0, px: 60, on: false };
-  function drawLock(dt: number): void {
+  function drawLock(dt: number, h: Heading): void {
     if (!system) return;
-    const h = system.heading();
     const held = current ? projects.indexOf(current) : -1;
     // mid-flight the bracket is the destination marker: the one thing that says where we are going
     const idx = h.flying ? held : h.hot >= 0 ? h.hot : held;
@@ -688,7 +793,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   }
 
   // ── cutaway callouts: one leader per layer, anchored on the cut face, labels stacked beside the planet ──
-  let coNodes: CalloutNode[] = [];
+  let coNodes: CalloutNode[] = [], coCardH = 52;
   const clearCallouts = (): void => { if (coNodes.length) { coSvg.innerHTML = ""; coLabels.innerHTML = ""; coNodes = []; } };
   function drawCallouts(): void {
     if (!system || !current) { clearCallouts(); return; }
@@ -711,13 +816,15 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
         lab.addEventListener("pointerleave", () => { system?.highlightLayer(current?.id, -1); lab.classList.remove("is-hi"); });
         coLabels.appendChild(lab); return { path, dot, dot2, lab };
       });
+      // measured once per set of cards, not once per frame — the read forces a layout
+      coCardH = coNodes[0]?.lab.offsetHeight || 52;
     }
     // labels live LEFT of the planet (the readout owns the right); shelf runs leftward, min one card apart
     const W = innerWidth;
     const minX = Math.min(...anchors.map((a) => a.x)); const colX = Math.max(W * 0.05, Math.min(minX - 110, W * 0.3));
     const order = anchors.map((a, i) => ({ a, i })).sort((p, q2) => p.a.y - q2.a.y);
     let lastY = -Infinity; const ys: number[] = new Array<number>(anchors.length).fill(0);
-    const cardH = coNodes[0]?.lab.offsetHeight || 52, STEP = cardH + 16;   // measured card height + gap
+    const STEP = coCardH + 16;   // card height + gap
     for (const { a, i } of order) { let y = a.y; if (y < lastY + STEP) y = lastY + STEP; ys[i] = y; lastY = y; }
     // centre the stack around the anchors' mean
     const mean = anchors.reduce((s, a) => s + a.y, 0) / anchors.length, meanY = ys.reduce((s, y) => s + y, 0) / ys.length, shift = mean - meanY;
@@ -734,9 +841,8 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   }
 
   // ── energy model: jumps cost, the sun recharges ──
-  function tickEnergy(dt: number): void {
-    if (!system) return;
-    const h = system.heading(), r = Math.hypot(h.pos.x, h.pos.z);
+  function tickEnergy(dt: number, h: Heading): void {
+    const r = Math.hypot(h.pos.x, h.pos.z);
     if (!h.flying) energy = clamp(energy + dt * (r < 40 ? 0.08 : 0.012), 0, 1);
   }
 
@@ -1150,7 +1256,10 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (!cmd.hidden) { if (e.key === "Escape") hideCmd(); return; }
     kIdx = e.key === KONAMI[kIdx] ? kIdx + 1 : e.key === KONAMI[0] ? 1 : 0;
     if (kIdx === KONAMI.length) { kIdx = 0; hyper(); findEgg("konami", "random"); return; }
+    system?.poke();
     const k = e.key.toLowerCase();
+    if (k === "q") cycleQuality();
+    if (k === "a") toggleMotion();
     if (e.key === "/") { e.preventDefault(); showCmd(); findEgg("cmdline", "random"); return; }
     if (e.key === "Escape") { if (panelOpen) { closePanel(); return; } if (sheetOpen()) { closeSheet(); return; } if (soloOn()) { setSolo(false); return; } abortTour(); if (system?.focusedId()) closeHud(true); }
     if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1);
@@ -1173,6 +1282,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   const COCKPIT = ".dash, .hud, .panel, .cmd, .toast, .deck__id, .callout-labels, .beacon, .rotate, .solo";
   listen(window, "wheel", (e) => {
     if (!system || panelOpen !== null || !cmd.hidden) return;
+    system.poke();
     const el = e.target instanceof Element ? e.target : null;
     if (el?.closest("#zoom")) { setThrottle(throttle + (e.deltaY < 0 ? 0.05 : -0.05)); return; }
     if (el?.closest(COCKPIT)) return;
@@ -1225,6 +1335,13 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     const labels = document.createElement("div"); labels.className = "orbit__labels"; deck.prepend(labels); labelsEl = labels;
     let flightFrom = "system", flightStart = 0;
     const sys = mod.createSystem({ canvas: orbitCanvas, labelsEl: labels, projects, scene: { ...opts.scene, orbits: ORBIT_AU }, repoStars: opts.repoStars, onSelect: select, onSunSelect: selectSun, reducedMotion: reduced,
+      quality: TIERS[tier],
+      onContextLost: () => {
+        if (disposed) return;
+        boot.style.display = ""; boot.style.opacity = "1";
+        log("x graphics context lost · reload to fly again", "bad");
+        showToast("the graphics context was lost · reload the page to fly again", 8000);
+      },
       onFlightEvent: (name: FlightEventName, info: FlightEventInfo) => {
         if (name === "launch") { audio.warp(2.6 / (info.dur || 2.6)); energy = clamp(energy - clamp(info.dist / 260, 0.06, 0.32), 0, 1); flightStart = performance.now(); }
         if (name === "launchBack") { audio.retro(2.6 / (info.dur || 2.6)); flightStart = performance.now(); }
@@ -1236,6 +1353,9 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
         }
       },
       onBeltLevel: (k: number) => { beltNear = k; audio.setLevel("belt", k); } });
+    log("> compiling shaders");
+    await sys.ready();
+    if (disposed) { sys.dispose(); return false; }
     system = sys;
     sys.setActive(true); sys.setScroll(0);
     renderTargets(); renderTele();
@@ -1245,13 +1365,17 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     // Nothing here checked whether the tab was even visible: the full scene, its bloom pass and this
     // instrument loop all ran at full rate in a backgrounded tab exactly as they would on screen — the
     // one page on the site that never had a reason to spare a laptop while it sat in another tab.
-    let lastT = performance.now();
+    let lastT = performance.now(), lastDraw = 0;
     const loop = (now: number): void => {
       rafId = window.requestAnimationFrame(loop);
       if (document.hidden) return;
-      const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
       fps.frames++; if (now - fps.last > 1000) { fps.value = fps.frames; fps.frames = 0; fps.last = now; }
-      tickEnergy(dt); drawRadar(); drawDash(); drawLock(dt); drawCallouts();
+      // one heading per frame for every instrument; it projects every moon, so four a frame was four times the work
+      const h = sys.heading();
+      // the instruments hold 30 fps while the ship is still — a radar sweep does not need 120 redraws a second
+      if (!h.flying && h.speed < 0.01 && now - lastDraw < 30) return;
+      const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now; lastDraw = now;
+      tickEnergy(dt, h); drawRadar(h); drawDash(h); drawLock(dt, h); drawCallouts();
     };
     loop(performance.now());
     listen(document, "visibilitychange", () => {
@@ -1276,7 +1400,8 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     gsap.killTweensOf([boot, deck, hud, panel, beacon]);
     for (const ws of sockets) { try { ws.close(); } catch { /* already closed */ } } sockets.clear();
     system?.dispose(); system = null;
-    deck.classList.remove("is-sheet", "is-refuse", "is-flying", "is-solo");
+    deck.classList.remove("is-sheet", "is-refuse", "is-flying", "is-solo", "is-still");
+    html.classList.remove("is-still");
     labelsEl?.remove(); labelsEl = null;
     clearCallouts();
     audio.setMuted(true); // AudioApi has no dispose; silence the orphaned context so nothing plays over the next route

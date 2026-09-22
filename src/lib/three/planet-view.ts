@@ -3,7 +3,8 @@
 // the same shader body the flight deck flies to. Ported from the prototype's planet-view.js.
 
 import * as THREE from "three";
-import { applyCut, disposeTree, makeBody, moonRadius, stepMoon, type Body } from "./scene";
+import { applyCut, disposeTree, makeBody, moonRadius, stepMoon, type Body, type BodyQuality } from "./scene";
+import { MOON_MAX } from "./types";
 import type {
   Layer, MoonConfig, MountOptions, PlanetStripApi, PlanetStripOptions, PlanetViewApi, PlanetViewOptions, ProjectFull,
 } from "./types";
@@ -21,14 +22,62 @@ function makeRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer {
   return renderer;
 }
 
+/**
+ * One WebGL context for every card planet on a page, instead of one each. Eight contexts is where
+ * browsers start evicting them — Chrome drops the oldest past sixteen, and a laptop GPU pays for
+ * every one it keeps — so the views render in turn into a single offscreen canvas and are copied onto
+ * their own canvas with a 2D `drawImage`, a texture copy the compositor does for nothing. Reference
+ * counted: the last view to go disposes the context.
+ */
+interface SharedTarget {
+  /** Draw `scene` at `w`×`h` CSS pixels and copy the result onto `dest`. */
+  blit(scene: THREE.Scene, camera: THREE.Camera, dest: HTMLCanvasElement, w: number, h: number): void;
+  release(): void;
+}
+let shared: { renderer: THREE.WebGLRenderer; canvas: HTMLCanvasElement; users: number; w: number; h: number } | null = null;
+function acquireShared(): SharedTarget {
+  if (!shared) {
+    const canvas = document.createElement("canvas");
+    shared = { renderer: makeRenderer(canvas), canvas, users: 0, w: 0, h: 0 };
+    shared.renderer.setScissorTest(true);
+  }
+  const s = shared;
+  s.users++;
+  let released = false;
+  return {
+    blit(scene, camera, dest, w, h) {
+      if (released || !shared) return;
+      // grow to the largest view on the page, never shrink: a resize reallocates the drawing buffer
+      if (w > s.w || h > s.h) { s.w = Math.max(s.w, w); s.h = Math.max(s.h, h); s.renderer.setSize(s.w, s.h, false); }
+      s.renderer.setViewport(0, 0, w, h); s.renderer.setScissor(0, 0, w, h);
+      s.renderer.clear();
+      s.renderer.render(scene, camera);
+      const g = dest.getContext("2d"); if (!g) return;
+      const pr = s.renderer.getPixelRatio(), sw = Math.round(w * pr), sh = Math.round(h * pr);
+      if (dest.width !== sw || dest.height !== sh) { dest.width = sw; dest.height = sh; }
+      g.clearRect(0, 0, sw, sh);
+      // GL's origin is the bottom-left, so the viewport sits at the bottom of the offscreen image
+      g.drawImage(s.canvas, 0, s.canvas.height - sh, sw, sh, 0, 0, sw, sh);
+    },
+    release() {
+      if (released) return; released = true;
+      s.users--;
+      if (s.users <= 0 && shared === s) { s.renderer.dispose(); shared = null; }
+    },
+  };
+}
+
+/** Cards are ~200 px across: three octaves and a 48-segment sphere are indistinguishable there. */
+const CARD_QUALITY: BodyQuality = { octaves: 3, lowShader: false, sphereSeg: 48, ringSeg: 160, moons: MOON_MAX };
+
 export function createPlanetView({ canvas, project, index = 0, interactive = true, cutaway = false, fit = 1, onCut, onHover, onMoonHover, onMoonPick }: PlanetViewOptions): PlanetViewApi {
-  const renderer = makeRenderer(canvas);
+  const target = acquireShared();
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 500);
   // no scene config here, so makeBody caps the radius against the default star — a stored size can
   // never draw a planet bigger than the sun on this side of the site either. `moons: true` is the only
-  // override, and it changes nothing else: every other field is left undefined and falls through.
-  const b = makeBody(project, index, { moons: true });
+  // behavioural override; a card also takes the lighter geometry, the project page the full one.
+  const b = makeBody(project, index, { moons: true, quality: cutaway ? undefined : CARD_QUALITY });
   // the sun is at the origin: put the body far along +z and the camera between the two, slightly above,
   // so the lit hemisphere faces us with the light over our shoulder
   const P = new THREE.Vector3(0, 0, 80);
@@ -55,10 +104,10 @@ export function createPlanetView({ canvas, project, index = 0, interactive = tru
   let moonHot = -1, moonLit = -1, moonsHidden = false;
   const moonW = new THREE.Vector3();
 
+  let vw = 200, vh = 200;
   function resize(): void {
-    const w = canvas.clientWidth || 200, h = canvas.clientHeight || 200;
-    renderer.setSize(w, h, false);
-    camera.aspect = w / h;
+    vw = canvas.clientWidth || 200; vh = canvas.clientHeight || 200;
+    camera.aspect = vw / vh;
     camera.updateProjectionMatrix();
     placeCamera();
   }
@@ -139,7 +188,7 @@ export function createPlanetView({ canvas, project, index = 0, interactive = tru
       u.uRingIn.value = b.size * b.cfg.ring.inner;
       u.uRingOut.value = b.size * b.cfg.ring.outer;
     }
-    renderer.render(scene, camera);
+    target.blit(scene, camera, canvas, vw, vh);
   }
   raf = requestAnimationFrame(frame);
 
@@ -260,7 +309,7 @@ export function createPlanetView({ canvas, project, index = 0, interactive = tru
       for (const fn of off) fn();
       canvas.removeAttribute("title");
       disposeTree(scene);
-      renderer.dispose();
+      target.release();
     },
   };
   return api;

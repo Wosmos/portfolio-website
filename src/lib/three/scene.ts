@@ -3,7 +3,7 @@
 // Ported from prototypes/ship/scene.js; `makeBody` is shared with planet-view.ts.
 
 import * as THREE from "three";
-import { lowPower } from "@/lib/device";
+import { liveOf, TIERS, type LiveQuality, type Quality } from "@/lib/ship/quality";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
@@ -12,11 +12,17 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { DEFAULT_ORBITS, LANG_COLORS } from "@/data/portfolio";
 import type { PlanetType, RingConfig } from "@/data/portfolio";
 import { arrange, clampPlanetSize, type Arrangement, type ScaleMode } from "@/lib/scale";
-import { visibleMoons } from "./types";
+import { MOON_MAX, visibleMoons } from "./types";
 import type {
   FlightEventName, Heading, HeadingMoon, Layer, LayerAnchor, MoonConfig, Pick, PlanetFull,
   ProjectFull, SystemApi, SystemOptions, Vec3,
 } from "./types";
+
+/** The knobs a body's own geometry and shaders read. Everything else about quality is the scene's. */
+export interface BodyQuality { octaves: Quality["octaves"]; lowShader: boolean; sphereSeg: Quality["sphereSeg"]; ringSeg: Quality["ringSeg"]; moons: Quality["moons"] }
+const FULL_BODY: BodyQuality = { octaves: 5, lowShader: false, sphereSeg: 72, ringSeg: 320, moons: MOON_MAX };
+/** `OCTAVES` and `LOW_Q` reach the GLSL as `#define`s, so a tier changes the program without a template. */
+const noiseDefines = (q: BodyQuality): Record<string, number> => (q.lowShader ? { OCTAVES: q.octaves, LOW_Q: 1 } : { OCTAVES: q.octaves });
 
 const BG = 0x06060a;
 const WHITE = new THREE.Color(0xfafafa);
@@ -43,6 +49,9 @@ const POSES: readonly (readonly [number, number])[] = [
 // ───────────────────────── shaders ─────────────────────────
 
 const NOISE = /* glsl */ `
+#ifndef OCTAVES
+#define OCTAVES 5
+#endif
 vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
 vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
 vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
@@ -66,7 +75,7 @@ float snoise(vec3 v){
   vec4 m=max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0); m=m*m;
   return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
 }
-float fbm(vec3 p){ float f=0.0, a=0.5; for(int i=0;i<5;i++){ f+=a*snoise(p); p*=2.02; a*=0.5; } return f; }
+float fbm(vec3 p){ float f=0.0, a=0.5; for(int i=0;i<OCTAVES;i++){ f+=a*snoise(p); p*=2.02; a*=0.5; } return f; }
 `;
 
 const V_WORLD = /* glsl */ `
@@ -122,7 +131,12 @@ void main(){
   vec3 p = normalize(vL);
   vec3 q = p * 2.0 + uSeed;
   float w1 = fbm(q + vec3(0.0, uTime * 0.01, 0.0));
+#ifdef LOW_Q
+  // three fbm calls a pixel buy the domain warp; a weak GPU gets the unwarped terrain instead
+  vec3 warp = vec3(0.0);
+#else
   vec3 warp = vec3(fbm(q + 1.7), fbm(q + 9.2), fbm(q + 4.1));
+#endif
   float n = fbm(q * 1.6 + warp * 0.9);
   // one tangent frame on the sphere, shared by the crust relief and the ocean swell
   vec3 t1 = normalize(cross(Ng, vec3(0.0, 1.0, 0.0)) + vec3(1e-3, 0.0, 0.0));
@@ -184,10 +198,12 @@ void main(){
     albedo = mix(land, mix(deep, mix(uC0, uC1, 0.55), shelf * 0.85), water);
     // wind-driven swell: sample the wave field at three points and tilt the normal along the gradient,
     // which is what turns the sun into a moving glint instead of a static hot spot
+#ifndef LOW_Q
     vec3 wq = p * 34.0 + vec3(uTime * 0.3, 0.0, uTime * -0.2);
     float s0 = snoise(wq), s1 = snoise(wq + t1 * 0.6), s2 = snoise(wq + t2 * 0.6);
     Ns = normalize(N - (t1 * (s1 - s0) + t2 * (s2 - s0)) * 0.5 * water);
     albedo *= 1.0 + 0.05 * s0 * water;
+#endif
     rough = mix(0.85, 0.05, water);
     sheen = water; night = 1.0;
     glint = water; relief = 0.42 * (1.0 - water);
@@ -211,6 +227,7 @@ void main(){
   // Crust relief. One octave of height differenced along the two tangents, which tilts the shading
   // normal into the slope: the terrain then lights itself instead of reading as paint on a ball. The
   // cloud deck below is deliberately applied after it, because cloud sits above the crust.
+#ifndef LOW_Q
   if (relief > 0.001) {
     vec3 hq = p * 11.0 + uSeed * 1.31;
     float e = 0.55;
@@ -218,6 +235,7 @@ void main(){
     N = normalize(Ng - (t1 * (h1 - h0) + t2 * (h2 - h0)) * relief * 0.7);
     albedo *= 0.94 + 0.12 * (h0 * 0.5 + 0.5);
   }
+#endif
   // dust rolls over a silt world where cloud would sit on the others, so the haze is tinted, not white
   bool dusty = uType > 4.5;
   float cl = uCloud * smoothstep(0.48, 0.78, fbm(p * 3.5 + vec3(uTime * 0.025, 0.0, 0.0) + warp * 0.5 + 11.0) * 0.5 + 0.5);
@@ -788,7 +806,14 @@ function ringProfile(ring: RingConfig, seed: number): THREE.DataTexture {
 }
 
 // ── planet body builder — shared by the flight deck and the reading site's planet views ──
-const sphereGeo = new THREE.SphereGeometry(1, 72, 72);
+// One unit sphere per segment count, shared by every planet, atmosphere and cutaway shell that asks for
+// it. `userData.shared` is how disposeTree knows to leave these alone.
+const sphereGeos = new Map<number, THREE.SphereGeometry>();
+function unitSphere(seg = 72): THREE.SphereGeometry {
+  let g = sphereGeos.get(seg);
+  if (!g) { g = new THREE.SphereGeometry(1, seg, seg); g.userData.shared = true; sphereGeos.set(seg, g); }
+  return g;
+}
 // cutaway builders
 export const cutUniforms = (): CutUniforms => ({ uCut: { value: 0 }, uCutC: { value: new THREE.Vector3() }, uCutX: { value: new THREE.Vector3(1, 0, 0) }, uCutZ: { value: new THREE.Vector3(0, 0, 1) } });
 function layerTexture(layers: readonly Layer[]): THREE.DataTexture {
@@ -809,8 +834,9 @@ export interface Cutaway {
   group: THREE.Group; shells: ShellMesh[]; faces: FaceMesh[]; faceH: FaceMesh; faceB: FaceMesh; layers: Layer[];
   /** eased 0→1 wedge opening */ amount: number; /** 0 closed · 1 open */ target: number; /** linear time 0→1 */ tm: number;
 }
-function buildCutaway(p: ProjectFull, size: number, i: number): Cutaway {
+function buildCutaway(p: ProjectFull, size: number, i: number, q: BodyQuality): Cutaway {
   const group = new THREE.Group(); group.visible = false;
+  const defines = noiseDefines(q);
   const source = p.langs.length > 0 ? p.langs : ([["Other", 100]] as const);
   const langs = source.slice().sort((a, b) => b[1] - a[1]);
   const total = langs.reduce((a, l) => a + l[1], 0);
@@ -821,14 +847,14 @@ function buildCutaway(p: ProjectFull, size: number, i: number): Cutaway {
   for (const [name, pct] of langs) { const r1 = 0.94 * Math.cbrt(cum / total); cum -= pct; const r0 = 0.94 * Math.cbrt(Math.max(0, cum) / total); layers.push({ name, pct, r0, r1, color: LANG_COLORS[name] ?? LANG_COLORS.Other }); }
   layers[layers.length - 1].r0 = 0;
   const shells = layers.map((L, k): ShellMesh => {
-    const m = new THREE.Mesh(sphereGeo, new ShaderMat<ShellUniforms>({ vertexShader: V_WORLD, fragmentShader: SHELL_FRAG, side: THREE.DoubleSide, transparent: true,
+    const m = new THREE.Mesh(unitSphere(q.sphereSeg), new ShaderMat<ShellUniforms>({ vertexShader: V_WORLD, fragmentShader: SHELL_FRAG, side: THREE.DoubleSide, transparent: true, defines,
       uniforms: { uColor: { value: new THREE.Color(L.color) }, uSeed: { value: i * 3.1 + k }, uTime: { value: 0 }, uAlpha: { value: 0 }, uHi: { value: 0 }, ...cutUniforms() } }));
     m.scale.setScalar(size * L.r1 * 0.985); m.material.polygonOffset = true; m.material.polygonOffsetFactor = -1 - k; m.material.polygonOffsetUnits = -1; m.renderOrder = 2 + k; group.add(m); return m;
   });
   const tex = layerTexture(layers);
-  const faceMat = (span: number) => new ShaderMat<FaceUniforms>({ vertexShader: V_WORLD, fragmentShader: FACE_FRAG, side: THREE.DoubleSide, transparent: true,
+  const faceMat = (span: number) => new ShaderMat<FaceUniforms>({ vertexShader: V_WORLD, fragmentShader: FACE_FRAG, side: THREE.DoubleSide, transparent: true, defines,
     uniforms: { uMap: { value: tex }, uR: { value: size * 0.94 }, uSeed: { value: i * 5.7 }, uAlpha: { value: 0 }, uSpan: { value: span } } });
-  const quarter = new THREE.CircleGeometry(size * 0.94 * 0.999, 96, 0, Math.PI / 2);
+  const quarter = new THREE.CircleGeometry(size * 0.94 * 0.999, Math.max(32, Math.round(q.sphereSeg * 4 / 3)), 0, Math.PI / 2);
   const faceA: FaceMesh = new THREE.Mesh(quarter, faceMat(2));                // vertical face at angle 0 (plane z=0, x>0, y>0)
   const faceB: FaceMesh = new THREE.Mesh(quarter, faceMat(2));                // vertical face at the moving angle (rotates with uCut)
   const faceH: FaceMesh = new THREE.Mesh(quarter, faceMat(0));                // horizontal face (y=0), span follows uCut
@@ -908,9 +934,9 @@ export interface MoonBody {
   labK: number;
 }
 
-/** The moons a row asks to draw: visible ones, in the order given, capped at `MOON_MAX`. */
-export function moonsOf(p: ProjectFull): readonly MoonConfig[] {
-  return visibleMoons(p.moons ?? p.planet.moons);
+/** The moons a row asks to draw: visible ones, in the order given, capped at `MOON_MAX` or the tier's cap. */
+export function moonsOf(p: ProjectFull, max = MOON_MAX): readonly MoonConfig[] {
+  return visibleMoons(p.moons ?? p.planet.moons, max);
 }
 
 /**
@@ -918,12 +944,12 @@ export function moonsOf(p: ProjectFull): readonly MoonConfig[] {
  * `phase` at zero — which detection has no reason to set — would stack every moon of a repository on
  * one point, so an unset phase is fanned out by index instead; a phase the admin actually chose wins.
  */
-function makeMoon(m: MoonConfig, i: number, k: number, of: number, planetSize: number, floor: number, shine: number): MoonBody {
+function makeMoon(m: MoonConfig, i: number, k: number, of: number, planetSize: number, floor: number, shine: number, defines: Record<string, number>): MoonBody {
   const size = planetSize * Math.min(Math.max(m.size, 0.04), MOON_SIZE_CAP);
   const dist = Math.max(planetSize * Math.min(Math.max(m.orbit, 1.15), 16), floor + size * 1.5);
   const base = new THREE.Color(m.colour);
   const mesh: ShaderMesh<THREE.SphereGeometry, MoonUniforms> = new THREE.Mesh(moonGeometry(),
-    new ShaderMat<MoonUniforms>({ vertexShader: V_WORLD, fragmentShader: MOON_FRAG,
+    new ShaderMat<MoonUniforms>({ vertexShader: V_WORLD, fragmentShader: MOON_FRAG, defines,
       uniforms: {
         uC0: { value: base.clone().multiplyScalar(0.7) },
         uC1: { value: base.clone().offsetHSL(0, -0.08, 0.16) },
@@ -983,6 +1009,8 @@ export interface BodyOverride {
   sunRadius?: number;
   /** Draw the row's moons. Off by default, so the reading site's views stay the geometry they were. */
   moons?: boolean;
+  /** Segment counts, noise octaves and the moon cap. Unset is the full picture. */
+  quality?: BodyQuality;
 }
 
 // One project → one body: tilt/spin groups, shader planet, atmosphere shell, cutaway group, optional ring.
@@ -997,15 +1025,18 @@ export function makeBody(p: ProjectFull, i: number, over?: BodyOverride): Body {
   const size = clampPlanetSize(cfg.size * PLANET_SCALE, over?.sunRadius ?? SUN_R_DEFAULT);
   const d = planetDefaults(i);
   const atmoT = cfg.atmo ?? d.atmo;
+  const q = over?.quality ?? FULL_BODY;
+  const defines = noiseDefines(q);
+  const sphereGeo = unitSphere(q.sphereSeg);
   // the moon count decides the planet's shader variant, so it has to be known before the material
-  const moonCfg = over?.moons ? moonsOf(p) : [];
+  const moonCfg = over?.moons ? moonsOf(p, q.moons) : [];
   const root = new THREE.Group();
 
   const tilt = new THREE.Group(); tilt.rotation.z = cfg.tilt === undefined ? d.tilt : cfg.tilt * DEG;
   const spin = new THREE.Group();
   tilt.add(spin); root.add(tilt);
 
-  const mat = new ShaderMat<PlanetUniforms>({ vertexShader: V_WORLD, fragmentShader: planetFrag(moonCfg.length),
+  const mat = new ShaderMat<PlanetUniforms>({ vertexShader: V_WORLD, fragmentShader: planetFrag(moonCfg.length), defines,
     uniforms: {
       uC0: { value: new THREE.Color(cfg.c0) }, uC1: { value: new THREE.Color(cfg.c1) }, uC2: { value: new THREE.Color(cfg.c2) }, uC3: { value: new THREE.Color(cfg.c3) },
       uRim: { value: new THREE.Color(cfg.rim) }, uType: { value: TYPE[cfg.type] }, uSeed: { value: cfg.seed ?? d.seed },
@@ -1019,13 +1050,13 @@ export function makeBody(p: ProjectFull, i: number, over?: BodyOverride): Body {
   const atmo = new THREE.Mesh(sphereGeo, new ShaderMat<AtmoUniforms>({ vertexShader: V_WORLD, fragmentShader: ATMO_FRAG, transparent: true, depthWrite: false, side: THREE.BackSide, blending: THREE.AdditiveBlending,
     uniforms: { uRim: { value: new THREE.Color(cfg.rim) }, uHot: { value: 0 }, uAlpha: { value: cfg.atmoAlpha ?? d.atmoAlpha }, ...cutUniforms() } }));
   atmo.scale.setScalar(size * (1 + atmoT)); root.add(atmo);
-  const cut = buildCutaway(p, size, i);
+  const cut = buildCutaway(p, size, i, q);
   root.add(cut.group);
 
   let ring: Body["ring"] = null;
   if (cfg.ring) {
     const inner = size * cfg.ring.inner, outer = size * cfg.ring.outer;
-    ring = new THREE.Mesh(new THREE.RingGeometry(inner, outer, 320, 1), new ShaderMat<RingUniforms>({ vertexShader: V_WORLD, fragmentShader: RING_FRAG, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+    ring = new THREE.Mesh(new THREE.RingGeometry(inner, outer, q.ringSeg, 1), new ShaderMat<RingUniforms>({ vertexShader: V_WORLD, fragmentShader: RING_FRAG, transparent: true, depthWrite: false, side: THREE.DoubleSide, defines,
       uniforms: { uMap: { value: ringProfile(cfg.ring, i) }, uInner: { value: inner }, uOuter: { value: outer }, uHot: { value: 0 }, uPlanet: { value: new THREE.Vector3() }, uPlanetR: { value: size }, uSeed: { value: i * 3.7 } } }));
     ring.rotation.x = Math.PI / 2 + cfg.ring.tilt;
     tilt.add(ring);
@@ -1039,7 +1070,7 @@ export function makeBody(p: ProjectFull, i: number, over?: BodyOverride): Body {
     const floor = size * Math.max(1 + atmoT, cfg.ring ? cfg.ring.outer + 0.12 : 0);
     moonRoot = new THREE.Group();
     for (let k = 0; k < moonCfg.length; k++) {
-      const mn = makeMoon(moonCfg[k], i, k, moonCfg.length, size, floor, cfg.rim);
+      const mn = makeMoon(moonCfg[k], i, k, moonCfg.length, size, floor, cfg.rim, defines);
       moons.push(mn); moonRoot.add(mn.mesh);
     }
     root.add(moonRoot);
@@ -1069,7 +1100,7 @@ export function disposeTree(root: THREE.Object3D): void {
   root.traverse((o) => {
     if (o instanceof THREE.Sprite) { disposeMaterial(o.material); return; }   // sprites share one static geometry
     if (o instanceof THREE.Mesh || o instanceof THREE.Line || o instanceof THREE.Points) {
-      const g: THREE.BufferGeometry = o.geometry; if (g !== sphereGeo && g !== moonGeoCache) g.dispose();
+      const g: THREE.BufferGeometry = o.geometry; if (g.userData.shared !== true && g !== moonGeoCache) g.dispose();
       const m: THREE.Material | THREE.Material[] = o.material; (Array.isArray(m) ? m : [m]).forEach(disposeMaterial);
     }
     if (o instanceof THREE.InstancedMesh) o.dispose();
@@ -1117,7 +1148,14 @@ interface Comet { active: boolean; t: number; dur: number; from: THREE.Vector3; 
 /** A ring for a body the arrangement says is ringed but whose row never drew one. */
 const arrangedRing = (p: ProjectFull): RingConfig => ({ ca: p.planet.c2, cb: p.planet.c3, inner: 1.42, outer: 2.35, tilt: 0.12 });
 
-export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars, onSelect, onSunSelect, onFlightEvent, onBeltLevel, reducedMotion = false }: SystemOptions): SystemApi {
+export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars, onSelect, onSunSelect, onFlightEvent, onBeltLevel, onContextLost, reducedMotion: reducedAtStart = false, quality = TIERS.high }: SystemOptions): SystemApi {
+  let reducedMotion = reducedAtStart;
+  // the knobs a tier can change after the fact; the rest of `quality` is baked into the geometry below
+  let live: LiveQuality = liveOf(quality);
+  const bodyQ: BodyQuality = { octaves: quality.octaves, lowShader: quality.lowShader, sphereSeg: quality.sphereSeg, ringSeg: quality.ringSeg, moons: quality.moons };
+  const defines = noiseDefines(bodyQ);
+  // click targets are never drawn, so they need only enough triangles for a raycast
+  const pickGeo = unitSphere(16);
   // everything the admin can change; anything it does not set keeps the original constant
   const FOV = cfg?.fov ?? FOV_DEFAULT;
   const orbitScale = cfg?.orbitScale ?? 1;
@@ -1140,9 +1178,11 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
   const ORBITS = projects.map((_, i) => (arranged ? bodyLayout(i).orbit : stored[i] ?? DEFAULT_ORBITS[i] ?? 20));
   const BELT_R = arranged ? layout.belt.radius : (cfg?.beltRadius ?? BELT_R_DEFAULT);
   const BELT_W = Math.max(0.5, arranged ? layout.belt.width : (cfg?.beltWidth ?? 9));
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: "high-performance" });
+  // `antialias` here is moot: the composer owns the render path, and its target's `samples` is the AA
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: "high-performance" });
   renderer.setClearColor(BG, 1);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+  const pixelRatio = () => Math.min(window.devicePixelRatio || 1, live.dpr);
+  renderer.setPixelRatio(pixelRatio());
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.95;
 
@@ -1156,12 +1196,12 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
 
   // nebula sky
   const nebula = new THREE.Mesh(new THREE.SphereGeometry(1700, 48, 32),
-    new ShaderMat<NebulaUniforms>({ vertexShader: NEBULA_VERT, fragmentShader: NEBULA_FRAG, side: THREE.BackSide, depthWrite: false,
+    new ShaderMat<NebulaUniforms>({ vertexShader: NEBULA_VERT, fragmentShader: NEBULA_FRAG, side: THREE.BackSide, depthWrite: false, defines,
       uniforms: { uA: { value: new THREE.Color(cfg?.nebulaA ?? 0x3b0764) }, uB: { value: new THREE.Color(cfg?.nebulaB ?? 0x0b2f6e) }, uTint: { value: nebulaTint }, uMix: { value: 0 }, uFade, uTime: { value: 0 } } }));
   scene.add(nebula);
 
   // twinkling stars
-  const STARS = Math.max(200, Math.min(20000, cfg?.starCount ?? 4200));
+  const STARS = Math.max(200, Math.min(20000, cfg?.starCount ?? 4200, quality.stars));
   const sp = new Float32Array(STARS * 3), sc = new Float32Array(STARS * 3), sph = new Float32Array(STARS), ssz = new Float32Array(STARS);
   for (let i = 0; i < STARS; i++) {
     const r = 620 + Math.random() * 640, th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1);
@@ -1179,22 +1219,25 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
   const starMat = new ShaderMat<StarUniforms>({ vertexShader: STAR_VERT, fragmentShader: STAR_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { uTime: { value: 0 }, uMap: { value: disc } } });
   const stars = new THREE.Points(starGeo, starMat);
   scene.add(stars);
-  // streak twin of the starfield (2 vertices per star)
-  const lp = new Float32Array(STARS * 6), lc = new Float32Array(STARS * 6), le = new Float32Array(STARS * 2), lph = new Float32Array(STARS * 2);
-  for (let i = 0; i < STARS; i++) for (let k = 0; k < 2; k++) {
-    lp.set(sp.subarray(i * 3, i * 3 + 3), (i * 2 + k) * 3); lc.set(sc.subarray(i * 3, i * 3 + 3), (i * 2 + k) * 3);
-    le[i * 2 + k] = k; lph[i * 2 + k] = sph[i];
+  // streak twin of the starfield (2 vertices per star); a tier without warp streaks never builds it
+  let streaks: THREE.LineSegments | null = null, streakMat: ShaderMat<StreakUniforms> | null = null;
+  if (quality.streaks) {
+    const lp = new Float32Array(STARS * 6), lc = new Float32Array(STARS * 6), le = new Float32Array(STARS * 2), lph = new Float32Array(STARS * 2);
+    for (let i = 0; i < STARS; i++) for (let k = 0; k < 2; k++) {
+      lp.set(sp.subarray(i * 3, i * 3 + 3), (i * 2 + k) * 3); lc.set(sc.subarray(i * 3, i * 3 + 3), (i * 2 + k) * 3);
+      le[i * 2 + k] = k; lph[i * 2 + k] = sph[i];
+    }
+    const streakGeo = new THREE.BufferGeometry();
+    streakGeo.setAttribute("position", new THREE.BufferAttribute(lp, 3));
+    streakGeo.setAttribute("aColor", new THREE.BufferAttribute(lc, 3));
+    streakGeo.setAttribute("aEnd", new THREE.BufferAttribute(le, 1));
+    streakGeo.setAttribute("aPhase", new THREE.BufferAttribute(lph, 1));
+    streakMat = new ShaderMat<StreakUniforms>({ vertexShader: STREAK_VERT, fragmentShader: STREAK_FRAG, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
+      uniforms: { uStretch: { value: 0 }, uVanish: { value: new THREE.Vector2(0, 0) }, uOpacity: { value: 0 }, uTime: { value: 0 } } });
+    streaks = new THREE.LineSegments(streakGeo, streakMat);
+    streaks.frustumCulled = false; streaks.visible = false;
+    stars.add(streaks); // inherits the slow sky rotation
   }
-  const streakGeo = new THREE.BufferGeometry();
-  streakGeo.setAttribute("position", new THREE.BufferAttribute(lp, 3));
-  streakGeo.setAttribute("aColor", new THREE.BufferAttribute(lc, 3));
-  streakGeo.setAttribute("aEnd", new THREE.BufferAttribute(le, 1));
-  streakGeo.setAttribute("aPhase", new THREE.BufferAttribute(lph, 1));
-  const streakMat = new ShaderMat<StreakUniforms>({ vertexShader: STREAK_VERT, fragmentShader: STREAK_FRAG, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
-    uniforms: { uStretch: { value: 0 }, uVanish: { value: new THREE.Vector2(0, 0) }, uOpacity: { value: 0 }, uTime: { value: 0 } } });
-  const streaks = new THREE.LineSegments(streakGeo, streakMat);
-  streaks.frustumCulled = false; streaks.visible = false;
-  stars.add(streaks); // inherits the slow sky rotation
 
   // ── constellations: one star per other repository, sized by its commit count, joined by main language.
   // Two draw calls behind everything else; with no repositories to draw the sky is the plain starfield.
@@ -1269,20 +1312,21 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
   const uPulse: U<number> = { value: 0 };          // flare(), shared by the photosphere and the corona
   const uCoronaK: U<number> = { value: cfg?.sunCorona ?? 1 };
   const uFlareK: U<number> = { value: cfg?.sunFlare ?? 1 };
-  const sunMat = new ShaderMat<SunUniforms>({ vertexShader: V_WORLD, fragmentShader: SUN_FRAG,
+  const sunMat = new ShaderMat<SunUniforms>({ vertexShader: V_WORLD, fragmentShader: SUN_FRAG, defines,
     uniforms: {
       uCore: { value: sunCore }, uMid: { value: sunMid }, uEdge: { value: sunEdge }, uTime: { value: 0 }, uFade,
       uGran: { value: cfg?.sunGranulation ?? 1 }, uLimb: { value: cfg?.sunLimb ?? 1 }, uSpots: { value: cfg?.sunSpots ?? 0 },
       uSpin: { value: cfg?.sunSpin ?? 1 }, uFlare: uFlareK, uPulse, uR: { value: SUN_R },
     } });
-  const sun = new THREE.Mesh(new THREE.SphereGeometry(SUN_R, 96, 96), sunMat);
+  const sunSeg = Math.round(quality.sphereSeg * 4 / 3);
+  const sun = new THREE.Mesh(new THREE.SphereGeometry(SUN_R, sunSeg, sunSeg), sunMat);
   scene.add(sun);
   // the corona shell, and an invisible sphere that keeps the star clickable when it is a speck
   const corona = new THREE.Mesh(new THREE.SphereGeometry(SUN_R * 4.0, 48, 32),
-    new ShaderMat<CoronaUniforms>({ vertexShader: V_WORLD, fragmentShader: CORONA_FRAG, side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    new ShaderMat<CoronaUniforms>({ vertexShader: V_WORLD, fragmentShader: CORONA_FRAG, side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, defines,
       uniforms: { uMid: { value: sunMid }, uEdge: { value: sunEdge }, uR: { value: SUN_R }, uTime: { value: 0 }, uFade, uCorona: uCoronaK, uFlare: uFlareK, uPulse } }));
   scene.add(corona);
-  const sunPick = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
+  const sunPick = new THREE.Mesh(pickGeo, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
   sunPick.scale.setScalar(Math.max(SUN_R * 1.02, 2.4));
   scene.add(sunPick);
   const coronaA = new THREE.Sprite(new THREE.SpriteMaterial({ map: disc, color: 0xff2bd6, transparent: true, opacity: 0.12, depthWrite: false, blending: THREE.AdditiveBlending }));
@@ -1307,7 +1351,7 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
   });
 
   // asteroid belt: rocks spread across BELT_W with a thin vertical scatter, tinted off one base colour
-  const BELT = Math.max(100, Math.min(8000, cfg?.beltDensity ?? 2200));
+  const BELT = Math.max(100, Math.min(8000, cfg?.beltDensity ?? 2200, quality.belt));
   const beltThick = Math.max(0, cfg?.beltThickness ?? 1.2);
   const rockK = Math.max(0.05, cfg?.beltRockSize ?? 1);
   const beltHex = cfg?.beltColor ?? 0x5a5e69;
@@ -1400,9 +1444,9 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
     // in an arranged mode the layout supplies the body; a ring is only ever added, never taken away,
     // because a stored ring is a drawing decision and its colours are not the arrangement's to guess
     const body = makeBody(p, i, arranged
-      ? { size: L.size, tilt: L.tilt, spin: L.spin, type: L.type, ring: L.ringed ? arrangedRing(p) : undefined, sunRadius: SUN_R, moons: true }
-      : { sunRadius: SUN_R, moons: true });
-    const pick = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
+      ? { size: L.size, tilt: L.tilt, spin: L.spin, type: L.type, ring: L.ringed ? arrangedRing(p) : undefined, sunRadius: SUN_R, moons: true, quality: bodyQ }
+      : { sunRadius: SUN_R, moons: true, quality: bodyQ });
+    const pick = new THREE.Mesh(pickGeo, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
     // a fat click target, but never so fat that neighbouring orbits overlap (they do at real scale)
     pick.scale.setScalar(Math.max(body.size * 1.3, Math.min(2.4, r * 0.35))); body.root.add(pick);
     scene.add(body.root);
@@ -1452,13 +1496,13 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
   // The composer owns the render path, so the renderer's own `antialias` never runs — every planet edge
   // and ring line crawls without this. three's default target is already HalfFloat; what it lacks is
   // multisampling, and that is the whole difference on a silhouette.
-  const aaSamples = lowPower() ? 0 : 4;
-  const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: aaSamples });
+  const rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: quality.msaa });
   const composer = new EffectComposer(renderer, rt);
   composer.addPass(new RenderPass(scene, camera));
   // Threshold 0.8 let a lit planet bloom, which is why every body wore a halo — a planet reflects light,
-// it does not emit it. At 1.15 only the star, its corona and the lava veins cross the line.
+  // it does not emit it. At 1.15 only the star, its corona and the lava veins cross the line.
   const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.5 * (cfg?.bloom ?? 1), 0.5, 1.15);
+  bloom.enabled = live.bloom;
   composer.addPass(bloom);
   const blurU: BlurUniforms = { tDiffuse: { value: null }, uStrength: { value: 0 }, uCenter: { value: new THREE.Vector2(0.5, 0.5) } };
   const blur = new ShaderPass(new ShaderMat<BlurUniforms>({ uniforms: blurU, vertexShader: POST_VERT, fragmentShader: RADIAL_BLUR_FRAG }));
@@ -1488,8 +1532,11 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
   const ndc = new THREE.Vector2(-10, -10), pointer = new THREE.Vector2(0, 0);
   const stage: HTMLElement = canvas.parentElement ?? canvas;
   const setNdc = (e: PointerEvent | MouseEvent) => { const rect = canvas.getBoundingClientRect(); ndc.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1); pointer.copy(ndc); };
+  // when the pilot last did anything; the idle throttle waits a moment after this before slowing down
+  let lastInput = performance.now();
   const onStageMove = (e: PointerEvent) => {
     setNdc(e);
+    lastInput = performance.now();
     if (dragging) {
       const dx = e.clientX - dragX, dy = e.clientY - dragY;
       if (Math.hypot(e.clientX - lastDragX, e.clientY - lastDragY) > dragSlop) dragMoved = true;
@@ -1503,6 +1550,7 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
   // raycast lights whatever is under the finger, whether or not this press turns into a drag
   const onCanvasDown = (e: PointerEvent) => {
     setNdc(e);
+    lastInput = performance.now();
     if (!active || sunFocus || flight.active) return;
     if (focusIdx >= 0 && !(bodies[focusIdx].cut.target > 0)) return;
     dragging = true; dragMoved = false; dragSlop = e.pointerType === "mouse" ? 6 : 14;
@@ -1574,13 +1622,28 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
   function resize() {
     const rect = stage.getBoundingClientRect();
     w = Math.max(1, rect.width); h = Math.max(1, rect.height);
-    renderer.setSize(w, h, false); composer.setSize(w, h); bloom.resolution.set(w, h);
+    // re-read every time: a window dragged from a Retina panel to an external display changes it
+    const pr = pixelRatio();
+    if (renderer.getPixelRatio() !== pr) { renderer.setPixelRatio(pr); composer.setPixelRatio(pr); }
+    renderer.setSize(w, h, false); composer.setSize(w, h);
+    // the composer just sized the bloom to the full frame; a tier may want it at a fraction of that
+    if (live.bloomScale < 1) bloom.setSize(Math.max(1, Math.round(w * pr * live.bloomScale)), Math.max(1, Math.round(h * pr * live.bloomScale)));
     camera.aspect = w / h;
     view.fit = Math.min(1.6, Math.max(1, 1.55 / camera.aspect));   // portrait: do not back off so far that planets vanish
     camera.updateProjectionMatrix();
   }
   const ro = new ResizeObserver(resize); ro.observe(stage);
   resize();
+  // The GPU can take the context away (another tab, a driver reset, a laptop lid). Without this handler
+  // the scene silently freezes; with it the deck gets to say so and offer a reload.
+  const onLost = (e: Event) => { e.preventDefault(); paused = true; onContextLost?.(); };
+  canvas.addEventListener("webglcontextlost", onLost);
+
+  // Every program compiled up front, in parallel where the driver allows, and nothing rendered until
+  // they are — otherwise the first frame links eight planet shaders and stalls for a second or more,
+  // and on Windows/ANGLE for considerably longer than that.
+  let compiled = false;
+  const ready: Promise<void> = renderer.compileAsync(scene, camera).then(() => { compiled = true; }, () => { compiled = true; });
 
   // ── flight
   let warp = 0, warpDir = 1, hyper = 1, tOrbit = 0, flash = 0, tunnel = 0, beltSide = 0, beltLevel = 0, tiltX = 0, tiltY = 0, flareT = 0, holdAngle = 0;
@@ -1682,6 +1745,11 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
 
   // ── frame loop
   let last = performance.now(), paused = false, raf = 0, t = 0, disposed = false;
+  // the idle throttle: at 30 fps idle every other display frame is skipped once nothing is moving
+  let lastRender = 0, prevHot = -1;
+  // sample(): counts rendered frames over a window, with the throttle held off so the count is honest
+  let sampling: { frames: number; start: number; ms: number; resolve: (fps: number) => void } | null = null;
+  function cutEasing(): boolean { if (focusIdx < 0) return false; const c = bodies[focusIdx].cut; return c.tm > 0 && c.tm < 1; }
   const scr = { x: 0, y: 0, z: 0 };
   function project(v: THREE.Vector3) { tmp2.copy(v).project(camera); scr.x = (tmp2.x * 0.5 + 0.5) * w; scr.y = (-tmp2.y * 0.5 + 0.5) * h; scr.z = tmp2.z; }
   const fovRad = () => (camera.fov * Math.PI) / 360;
@@ -1733,19 +1801,27 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
       // a picked moon keeps its name whatever it collides with: it is the one thing you asked to read
       if (lit) clear = 1;
       mn.labK += (clear - mn.labK) * Math.min(1, dt * 7);      // fade in and out of a collision, never blink
-      el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
+      const tf = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
+      if (el.style.transform !== tf) el.style.transform = tf;
       // a moon round the back is still named, just fainter, so the list and the view agree
-      el.style.opacity = String(Math.max(b.moonLab, lit ? 1 : 0) * mn.labK * (lit || mdist < dcam ? 1 : 0.4) * (scr.z < 1 ? 1 : 0) * (1 - Math.max(warp, tunnel)) * (1 - b.mix));
+      const op = (Math.max(b.moonLab, lit ? 1 : 0) * mn.labK * (lit || mdist < dcam ? 1 : 0.4) * (scr.z < 1 ? 1 : 0) * (1 - Math.max(warp, tunnel)) * (1 - b.mix)).toFixed(3);
+      if (el.style.opacity !== op) el.style.opacity = op;
     }
   }
 
   function frame(now: number) {
     if (disposed) return;
     raf = requestAnimationFrame(frame);
-    if (paused) { last = now; return; }
+    if (paused || !compiled) { last = now; return; }
+    // Idle: no flight, no drag, no warp, no wedge easing, nothing hovered lately, no sample running.
+    // On a 30 fps tier that is when every other frame is skipped; `last` is left alone so dt is honest.
+    if (live.idleFps < 60 && !sampling && !flight.active && !dragging && tunnel < 0.02 && warp < 0.02 && flareT < 0.01
+      && !cutEasing() && now - lastInput > 1500 && now - lastRender < 1000 / live.idleFps - 2) return;
     const dt = Math.min(0.05, (now - last) / 1000);
-    last = now;
-    if (!reducedMotion) t += dt;
+    last = now; lastRender = now;
+    // reduced motion keeps the surfaces alive at half speed — cloud drift and granulation are texture,
+    // not the movement of the viewport that the setting is asking to be spared
+    t += reducedMotion ? dt * 0.5 : dt;
     const focused = focusIdx >= 0 || sunFocus;
     const orbiting = !focused && !flight.active;
     const cutOpen = focusIdx >= 0 && bodies[focusIdx].cut.target > 0;
@@ -1772,6 +1848,7 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
     }
     hotHover = domHot >= 0 ? domHot : rayHot;
     hotIdx = focusIdx >= 0 ? focusIdx : hotHover;
+    if (hotIdx !== prevHot) { prevHot = hotIdx; lastInput = now; }   // a hover glow eases in at full rate
     canvas.style.cursor = moonHot !== null || rayHot >= 0 || sunHot ? "pointer" : dragging ? "grabbing" : orbiting && active ? "grab" : "";
 
     sunMat.uniforms.uTime.value = t;
@@ -1849,12 +1926,15 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
       project(b.pos);
       const px = (b.size * (b.ring ? 1.9 : 1.15) * h) / (2 * Math.tan(fovRad()) * b.pos.distanceTo(camPos));
       const labX = scr.x, labY = scr.y + px;
-      b.el.style.transform = `translate(${labX.toFixed(1)}px, ${labY.toFixed(1)}px) translate(-50%, 8px)`;
+      // style writes only when the string changes: eight labels plus their moons is a lot of styling
+      const tf = `translate(${labX.toFixed(1)}px, ${labY.toFixed(1)}px) translate(-50%, 8px)`;
+      if (b.el.style.transform !== tf) b.el.style.transform = tf;
       const show = orbiting && active && scr.z < 1 ? 1 : 0;
       const dcam = b.pos.distanceTo(camPos);
       const depth = i === hotIdx ? 1 : 1 - 0.5 * clamp01((dcam - view.radius * 0.95) / (view.radius * 0.5));
       const labA = (1 - b.mix) * show * (1 - Math.max(warp, tunnel)) * depth;
-      b.el.style.opacity = String(labA);
+      const op = labA.toFixed(3);
+      if (b.el.style.opacity !== op) b.el.style.opacity = op;
       b.el.classList.toggle("is-off", labA < 0.06);
 
       b.el.classList.toggle("is-hot", i === hotIdx);
@@ -1929,15 +2009,19 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
     // star streaks: the sky itself stretches away from the vanishing point in proportion to speed
     vanish.copy(camPos).addScaledVector(travelDir, 400).project(camera);
     const cx = clamp01(vanish.x * 0.5 + 0.5), cy = clamp01(vanish.y * 0.5 + 0.5);
-    streaks.visible = tunnel > 0.02;
-    if (streaks.visible) {
-      streakMat.uniforms.uVanish.value.set(vanish.x, vanish.y);
-      streakMat.uniforms.uStretch.value = (0.9 * tunnel * tunnel + 0.12 * tunnel) * (warpDir > 0 ? 1 : 0.7);
-      streakMat.uniforms.uOpacity.value = Math.min(1, tunnel * 1.6);
+    if (streaks && streakMat) {
+      streaks.visible = tunnel > 0.02;
+      if (streaks.visible) {
+        streakMat.uniforms.uVanish.value.set(vanish.x, vanish.y);
+        streakMat.uniforms.uStretch.value = (0.9 * tunnel * tunnel + 0.12 * tunnel) * (warpDir > 0 ? 1 : 0.7);
+        streakMat.uniforms.uOpacity.value = Math.min(1, tunnel * 1.6);
+      }
     }
     starMat.uniforms.uTime.value = t;
     stars.visible = true;
     blur.enabled = tunnel > 0.03;
+    // the grade pass is what draws the tunnel, so it runs in flight on every tier; idle, only where the tier pays for it
+    rgb.enabled = live.grade || tunnel > 0.02;
     if (blur.enabled) { blurU.uCenter.value.set(cx, cy); blurU.uStrength.value = 0.05 * tunnel * tunnel; }
     rgbU.uCenter.value.set(cx, cy);
     rgbU.uDim.value = 0.18 * tunnel;
@@ -1953,11 +2037,24 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
     if (Math.abs(lvl - beltLevel) > 0.02) { beltLevel = lvl; onBeltLevel?.(lvl); }
 
     composer.render();
+    if (sampling) {
+      sampling.frames++;
+      const ms = now - sampling.start;
+      if (ms >= sampling.ms) { sampling.resolve((sampling.frames * 1000) / ms); sampling = null; }
+    }
   }
   raf = requestAnimationFrame(frame);
 
   return {
     setPaused(v) { paused = v; if (!v) last = performance.now(); },
+    ready() { return ready; },
+    poke() { lastInput = performance.now(); },
+    sample(ms) {
+      if (sampling) return Promise.resolve(0);
+      return new Promise<number>((resolve) => { sampling = { frames: 0, start: performance.now(), ms, resolve }; });
+    },
+    setLive(q) { live = q; bloom.enabled = q.bloom; resize(); },
+    setReducedMotion(v) { reducedMotion = v; },
     setActive(v) { active = v; },
     setScroll(k) { view.scroll = k; },
     setThrottle(k) { view.throttle = Math.min(1, Math.max(-0.6, k)); },
@@ -2004,7 +2101,9 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
       ro.disconnect();
       stage.removeEventListener("pointermove", onStageMove); stage.removeEventListener("pointerleave", onStageLeave);
       canvas.removeEventListener("pointerdown", onCanvasDown); canvas.removeEventListener("click", onCanvasClick);
+      canvas.removeEventListener("webglcontextlost", onLost);
       window.removeEventListener("pointerup", onWindowUp);
+      sampling?.resolve(0); sampling = null;
       for (const b of bodies) { b.el.remove(); for (const ml of b.moonEls) ml.remove(); }
       canvas.style.cursor = ""; canvas.classList.remove("is-dragging");
       disposeTree(scene); disc.dispose(); streakTex.dispose();

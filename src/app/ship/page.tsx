@@ -91,7 +91,8 @@ export default async function ShipPage() {
           </ul>
         </nav>
       </div>
-      <ShipLoader lastPush={lastPush ? { repo: lastPush.repo, at: lastPush.at } : null} projects={bodies} orbits={orbits} scene={scene} activity={activity} facts={facts} repoStars={repoStars} />
+      <ShipLoader lastPush={lastPush ? { repo: lastPush.repo, at: lastPush.at } : null} projects={bodies} orbits={orbits} scene={scene} activity={activity} facts={facts} repoStars={repoStars}
+        pilot={{ cv: person.cv, positioning: person.positioning }} />
     </>
   );
 }

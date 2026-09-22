@@ -6,10 +6,11 @@ import { useEffect, useRef } from "react";
 import type { DeckOptions } from "@/lib/ship/deck";
 import "@/styles/ship.css";
 import { WMark, Wordmark } from "@/components/Mark";
+import ResumeLink from "@/components/read/ResumeLink";
 
 export type ShipDeckProps = DeckOptions;
 
-export default function ShipDeck({ initialTarget, lastPush = null, projects, orbits, scene, activity = null, facts, repoStars }: ShipDeckProps) {
+export default function ShipDeck({ initialTarget, lastPush = null, projects, orbits, scene, activity = null, facts, repoStars, pilot }: ShipDeckProps) {
   const root = useRef<HTMLDivElement>(null);
   // `?to=<id>` deep links from the reading site; read here so /ship can be prerendered
   const target = initialTarget ?? new URLSearchParams(typeof window === "undefined" ? "" : window.location.search).get("to") ?? undefined;
@@ -21,10 +22,10 @@ export default function ShipDeck({ initialTarget, lastPush = null, projects, orb
     let cancelled = false;
     void import("@/lib/ship/deck").then(({ mountDeck }) => {
       if (cancelled) return;
-      cleanup = mountDeck(el, { initialTarget: target, lastPush, projects, orbits, scene, activity, facts, repoStars });
+      cleanup = mountDeck(el, { initialTarget: target, lastPush, projects, orbits, scene, activity, facts, repoStars, pilot });
     });
     return () => { cancelled = true; cleanup?.(); };
-  }, [target, lastPush, projects, orbits, scene, activity, facts, repoStars]);
+  }, [target, lastPush, projects, orbits, scene, activity, facts, repoStars, pilot]);
 
   return (
     <div ref={root}>
@@ -36,9 +37,13 @@ export default function ShipDeck({ initialTarget, lastPush = null, projects, orb
         <WMark className="boot__w" height={160} />
         <Wordmark className="boot__mark" height={28} />
         <p className="boot__role">software engineer</p>
+        {pilot && <p className="boot__lede">{pilot.positioning}</p>}
         <pre id="boot-log" className="boot__log" aria-live="polite" />
         <button id="start" className="sf sf--cta boot__btn" type="button"><span className="sf__in">press start</span></button>
-        <a className="switch" href="/read" data-door="read">prefer to read? · résumé site →</a>
+        <div className="boot__doors">
+          <a className="switch" href="/read" data-door="read">prefer to read? · résumé site →</a>
+          {pilot && <ResumeLink className="switch" href={pilot.cv} from="boot">résumé pdf ↓</ResumeLink>}
+        </div>
         <p id="boot-still" className="boot__note" hidden>motion is reduced by your system · press <b>A</b> for full motion</p>
       </section>
 
@@ -142,7 +147,10 @@ export default function ShipDeck({ initialTarget, lastPush = null, projects, orb
         {/* top: ship id + wordmark */}
         <div className="deck__id"><WMark className="deck__w" height={22} /><div><b>WSF-01 · flight deck</b><span>pilot · wasif malik · software engineer</span></div></div>
         <Wordmark className="deck__mark" height={13} />
-        <a className="switch switch--deck" href="/read" data-door="read" title="The same content as a plain site">read →</a>
+        <div className="deck__links">
+          {pilot && <ResumeLink className="switch" href={pilot.cv} from="deck-top">résumé ↓</ResumeLink>}
+          <a className="switch" href="/read" data-door="read" title="The same content as a plain site">read →</a>
+        </div>
 
         {/* reticle + lock */}
         <div className="reticle" aria-hidden="true"><i /><i /><i /><i /></div>

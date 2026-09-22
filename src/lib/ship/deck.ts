@@ -30,6 +30,8 @@ export interface DeckOptions {
   facts?: readonly EggFact[];
   /** The other repositories, drawn as background constellations sized by commit count. */
   repoStars?: readonly RepoStar[];
+  /** The résumé URL and the one-line positioning from the profile row; the static record is the fallback. */
+  pilot?: { cv: string; positioning: string };
 }
 
 /** Root-scoped querySelector that throws instead of returning null. */
@@ -150,6 +152,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   const facts: readonly EggFact[] = opts.facts?.length ? opts.facts : staticFacts;
   const activity: Contributions | null = opts.activity ?? null;
   const ORBIT_AU: readonly number[] = opts.orbits?.length ? opts.orbits : DEFAULT_ORBITS;
+  const cv = opts.pilot?.cv ?? person.cv;
 
   // ── lifecycle bookkeeping ─────────────────────────────
   let disposed = false;
@@ -925,7 +928,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
       title: person.name, tag: "software engineer · the star at the centre of this system", desc: `${person.positioning} Every planet out here is something I shipped.`,
       mods: `<span class="hud__k">what i work with</span>` + skills.map((g, k) => `<div class="mod"><span>${pad2(k + 1)}</span><b>${g.group} · ${g.items.join(", ")}</b><i style="--w:${82 + ((k * 11) % 18)}%"></i></div>`).join(""),
       demo: `<span class="hud__k">get in touch</span><a href="mailto:${person.email}">${person.email}</a>`,
-      links: `<a href="${person.cv}" target="_blank" rel="noopener">resume ↓</a><a href="${person.github}" target="_blank" rel="noopener">github ↗</a><a href="${person.linkedin}" target="_blank" rel="noopener">linkedin ↗</a>`,
+      links: `<a href="${cv}" target="_blank" rel="noopener">resume ↓</a><a href="${person.github}" target="_blank" rel="noopener">github ↗</a><a href="${person.linkedin}" target="_blank" rel="noopener">linkedin ↗</a>`,
       range: "you found me" });
     $(".hud__title", hud).textContent = "";
   }
@@ -948,12 +951,24 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (!system || !current || system.isFlying()) return;
     const on = !system.cutawayOpen(current.id);
     system.cutaway(current.id, on);
+    if (on) ev("cutaway", { id: current.id, where: "deck" });
     $(".hud__cut", hud).classList.toggle("is-on", on);
     showToast(on ? `${current.title} opened up · ${current.langs.length} layers · drag to look around` : "closed", 1800);
     if (on) { cutOpen.add(current.id); if (cutOpen.size >= 3) findEgg("geologist", "me"); }
     if (on) audio.chord(); else audio.click();
   }
   listen($(".hud__cut", hud), "click", toggleCutaway);
+  // The readout and the panels rebuild their links with innerHTML, so the counting is delegated: which
+  // project's code or demo was opened, and whether the résumé went out — the two things the reading
+  // site already counts and the deck never did.
+  const countLink = (e: MouseEvent): void => {
+    const a = e.target instanceof Element ? e.target.closest<HTMLAnchorElement>("a[href]") : null;
+    if (!a) return;
+    if (a.href === cv) { ev("resume", { from: "deck" }); return; }
+    if (current && (a.href === current.github || (current.live && a.href === current.live))) ev("project_open", { id: current.id, from: "deck", to: a.href === current.github ? "github" : "live" });
+  };
+  listen(hud, "click", countLink);
+  listen(panel, "click", countLink);
   listen($(".hud__close", hud), "click", () => closeHud(true));
   listen($(".hud__next", hud), "click", () => step(1));
   listen($(".hud__prev", hud), "click", () => step(-1));
@@ -995,7 +1010,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
       <div class="dossier__stats">${stats.map(([v, k]) => `<div><b>${esc(v)}</b><span>${k}</span></div>`).join("")}</div>
       ${heatmapHtml()}
       <div class="loadout">${skills.map((g, i) => `<div class="loadout__g"><span class="loadout__n">${pad2(i + 1)}</span><span class="loadout__k">${esc(g.group)}</span><ul>${g.items.map((x) => `<li class="sf sf--chip"><span class="sf__in">${esc(x)}</span></li>`).join("")}</ul></div>`).join("")}</div>
-      <div class="dossier__foot"><span>base · <b>${esc(person.location)}</b></span><span>${esc(person.tzLabel)}</span><a href="${esc(person.cv)}" target="_blank" rel="noopener">résumé ↓</a><a href="${esc(person.github)}" target="_blank" rel="noopener">github ↗</a><a href="mailto:${esc(person.email)}">email ↗</a></div>
+      <div class="dossier__foot"><span>base · <b>${esc(person.location)}</b></span><span>${esc(person.tzLabel)}</span><a href="${esc(cv)}" target="_blank" rel="noopener">résumé ↓</a><a href="${esc(person.github)}" target="_blank" rel="noopener">github ↗</a><a href="mailto:${esc(person.email)}">email ↗</a></div>
     </div>`;
     },
     log: () => `<div class="log">${experience.map((x, i) => `<div class="mission sf sf--thin"><div class="sf__in">
@@ -1004,7 +1019,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
       <ul class="mission__sys">${x.stack.map((s) => `<li class="sf sf--chip"><span class="sf__in">${s}</span></li>`).join("")}</ul></div></div>`).join("")}</div>`,
     comms: () => `<div class="comms"><span class="hud__k">email me · i reply within a day</span>
       <div class="comms__mail"><span>${person.email}</span><button type="button" data-copy>copy</button></div>
-      <div class="comms__links"><a href="${person.github}" target="_blank" rel="noopener">github ↗</a><a href="${person.linkedin}" target="_blank" rel="noopener">linkedin ↗</a><a href="${person.hashnode}" target="_blank" rel="noopener">hashnode ↗</a><a href="${person.cv}" target="_blank" rel="noopener">resume ↓</a><a href="https://www.npmjs.com/package/${person.npmCard}" target="_blank" rel="noopener">npx ${person.npmCard} ↗</a></div></div>`,
+      <div class="comms__links"><a href="${person.github}" target="_blank" rel="noopener">github ↗</a><a href="${person.linkedin}" target="_blank" rel="noopener">linkedin ↗</a><a href="${person.hashnode}" target="_blank" rel="noopener">hashnode ↗</a><a href="${cv}" target="_blank" rel="noopener">resume ↓</a><a href="https://www.npmjs.com/package/${person.npmCard}" target="_blank" rel="noopener">npx ${person.npmCard} ↗</a></div></div>`,
     diag: () => {
       const h = system?.heading();
       const pos = h ? `${h.pos.x.toFixed(1)}, ${h.pos.y.toFixed(1)}, ${h.pos.z.toFixed(1)}` : "—", hdg = h ? `${deg360(h.theta).toFixed(0)}°` : "—";

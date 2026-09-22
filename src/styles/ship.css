@@ -49,9 +49,13 @@ html.is-deck :focus-visible { outline: 1px solid var(--cy); outline-offset: 3px;
 .boot__note { margin: 16px 0 0; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--am); }
 .boot__note b { font-weight: 700; color: var(--fg); }
 .boot__log .ok, .boot__log .bad { color: transparent; }
+.boot__lede { margin: 18px 0 0; max-width: 48ch; font-size: 13px; line-height: 1.65; color: var(--fg-2); text-wrap: balance; }
 .switch { margin-top: 22px; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg-3); border-bottom: 1px solid transparent; transition: color .2s, border-color .2s; }
 .switch:hover { color: var(--cy); border-color: var(--cy); }
-.switch--deck { position: absolute; top: 40px; right: calc(7% + 110px); margin: 0; z-index: 5; transform: translate(calc(var(--tx) * .6), calc(var(--ty) * .6)); }
+.boot__doors { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 26px; }
+/* the two ways out of the deck, top right: the plain site, and the one-page version of the pilot */
+.deck__links { position: absolute; top: 40px; right: calc(7% + 110px); display: flex; gap: 20px; z-index: 5; transform: translate(calc(var(--tx) * .6), calc(var(--ty) * .6)); }
+.deck__links .switch { margin: 0; }
 
 /* ─── cockpit ─── */
 .deck { position: fixed; inset: 0; z-index: 10; pointer-events: none; opacity: 0; }
@@ -320,7 +324,9 @@ html.is-deck :focus-visible { outline: 1px solid var(--cy); outline-offset: 3px;
   .dossier__id { grid-template-columns: auto 1fr; } .dossier__st { grid-column: 1 / -1; justify-self: start; }
   .loadout__g { grid-template-columns: 1fr; gap: 4px; }
   .pilot { grid-template-columns: 1fr; }
-  .deck__id { top: 12px; left: 12px; } .deck__id span { display: none; } .deck__mark { top: 17px; right: 12px; } .switch--deck { top: 14px; right: 88px; }
+  /* two rows: the nameplate and the solo button share the first, the links and the wordmark the second —
+     on one row the four of them landed on top of each other */
+  .deck__id { top: 12px; left: 12px; } .deck__id span { display: none; } .deck__mark { top: 48px; right: 12px; } .deck__links { top: 46px; right: 90px; gap: 14px; }
 
   .dash { top: auto; bottom: 0; height: auto; gap: 6px; padding: 0 8px calc(8px + env(safe-area-inset-bottom, 0px));
     grid-template-columns: 1fr; grid-template-areas: "grip" "rail"; transform: none; }
@@ -433,7 +439,7 @@ html.is-deck :focus-visible { outline: 1px solid var(--cy); outline-offset: 3px;
   .screen { padding: 6px 7px; }
   .screen__k { margin-bottom: 4px; font-size: 8.5px; }
   .deck__id { top: 8px; left: calc(var(--flank) + 22px); } .deck__id span { display: none; }
-  .deck__mark { top: 12px; right: calc(var(--flank) + 22px); } .switch--deck { top: 10px; right: calc(var(--flank) + 96px); }
+  .deck__mark { top: 12px; right: calc(var(--flank) + 22px); } .deck__links { top: 10px; right: calc(var(--flank) + 96px); gap: 14px; }
   .hud { top: 8px; bottom: 8px; right: calc(var(--flank) + 14px); left: auto; width: min(360px, 46vw); height: auto; }
   .panel { top: 8px; bottom: 8px; left: 50%; right: auto; transform: translateX(-50%); height: auto;
     width: min(600px, calc(100vw - 2 * var(--flank) - 44px)); }
@@ -468,7 +474,7 @@ html.is-still .grain, .deck.is-still .hud__desc::after, .deck.is-still .lamp.war
 .deck.is-solo .panel,
 .deck.is-solo .deck__id,
 .deck.is-solo .deck__mark,
-.deck.is-solo .switch--deck,
+.deck.is-solo .deck__links,
 .deck.is-solo .hint,
 .deck.is-solo .reticle,
 .deck.is-solo .callout-labels,

@@ -9,8 +9,8 @@ import { track } from "@vercel/analytics";
 
 export type EventName =
   | "door"              // { door: "read" | "fly" }
-  | "resume"            // { from: string } — the résumé PDF was opened
-  | "project_open"      // { id, from }
+  | "resume"            // { from: string } — the résumé PDF was opened (hero, header, gate, boot, deck-top, deck)
+  | "project_open"      // { id, from, to?: "github" | "live" }
   | "cutaway"           // { id, where: "read" | "deck" }
   | "moon_open"         // { id, folder } — a moon was clicked, opening that folder on github
   | "planet_drag"       // { id }

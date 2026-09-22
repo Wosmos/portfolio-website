@@ -89,6 +89,8 @@ export default async function ReadHome() {
         <div>
           <p className="k"><i className="live" />open to remote roles · <LocalTime tz={person.tz} location={person.location} /></p>
           <h1 style={{ marginTop: 16 }}><span className="name">{person.name}</span><span className="sub">software engineer · go · systems · next.js</span></h1>
+          {/* the one line a recruiter reads before deciding whether to read the rest */}
+          <p className="hero__lede">{person.positioning}</p>
           <p className="hero__p">{person.summary}</p>
           <div className="hero__row">
             <Link className="sf sf--btn" href="/read/contact"><span className="sf__in">get in touch</span></Link>

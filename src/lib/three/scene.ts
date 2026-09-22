@@ -1148,7 +1148,7 @@ interface Comet { active: boolean; t: number; dur: number; from: THREE.Vector3; 
 /** A ring for a body the arrangement says is ringed but whose row never drew one. */
 const arrangedRing = (p: ProjectFull): RingConfig => ({ ca: p.planet.c2, cb: p.planet.c3, inner: 1.42, outer: 2.35, tilt: 0.12 });
 
-export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars, onSelect, onSunSelect, onFlightEvent, onBeltLevel, onContextLost, reducedMotion: reducedAtStart = false, quality = TIERS.high }: SystemOptions): SystemApi {
+export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars, onSelect, onSunSelect, onFlightEvent, onBeltLevel, onContextLost, reducedMotion: reducedAtStart = false, quality = TIERS.high, routes: routeLinks = [] }: SystemOptions): SystemApi {
   let reducedMotion = reducedAtStart;
   // the knobs a tier can change after the fact; the rest of `quality` is baked into the geometry below
   let live: LiveQuality = liveOf(quality);
@@ -1489,6 +1489,82 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
       orbitPos: new THREE.Vector3(), stackPos: new THREE.Vector3(), pos: new THREE.Vector3() };
   });
   bodies.forEach((b, i) => { const t = bodies.length === 1 ? 0.5 : i / (bodies.length - 1); b.stackPos.set(-60, 32 - t * 64, 14); });
+
+  // ── trade routes: one LineSegments for every pair, rewritten each frame because the planets move.
+  // An arc, not a chord — lifted off the ecliptic in proportion to its length and bowed away from the
+  // star when the straight line would pass through it, the same way a flight path is. The low tier
+  // builds none: it is the tier that cannot spare the fill.
+  const ROUTE_SEG = 24;
+  interface RouteGeo { a: number; b: number; w: number }
+  const routeGeos: RouteGeo[] = quality.tier === "low" ? [] : routeLinks
+    .map((l) => ({ a: bodies.findIndex((b) => b.p.id === l.a), b: bodies.findIndex((b) => b.p.id === l.b), w: l.weight }))
+    .filter((r) => r.a >= 0 && r.b >= 0);
+  const routeMaxW = routeGeos.reduce((m, r) => Math.max(m, r.w), 1);
+  let routeLines: THREE.LineSegments | null = null;
+  let routePos: THREE.BufferAttribute | null = null, routeColAttr: THREE.BufferAttribute | null = null;
+  if (routeGeos.length > 0) {
+    const n = routeGeos.length * ROUTE_SEG * 2;
+    routePos = new THREE.BufferAttribute(new Float32Array(n * 3), 3); routePos.setUsage(THREE.DynamicDrawUsage);
+    routeColAttr = new THREE.BufferAttribute(new Float32Array(n * 3), 3);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", routePos); g.setAttribute("color", routeColAttr);
+    routeLines = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+    routeLines.frustumCulled = false; routeLines.renderOrder = -1; routeLines.visible = false;
+    routeLines.raycast = () => undefined;
+    scene.add(routeLines);
+  }
+  let routesOn = false, routesK = 0, routeFocusId: string | null = null, routeColorsDirty = true;
+  const routeCol = new THREE.Color();
+  /** Vertex colours carry the per-route brightness; the material's opacity carries the fade in and out. */
+  function paintRoutes(): void {
+    if (!routeColAttr) return;
+    const arr = routeColAttr.array;
+    routeGeos.forEach((r, ri) => {
+      const ida = bodies[r.a].p.id, idb = bodies[r.b].p.id;
+      const mine = routeFocusId !== null && (ida === routeFocusId || idb === routeFocusId);
+      const k = r.w / routeMaxW;
+      // nothing held: every route at a modest weight-scaled glow. Something held: its routes bright,
+      // the others down to a trace if the pilot asked for all of them, off entirely if not.
+      const level = routeFocusId === null ? 0.18 + 0.32 * k : mine ? 0.5 + 0.5 * k : routesOn ? 0.05 : 0;
+      routeCol.copy(mine ? WHITE : NEON_B).lerp(NEON_B, mine ? 0.55 : 1).multiplyScalar(level);
+      const base = ri * ROUTE_SEG * 2 * 3;
+      for (let v = 0; v < ROUTE_SEG * 2; v++) { arr[base + v * 3] = routeCol.r; arr[base + v * 3 + 1] = routeCol.g; arr[base + v * 3 + 2] = routeCol.b; }
+    });
+    routeColAttr.needsUpdate = true; routeColorsDirty = false;
+  }
+  const routeA = new THREE.Vector3(), routeB = new THREE.Vector3(), routeC = new THREE.Vector3(), routeP = new THREE.Vector3(), routeQ = new THREE.Vector3(), routeAway = new THREE.Vector3();
+  function updateRoutes(dt: number): void {
+    if (!routeLines || !routePos) return;
+    const want = routesOn || routeFocusId !== null ? 1 : 0;
+    routesK += (want - routesK) * Math.min(1, dt * 3);
+    routeLines.visible = routesK > 0.01;
+    if (!routeLines.visible) return;
+    if (routeColorsDirty) paintRoutes();
+    const arr = routePos.array;
+    routeGeos.forEach((r, ri) => {
+      routeA.copy(bodies[r.a].pos); routeB.copy(bodies[r.b].pos);
+      const dist = routeA.distanceTo(routeB);
+      routeC.lerpVectors(routeA, routeB, 0.5);
+      // bow away from the star when the chord would cross it
+      routeAway.copy(routeC).setY(0);
+      const near = routeAway.length();
+      if (near > 1e-3) routeAway.divideScalar(near);
+      const clearance = SUN_R * 1.6;
+      if (near < clearance) routeC.addScaledVector(routeAway, (clearance - near) * 1.2);
+      routeC.addScaledVector(UP, 1.5 + 0.22 * dist);
+      const base = ri * ROUTE_SEG * 2 * 3;
+      for (let s = 0; s < ROUTE_SEG; s++) {
+        bezier(routeA, routeC, routeB, s / ROUTE_SEG, routeP);
+        bezier(routeA, routeC, routeB, (s + 1) / ROUTE_SEG, routeQ);
+        const o = base + s * 6;
+        arr[o] = routeP.x; arr[o + 1] = routeP.y; arr[o + 2] = routeP.z;
+        arr[o + 3] = routeQ.x; arr[o + 4] = routeQ.y; arr[o + 5] = routeQ.z;
+      }
+    });
+    routePos.needsUpdate = true;
+    const mat = routeLines.material as THREE.LineBasicMaterial;
+    mat.opacity = routesK * (reducedMotion ? 0.9 : 0.82 + 0.18 * Math.sin(t * 1.3));
+  }
 
   const travelDir = new THREE.Vector3(0, 0, -1);
 
@@ -1940,6 +2016,7 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
       b.el.classList.toggle("is-hot", i === hotIdx);
       if (b.moons.length > 0) updateMoons(b, i, dt, labX, labY);
     }
+    updateRoutes(dt);
     rings.forEach((rg, i) => {
       const src = bodies[i];
       rg.hot += ((src ? src.hot : 0) - rg.hot) * Math.min(1, dt * 6);
@@ -2055,6 +2132,8 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
     },
     setLive(q) { live = q; bloom.enabled = q.bloom; resize(); },
     setReducedMotion(v) { reducedMotion = v; },
+    routes(on) { routesOn = on; routeColorsDirty = true; },
+    routeFocus(id) { if (routeFocusId === id) return; routeFocusId = id; routeColorsDirty = true; },
     setActive(v) { active = v; },
     setScroll(k) { view.scroll = k; },
     setThrottle(k) { view.throttle = Math.min(1, Math.max(-0.6, k)); },

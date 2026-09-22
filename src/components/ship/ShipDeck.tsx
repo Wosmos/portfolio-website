@@ -106,6 +106,7 @@ export default function ShipDeck({ initialTarget, lastPush = null, projects, orb
               <button className="sw" type="button" data-panel="log"><i className="sw__led" /><b>M</b><span>experience</span></button>
               <button className="sw" type="button" data-panel="comms"><i className="sw__led" /><b>C</b><span>contact</span></button>
               <button className="sw" type="button" data-tour><i className="sw__led" /><b>T</b><span>tour ×8</span></button>
+              <button className="sw" type="button" data-routes title="Arcs between planets that share technology (r)"><i className="sw__led" /><b>R</b><span>trade routes</span></button>
               <button className="sw" type="button" data-cmd><i className="sw__led" /><b>/</b><span>commands</span></button>
               <button id="snd" className="sw" type="button" aria-pressed="true"><i className="sw__led" /><b>S</b><span>sound</span></button>
               <button id="qual" className="sw" type="button" title="How much to draw · auto measures this machine (q)"><i className="sw__led" /><b>Q</b><span>quality</span></button>
@@ -182,6 +183,7 @@ export default function ShipDeck({ initialTarget, lastPush = null, projects, orb
               <p className="hud__tag" />
               <p className="hud__desc" />
               <div className="hud__comp" />
+              <div className="hud__routes" />
               <div className="hud__mods" />
               <div className="hud__demo sf sf--thin"><div className="sf__in" /></div>
               <div className="hud__links" />

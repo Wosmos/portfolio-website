@@ -9,8 +9,9 @@ import { DEFAULT_ORBITS, eggFacts as staticFacts, person, projects as staticProj
 import type { Contributions, RepoStar } from "@/lib/github";
 import { createAudio, MUTE_KEY, storedMuted } from "@/lib/audio";
 import { createBriefing } from "@/lib/ship/briefing";
+import { computeRoutes, routesFor } from "@/lib/ship/routes";
 import { liveOf, probeTier, QUALITY_AUTO_KEY, QUALITY_CEILING_KEY, QUALITY_KEY, readOverride, TIER_ORDER, TIERS, type Tier } from "@/lib/ship/quality";
-import type { FlightEventInfo, FlightEventName, Heading, SceneSettings, SystemApi, SystemOptions } from "@/lib/three/types";
+import type { FlightEventInfo, FlightEventName, Heading, ProjectFull, SceneSettings, SystemApi, SystemOptions } from "@/lib/three/types";
 
 // ── public contract ─────────────────────────────────────
 export interface LastPush { repo: string; at: string }
@@ -20,7 +21,7 @@ export interface DeckOptions {
   /** Most recent public push, resolved on the server. `null` renders the "…" placeholder. */
   lastPush?: LastPush | null;
   /** Projects from the database; the static records are the fallback. */
-  projects?: readonly Project[];
+  projects?: readonly ProjectFull[];
   /** Distance from the sun per project, in the same order. */
   orbits?: readonly number[];
   /** The sun, sky, belt and camera values the admin edits. */
@@ -54,7 +55,7 @@ interface Live { on: boolean; rtt: number | null }
 interface BlackBoxEntry { at: string; from: string; to: string; dur: string }
 interface Fps { frames: number; last: number; value: number }
 interface CalloutNode { path: SVGPathElement; dot: SVGCircleElement; dot2: SVGCircleElement; lab: HTMLDivElement }
-interface HudContent { idx: string; meta: string; title: string; tag: string; desc: string; mods: string; demo: string; links: string; range: string; comp?: string }
+interface HudContent { idx: string; meta: string; title: string; tag: string; desc: string; mods: string; demo: string; links: string; range: string; comp?: string; routes?: string }
 interface SceneModule { createSystem(opts: SystemOptions): SystemApi }
 type DashDrag = "tape" | "thr" | null;
 type Cleanup = () => void;
@@ -149,7 +150,9 @@ const dur = (m: number): string => (m >= 12 ? `${Math.floor(m / 12)}y ${m % 12 ?
 const fmt = (s: string | null): string => (s ? s.replace("-", ".") : "now");
 
 export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
-  const projects: readonly Project[] = opts.projects?.length ? opts.projects : staticProjects;
+  const projects: readonly ProjectFull[] = opts.projects?.length ? opts.projects : staticProjects;
+  const ROUTES = computeRoutes(projects);
+  const titleOf = (id: string): string => projects.find((p) => p.id === id)?.title ?? id;
   const facts: readonly EggFact[] = opts.facts?.length ? opts.facts : staticFacts;
   const activity: Contributions | null = opts.activity ?? null;
   const ORBIT_AU: readonly number[] = opts.orbits?.length ? opts.orbits : DEFAULT_ORBITS;
@@ -261,7 +264,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
         anchor: () => $<HTMLElement>(".hud__cut", hud), side: "top", cta: "next", delay: 900 },
       { text: phone()
           ? "Everything else lives in the console: the pilot's file, the tour, sound, quality. Pull it up any time."
-          : "The console: P is the pilot's file, T tours all eight, Q sets the picture quality, ? lists every key.",
+          : "The console: P is the pilot's file, T tours all eight, R draws the trade routes between planets, ? lists every key.",
         anchor: () => (phone() ? grip : $<HTMLElement>(".bank")), side: "top", cta: "done", delay: 1500 },
     ],
     onShow: (i) => { ev("deck_brief", { step: i, action: "show" }); audio.tick(); },
@@ -909,6 +912,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (flying) { abortTour(); showToast("rerouting · the sun", 1800); }
     closeSheet();
     current = null; coreOpen = true; closePanel(); closeHud(false); markCurrent(); deck.classList.add("is-flying");
+    system.routeFocus(null);
     sunVisits++;
     if (sunVisits >= 3) findEgg("sunstare", "space");
     system.flyToSun(() => { deck.classList.remove("is-flying"); openCore(); });
@@ -921,24 +925,35 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     <div class="comp__bar">${langs.map(([n, v]) => `<i style="flex-basis:${(v / total * 100).toFixed(2)}%;background:${colorOf(n)}"></i>`).join("")}</div>
     <div class="comp__legend">${langs.map(([n, v], k) => `<span data-layer="${k}" style="--c:${colorOf(n)}" class="${v < 1 ? "is-dim" : ""}"><b>${esc(n)}</b>${v.toFixed(1)}%</span>`).join("")}</div>`;
   }
-  function fillHud({ idx, meta, title, tag, desc, mods, demo, links, range, comp }: HudContent): void {
+  function fillHud({ idx, meta, title, tag, desc, mods, demo, links, range, comp, routes }: HudContent): void {
     $(".hud__idx", hud).textContent = idx; $(".hud__meta", hud).innerHTML = meta; $(".hud__tag", hud).textContent = tag; $(".hud__mods", hud).innerHTML = mods;
     $(".hud__demo .sf__in", hud).innerHTML = demo; $(".hud__links", hud).innerHTML = links; $(".hud__range", hud).textContent = range;
     $(".hud__comp", hud).innerHTML = comp ?? ""; const cut = $<HTMLButtonElement>(".hud__cut", hud); cut.hidden = !comp; cut.classList.remove("is-on");
+    $(".hud__routes", hud).innerHTML = routes ?? "";
     for (const el of $$(".comp__legend [data-layer]", hud)) {
       const k = Number(el.dataset.layer);
       el.addEventListener("pointerenter", () => system?.highlightLayer(current?.id, k));
       el.addEventListener("pointerleave", () => system?.highlightLayer(current?.id, -1));
     }
+    // a route in the list is a destination: the other end of it
+    for (const b of $$<HTMLButtonElement>(".route[data-id]", hud)) b.addEventListener("click", () => { const p = projects.find((x) => x.id === b.dataset.id); if (p) select(p); });
     hud.setAttribute("aria-hidden", "false"); hud.classList.add("is-on"); audio.arrive();
     anim(gsap.timeline().fromTo(hud, { opacity: 0, x: 24 }, { opacity: 1, x: 0, duration: reduced ? 0 : 0.5, ease: "power3.out" }, 0)
-      .fromTo($$(".hud__bar, .hud__meta, .hud__title, .hud__tag, .hud__comp, .hud__mods, .hud__demo, .hud__links, .hud__nav", hud), { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: reduced ? 0 : 0.45, stagger: 0.06, ease: "power2.out" }, 0.1)
+      .fromTo($$(".hud__bar, .hud__meta, .hud__title, .hud__tag, .hud__comp, .hud__routes, .hud__mods, .hud__demo, .hud__links, .hud__nav", hud), { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: reduced ? 0 : 0.45, stagger: 0.06, ease: "power2.out" }, 0.1)
       .add(() => { scramble($(".hud__title", hud), title, 0.8); }, 0.15)
       .fromTo($$(".mod i", hud), { scaleX: 0 }, { scaleX: 1, duration: reduced ? 0 : 0.7, stagger: 0.08, ease: "power3.out", transformOrigin: "left" }, 0.4)
       .add(() => { typewrite($(".hud__desc", hud), desc, reduced ? 0 : Math.min(2.4, desc.length / 85)); }, 0.35));
   }
+  /** The planets this one trades with, and on what — the same pairs the glass draws as arcs. */
+  function routesHtml(p: Project): string {
+    const mine = routesFor(ROUTES, p.id);
+    if (!mine.length) return "";
+    return `<span class="hud__k">trade routes · shared technology${routesOn ? "" : " · r draws every route"}</span>
+    <div class="routes">${mine.map((r) => { const other = r.a === p.id ? r.b : r.a; return `<button type="button" class="route" data-id="${esc(other)}"><b>${esc(titleOf(other))}</b><span>${esc(r.shared.join(", "))}</span></button>`; }).join("")}</div>`;
+  }
   function openHud(p: Project): void {
     const i = projects.indexOf(p);
+    system?.routeFocus(p.id);
     const liveHost = p.live ? p.live.replace(/^https?:\/\//, "").replace(/\/$/, "") : "";
     fillHud({ idx: `${pad2(i + 1)} / ${pad2(projects.length)}`,
       meta: `<span>project ${pad2(i + 1)} of ${pad2(projects.length)}</span><span>${p.category}</span><span>built ${p.year ?? "—"}</span><span class="${p.live ? "on" : ""}">${p.live ? "live now" : p.status ?? "source only"}</span>`,
@@ -949,7 +964,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
         ? `<span class="hud__k">try it</span><a href="${p.live}" target="_blank" rel="noopener">${liveHost} ↗</a>`
         : `<span class="hud__k">try it</span><span style="color:var(--fg-3)">${p.sourcePrivate ? "not deployed publicly · the source is private" : "not deployed publicly · the source is on github"}</span>`,
       links: `${p.sourcePrivate ? "" : `<a href="${p.github}" target="_blank" rel="noopener">see the code on github ↗</a>`}${p.live ? `<a href="${p.live}" target="_blank" rel="noopener">open the live site ↗</a>` : ""}`,
-      range: `project ${pad2(i + 1)} of ${pad2(projects.length)} · ${ORBIT_AU[i] ?? "—"} au out`, comp: compositionHtml(p) });
+      range: `project ${pad2(i + 1)} of ${pad2(projects.length)} · ${ORBIT_AU[i] ?? "—"} au out`, comp: compositionHtml(p), routes: routesHtml(p) });
   }
   function openCore(): void {
     audio.chord();
@@ -968,9 +983,25 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     }
     if (flyBack && system?.focusedId()) {
       deck.classList.add("is-flying");
+      system.routeFocus(null);
       system.unfocus(() => { deck.classList.remove("is-flying"); current = null; coreOpen = false; markCurrent(); });
     }
   }
+  // ── trade routes: the arcs between planets that share technology ──
+  let routesOn = false;
+  const routesBtn = $<HTMLButtonElement>("[data-routes]");
+  function toggleRoutes(): void {
+    if (!system) return;
+    routesOn = !routesOn;
+    system.routes(routesOn);
+    routesBtn.classList.toggle("is-on", routesOn);
+    ev("deck_routes", { on: routesOn });
+    if (!ROUTES.length) { showToast("no two planets share enough to draw a route", 2400); return; }
+    showToast(routesOn ? `trade routes · ${ROUTES.length} links · planets that share technology` : "trade routes off", 2400);
+    if (routesOn) audio.chord(); else audio.click();
+    if (current) { const k = $(".hud__routes .hud__k", hud); if (k) k.textContent = `trade routes · shared technology${routesOn ? "" : " · r draws every route"}`; }
+  }
+  listen(routesBtn, "click", toggleRoutes);
   function step(dir: 1 | -1): void {
     if (!system) return;
     const i = current ? projects.indexOf(current) : -1;
@@ -1113,7 +1144,8 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
 
   // ── command line ──────────────────────────────────────
   const COMMANDS: Record<string, (arg: string) => string> = {
-    help: () => "jump <name|n>  fly to a project · cutaway  cut the planet open · scan  every project · whoami  about me\ntour  visit all eight · zoom <n> · fact · brief · secrets · status · diag · bbox · sun · home · clear · exit",
+    help: () => "jump <name|n>  fly to a project · cutaway  cut the planet open · routes  shared tech between planets · scan  every project\nwhoami · tour · zoom <n> · fact · brief · secrets · status · diag · bbox · sun · home · clear · exit",
+    routes: () => { hideCmd(); toggleRoutes(); return routesOn ? "routes drawn" : "routes off"; },
     status: () => {
       if (!system) return "systems offline";
       const h = system.heading();
@@ -1306,6 +1338,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     const k = e.key.toLowerCase();
     if (k === "q") cycleQuality();
     if (k === "a") toggleMotion();
+    if (k === "r") toggleRoutes();
     if (e.key === "/") { e.preventDefault(); showCmd(); findEgg("cmdline", "random"); return; }
     if (e.key === "Escape") { if (brief.open) { brief.skip(); return; } if (panelOpen) { closePanel(); return; } if (sheetOpen()) { closeSheet(); return; } if (soloOn()) { setSolo(false); return; } abortTour(); if (system?.focusedId()) closeHud(true); }
     if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1);
@@ -1381,7 +1414,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     const labels = document.createElement("div"); labels.className = "orbit__labels"; deck.prepend(labels); labelsEl = labels;
     let flightFrom = "system", flightStart = 0;
     const sys = mod.createSystem({ canvas: orbitCanvas, labelsEl: labels, projects, scene: { ...opts.scene, orbits: ORBIT_AU }, repoStars: opts.repoStars, onSelect: select, onSunSelect: selectSun, reducedMotion: reduced,
-      quality: TIERS[tier],
+      quality: TIERS[tier], routes: ROUTES,
       onContextLost: () => {
         if (disposed) return;
         boot.style.display = ""; boot.style.opacity = "1";

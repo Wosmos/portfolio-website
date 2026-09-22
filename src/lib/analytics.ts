@@ -21,6 +21,7 @@ export type EventName =
   | "deck_panel"        // { panel }
   | "deck_quality"      // { tier, from, fps, auto } — what the adaptive pass decided for this machine
   | "deck_brief"        // { step, action: "show" | "skip" | "done" } — the first-flight briefing
+  | "deck_routes"       // { on } — the trade-route arcs were switched on or off
   | "easter_egg";       // { egg }
 
 type Value = string | number | boolean | null;

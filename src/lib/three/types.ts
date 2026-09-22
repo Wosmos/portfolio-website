@@ -47,7 +47,14 @@ export interface MoonConfig {
  */
 export interface WithMoons { moons?: readonly MoonConfig[] }
 export type PlanetFull = PlanetConfig & PlanetExtras & WithMoons;
-export type ProjectFull = Omit<Project, "planet"> & WithMoons & { planet: PlanetFull };
+export type ProjectFull = Omit<Project, "planet"> & WithMoons & {
+  planet: PlanetFull;
+  /** The résumé's tech line for the project, when the row has one; `stack` is the shorter card version. */
+  tech?: readonly string[];
+};
+
+/** Two planets that share technology, and how much. The deck computes these; the scene only draws them. */
+export interface RouteLink { a: string; b: string; weight: number }
 
 /** How many moons a body will draw. Shadow slots and labels both cost per moon, so the row is trimmed. */
 export const MOON_MAX = 6;
@@ -136,6 +143,8 @@ export interface SystemOptions {
   quality?: Quality;
   /** The GPU took the context away. The scene stops; the caller says so and offers a reload. */
   onContextLost?: () => void;
+  /** Trade routes to draw between planets. None means no route geometry is built at all. */
+  routes?: readonly RouteLink[];
 }
 /** The flight-deck scene. Same surface the prototype's ship.js used. */
 export interface SystemApi {
@@ -155,6 +164,10 @@ export interface SystemApi {
   /** Re-tune the knobs that need no rebuild. */
   setLive(q: LiveQuality): void;
   setReducedMotion(v: boolean): void;
+  /** Draw every trade route, or none. Independent of `routeFocus`, which always shows the held planet's own. */
+  routes(on: boolean): void;
+  /** Light one planet's routes and dim the rest; `null` clears the focus. */
+  routeFocus(id: string | null): void;
   dispose(): void;
 }
 export interface PlanetViewOptions {

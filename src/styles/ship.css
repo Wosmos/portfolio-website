@@ -307,6 +307,26 @@ html.is-deck :focus-visible { outline: 1px solid var(--cy); outline-offset: 3px;
 .toast--fact { max-width: min(620px, 84vw); font-size: 12.5px; line-height: 1.55; letter-spacing: .01em; text-transform: none; text-align: center; color: var(--fg); border-color: rgba(0,229,255,.6); box-shadow: 0 0 30px rgba(0,229,255,.14); pointer-events: auto; cursor: pointer; }
 .toast--fact b { display: block; margin-bottom: 5px; font-size: 8.5px; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; color: var(--cy); }
 
+/* briefing card: the fact toast's look, pinned beside a control, with an arrow at --ax/--ay */
+.brief { position: absolute; left: 0; top: 0; z-index: 8; width: min(300px, calc(100vw - 24px)); padding: 12px 14px 10px;
+  background: rgba(5,5,8,.94); border: 1px solid rgba(0,229,255,.6); box-shadow: 0 0 30px rgba(0,229,255,.16);
+  color: var(--fg); font-size: 12.5px; line-height: 1.55; opacity: 0; transform: translateY(6px); pointer-events: none;
+  transition: opacity .3s, transform .3s var(--ease); }
+.brief.is-on { opacity: 1; transform: none; pointer-events: auto; }
+.brief__n { display: block; margin-bottom: 5px; font-size: 8.5px; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; color: var(--cy); }
+.brief__t { margin: 0; }
+.brief__t b { color: var(--cy); font-weight: 500; }
+.brief__row { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; }
+.brief__row button { color: var(--fg-3); border-bottom: 1px solid transparent; transition: color .2s, border-color .2s; }
+.brief__row button:hover { color: var(--cy); border-color: var(--cy); }
+.brief__row [data-next] { color: var(--cy); }
+.brief::before { content: ""; position: absolute; width: 8px; height: 8px; background: rgba(5,5,8,.94); border: 1px solid rgba(0,229,255,.6); border-width: 0 1px 1px 0; }
+.brief[data-side="top"]::before { left: var(--ax); bottom: -5px; transform: translateX(-50%) rotate(45deg); }
+.brief[data-side="bottom"]::before { left: var(--ax); top: -5px; transform: translateX(-50%) rotate(-135deg); }
+.brief[data-side="left"]::before { top: var(--ay); right: -5px; transform: translateY(-50%) rotate(-45deg); }
+.brief[data-side="right"]::before { top: var(--ay); left: -5px; transform: translateY(-50%) rotate(135deg); }
+.deck.is-still .brief { transition: none; }
+
 @media (max-width: 1280px) {
   .screen--right { grid-template-columns: 84px minmax(0, 1fr); gap: 8px; }
   .screen--right canvas { width: 84px; height: 84px; }

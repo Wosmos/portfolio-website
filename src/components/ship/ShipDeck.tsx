@@ -205,6 +205,13 @@ export default function ShipDeck({ initialTarget, lastPush = null, projects, orb
         <button id="beacon" className="beacon" type="button" hidden aria-label="distress beacon"><i /><span>· · · — — — · · ·</span></button>
 
         <div id="toast" className="toast" role="status" aria-live="polite" />
+
+        {/* first-flight briefing: one card at a time, pinned to the control it is about */}
+        <div id="brief" className="brief" role="dialog" aria-label="Briefing" aria-hidden="true" hidden>
+          <span className="brief__n" />
+          <p className="brief__t" />
+          <div className="brief__row"><button type="button" data-next>next</button><button type="button" data-skip>skip the briefing</button></div>
+        </div>
       </div>
     </div>
   );

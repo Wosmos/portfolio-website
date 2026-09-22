@@ -8,6 +8,7 @@ import { ev } from "@/lib/analytics";
 import { DEFAULT_ORBITS, eggFacts as staticFacts, person, projects as staticProjects, experience, skills, LANG_COLORS, type EggFact, type Project } from "@/data/portfolio";
 import type { Contributions, RepoStar } from "@/lib/github";
 import { createAudio, MUTE_KEY, storedMuted } from "@/lib/audio";
+import { createBriefing } from "@/lib/ship/briefing";
 import { liveOf, probeTier, QUALITY_AUTO_KEY, QUALITY_CEILING_KEY, QUALITY_KEY, readOverride, TIER_ORDER, TIERS, type Tier } from "@/lib/ship/quality";
 import type { FlightEventInfo, FlightEventName, Heading, SceneSettings, SystemApi, SystemOptions } from "@/lib/three/types";
 
@@ -243,6 +244,31 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
   disposers.push(() => motionMq.removeEventListener("change", onMotionPref));
   applyMotion();
 
+  // ── briefing ──────────────────────────────────────────
+  // Three cards on a first visit, each stepped on by doing the thing it describes: pick a planet,
+  // cut it open, find the console. Seen once, it stays away; `?` and the `brief` command replay it.
+  const BRIEF_KEY = "wsf-briefed";
+  const phone = (): boolean => matchMedia("(max-width: 900px)").matches;
+  const brief = createBriefing({
+    el: $("#brief"), timer, clear,
+    seen: () => { try { return localStorage.getItem(BRIEF_KEY) === "1"; } catch { return true; } },
+    steps: [
+      { text: phone()
+          ? "Every planet out there is a project. Tap one on the glass to fly there, or pull up the console for the list."
+          : "Every planet out there is a project. Pick one from this list, tap it on the glass, or press 1–8 to fly there.",
+        anchor: () => (phone() ? grip : $<HTMLElement>(".screen--left")), side: "top", cta: null, delay: 1400 },
+      { text: "Holding at a planet, cut it open: the layers are the languages the repository is built from, to scale.",
+        anchor: () => $<HTMLElement>(".hud__cut", hud), side: "top", cta: "next", delay: 900 },
+      { text: phone()
+          ? "Everything else lives in the console: the pilot's file, the tour, sound, quality. Pull it up any time."
+          : "The console: P is the pilot's file, T tours all eight, Q sets the picture quality, ? lists every key.",
+        anchor: () => (phone() ? grip : $<HTMLElement>(".bank")), side: "top", cta: "done", delay: 1500 },
+    ],
+    onShow: (i) => { ev("deck_brief", { step: i, action: "show" }); audio.tick(); },
+    onDone: (skipped) => { storageSet("local", BRIEF_KEY, "1"); ev("deck_brief", { step: -1, action: skipped ? "skip" : "done" }); },
+  });
+  disposers.push(() => brief.dispose());
+
   // ── quality ───────────────────────────────────────────
   // The tier is chosen before the scene exists because some of it is geometry. `builtTier` is what the
   // scene was built with; a later change re-tunes the live knobs and takes full effect on the next load.
@@ -434,6 +460,8 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     anim(gsap.to(boot, { opacity: 0, duration: 0.7, ease: "power2.inOut", onComplete: () => { boot.style.display = "none"; } }));
     setThrottle(throttle);
     timer(() => { void adapt(); }, 2200);
+    // a deep link is already flying somewhere; the briefing would only talk over the arrival
+    if (!opts.initialTarget) brief.begin();
     stirred();
     timer(offerRotate, 2600);
     const hour = new Date().getHours();
@@ -869,6 +897,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     ev("deck_flight", { id: p.id });
     system.flyTo(p.id, () => {
       deck.classList.remove("is-flying"); openHud(p);
+      brief.reached(0);
       visited.add(p.id);
       if (visited.size >= projects.length) findEgg("grandtour", "me");
     });
@@ -951,7 +980,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (!system || !current || system.isFlying()) return;
     const on = !system.cutawayOpen(current.id);
     system.cutaway(current.id, on);
-    if (on) ev("cutaway", { id: current.id, where: "deck" });
+    if (on) { ev("cutaway", { id: current.id, where: "deck" }); brief.reached(1); }
     $(".hud__cut", hud).classList.toggle("is-on", on);
     showToast(on ? `${current.title} opened up · ${current.langs.length} layers · drag to look around` : "closed", 1800);
     if (on) { cutOpen.add(current.id); if (cutOpen.size >= 3) findEgg("geologist", "me"); }
@@ -1032,7 +1061,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
       ? `<div class="bbox">${[...blackBox].reverse().map((f) => `<div><span>${esc(f.at)}</span><span>${esc(f.from)} → ${esc(f.to)}</span><span>${esc(f.dur)}s</span></div>`).join("")}</div>`
       : `<p style="color:var(--fg-3)">no trips yet this visit.</p>`,
     secrets: () => `<div class="secrets">
-      <div class="secrets__top"><span>found <b>${pad2(found.size)}</b> of ${pad2(SECRETS.length)}</span><span>press ? any time</span></div>
+      <div class="secrets__top"><span>found <b>${pad2(found.size)}</b> of ${pad2(SECRETS.length)}</span><span>press ? any time · <button type="button" data-brief>replay the briefing</button></span></div>
       ${SECRETS.map((x, i) => {
         const got = found.has(x.id);
         return `<div class="secrets__row ${got ? "is-got" : ""}"><i>${got ? "✦" : pad2(i + 1)}</i><div><b>${got ? esc(x.name) : "▮▮▮▮▮▮"}</b><small>${esc(x.hint)}</small></div></div>`;
@@ -1056,6 +1085,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     copy?.addEventListener("click", () => {
       void navigator.clipboard?.writeText(person.email).then(() => { copy.dataset.copied = "true"; timer(() => { delete copy.dataset.copied; }, 1400); });
     });
+    panel.querySelector<HTMLButtonElement>("[data-brief]")?.addEventListener("click", () => { closePanel(); if (current) closeHud(true); brief.begin(true); });
   }
   function closePanel(): void {
     if (!panelOpen) return; panelOpen = null; for (const k of $$(".sw[data-panel]")) k.classList.remove("is-on");
@@ -1083,7 +1113,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
 
   // ── command line ──────────────────────────────────────
   const COMMANDS: Record<string, (arg: string) => string> = {
-    help: () => "jump <name|n>  fly to a project · cutaway  cut the planet open · scan  every project · whoami  about me\ntour  visit all eight · zoom <n> · fact · secrets · status · diag · bbox · sun · home · clear · exit",
+    help: () => "jump <name|n>  fly to a project · cutaway  cut the planet open · scan  every project · whoami  about me\ntour  visit all eight · zoom <n> · fact · brief · secrets · status · diag · bbox · sun · home · clear · exit",
     status: () => {
       if (!system) return "systems offline";
       const h = system.heading();
@@ -1104,6 +1134,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     cutaway: () => { if (!current) return "hold at a planet first"; hideCmd(); toggleCutaway(); return "cutaway"; },
     flare: () => { if (!system) return "systems offline"; system.flare(); audio.chord(); return "flare"; },
     fact: () => { hideCmd(); whisper(); findEgg("fact", "space"); return ""; },
+    brief: () => { hideCmd(); if (current) closeHud(true); brief.begin(true); return "briefing"; },
     secrets: () => { hideCmd(); findEgg("manifest", "random"); openPanel("secrets"); return ""; },
     zoom: (arg) => {
       const v = Number(arg);
@@ -1276,7 +1307,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (k === "q") cycleQuality();
     if (k === "a") toggleMotion();
     if (e.key === "/") { e.preventDefault(); showCmd(); findEgg("cmdline", "random"); return; }
-    if (e.key === "Escape") { if (panelOpen) { closePanel(); return; } if (sheetOpen()) { closeSheet(); return; } if (soloOn()) { setSolo(false); return; } abortTour(); if (system?.focusedId()) closeHud(true); }
+    if (e.key === "Escape") { if (brief.open) { brief.skip(); return; } if (panelOpen) { closePanel(); return; } if (sheetOpen()) { closeSheet(); return; } if (soloOn()) { setSolo(false); return; } abortTour(); if (system?.focusedId()) closeHud(true); }
     if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1);
     if (k === "x") toggleCutaway();
     if (/^[1-8]$/.test(e.key)) { const p = projects[Number(e.key) - 1]; if (p) select(p); }

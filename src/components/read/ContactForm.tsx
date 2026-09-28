@@ -49,7 +49,7 @@ export default function ContactForm() {
         const wait = Number(r.headers.get("retry-after"));
         const tooMany = r.status === 429;
         setStatus({
-          text: j.error ?? (tooMany ? `too many messages — try again in ${Math.max(1, Math.ceil(wait / 60))} min` : `could not send (${r.status})`),
+          text: j.error ?? (tooMany ? `too many messages, try again in ${Math.max(1, Math.ceil(wait / 60))} min` : `could not send (${r.status})`),
           kind: "bad",
         });
         shake(); setSending(false); ev("contact_submit", { ok: false });

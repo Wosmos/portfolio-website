@@ -9,7 +9,7 @@ import PostMeta from "@/components/read/PostMeta";
 // No window: the page is rebuilt when a save or the publish button says so, not on a timer.
 export const revalidate = false;
 
-const DESCRIPTION = "Notes on Go, systems and shipping web software — what I built, and what it taught me.";
+const DESCRIPTION = "Notes on Go, systems and shipping web software: what I built, and what it taught me.";
 
 // an index with nothing on it is a thin page, so it stays out of the index until the first post ships
 // (the sitemap makes the same call)
@@ -51,7 +51,7 @@ export default async function BlogIndex() {
 
       <section style={{ marginTop: 40 }}>
         {posts.length === 0 ? (
-          <p className="hero__p" style={{ marginTop: 0 }}>Nothing published yet. The first post is being written — until then, the <Link href="/read/projects">projects</Link> are the long version.</p>
+          <p className="hero__p" style={{ marginTop: 0 }}>Nothing published yet. The first post is being written. Until then, the <Link href="/read/projects">projects</Link> are the long version.</p>
         ) : (
           <ol className="posts">
             {posts.map((p) => (

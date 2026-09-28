@@ -16,12 +16,12 @@ const ui = Space_Grotesk({ variable: "--font-ui", subsets: ["latin"], weight: ["
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#050508" };
 
-const TITLE = `${person.name} — Software Engineer · Go · Next.js · Systems`;
+const TITLE = `${person.name} · Software Engineer · Go · Next.js · Systems`;
 const DESCRIPTION = clampDescription(person.metaDescription);
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: TITLE, template: `%s — ${person.name}` },
+  title: { default: TITLE, template: `%s · ${person.name}` },
   description: DESCRIPTION,
   applicationName: SITE_NAME,
   authors: [{ name: person.name, url: SITE_URL }],

@@ -1453,7 +1453,7 @@ export function createSystem({ canvas, labelsEl, projects, scene: cfg, repoStars
 
     const el = document.createElement("button");
     el.type = "button"; el.className = "lab";
-    el.setAttribute("aria-label", `${p.title} — ${p.tagline}`);
+    el.setAttribute("aria-label", `${p.title} · ${p.tagline}`);
     const name = document.createElement("span"); name.className = "lab__name"; name.textContent = p.title;
     const sub = document.createElement("span"); sub.className = "lab__sub"; sub.textContent = p.tagline;
     el.append(name, sub);

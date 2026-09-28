@@ -9,7 +9,7 @@ import ResumeLink from "./ResumeLink";
 export default function SiteHeader({ person, hasBlog = false }: { person: Person; hasBlog?: boolean }) {
   return (
     <header className="top">
-      <Link className="top__brand" href="/read" aria-label={`${person.name} — home`}>
+      <Link className="top__brand" href="/read" aria-label={`${person.name} · home`}>
         <WMark className="top__w" />
         <Wordmark className="top__mark" />
       </Link>

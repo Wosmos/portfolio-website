@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const p = await getProject(slug);
   if (!p) return { title: "Project not found", robots: { index: false } };
-  const title = `${p.title} — ${p.tagline}`;
+  const title = `${p.title} · ${p.tagline}`;
   const description = clampDescription(p.description);
   return {
     title: p.title,
@@ -120,7 +120,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
             {moons.length > 0 && <span className="planet__moon k" id="moon-name" hidden />}
             <button className="sf sf--btn pj__cut" id="cutbtn" type="button"><span className="sf__in">cut it open</span></button>
             {/* the one control that survives solo, because it is the way back out of it */}
-            <button className="solo" id="solobtn" type="button" aria-pressed="false" title="Just the planet — hide everything else">
+            <button className="solo" id="solobtn" type="button" aria-pressed="false" title="Just the planet, hide everything else">
               <span className="solo__i" aria-hidden="true"><i /><i /><i /><i /></span>
               <span className="solo__t">just the planet</span>
             </button>
@@ -140,7 +140,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
                         target="_blank"
                         rel="noopener"
                         style={{ borderLeftColor: hex(m.colour) }}
-                        aria-label={`${m.name} — open ${m.path ? `${m.path}/` : "the repository"} on github`}
+                        aria-label={`${m.name}, open ${m.path ? `${m.path}/` : "the repository"} on github`}
                       >
                         <em style={{ background: hex(m.colour) }} aria-hidden="true" />
                         <b>{m.name}</b>

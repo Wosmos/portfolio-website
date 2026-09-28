@@ -38,7 +38,7 @@ export const person: Person = {
   role: "software engineer",
   line: "go · systems · next.js",
   positioning:
-    "Building production web applications and systems-level software end-to-end — concurrent Go backends, modern Next.js frontends, and security-first architecture.",
+    "Building production web applications and systems-level software end-to-end: concurrent Go backends, modern Next.js frontends, and security-first architecture.",
   location: "Karachi, Pakistan",
   tz: "Asia/Karachi",
   tzLabel: "UTC+5",
@@ -83,7 +83,7 @@ export const projects: readonly Project[] = [
     id: "learnity", sourcePrivate: true, title: "Learnity", year: 2025, weight: 0.85,
     tagline: "tutoring platform with a gamification engine",
     description:
-      "Connects students with verified tutors — custom gamification engine (XP, streaks, progression), real-time HD video via GetStream, and role-based access control. Final Year Project, shipped solo.",
+      "Connects students with verified tutors: custom gamification engine (XP, streaks, progression), real-time HD video via GetStream, and role-based access control. Final Year Project, shipped solo.",
     stack: ["Next.js 15", "PostgreSQL", "GetStream", "Firebase"],
     context: "university", category: "web",
     github: "https://github.com/Wosmos/Learnity", live: "https://learnity-app.vercel.app",
@@ -127,7 +127,7 @@ export const projects: readonly Project[] = [
   {
     id: "devtoolshq", sourcePrivate: true, title: "DevToolsHQ", year: null, weight: 0.55,
     tagline: "developer utilities dashboard",
-    description: "Unified dashboard of developer utility tools — formatters, testers, generators — optimized for DX.",
+    description: "Unified dashboard of developer utility tools: formatters, testers, generators, optimized for DX.",
     stack: ["Next.js", "TypeScript", "Firebase"],
     context: "product", category: "web",
     github: "https://github.com/Wosmos/DevToolsHQ", live: "https://dev-tools-hq-pi.vercel.app",
@@ -166,7 +166,7 @@ export const experience: readonly Experience[] = [
       "Design complex PostgreSQL schemas, author performance-optimised queries, and drive technical decisions in Agile sprints (Jira, Confluence).",
     ] },
   { company: "Nexsoft", title: "MERN Stack Developer · part-time", location: "Karachi, Pakistan", start: "2025-05", end: "2025-10", stack: ["MongoDB", "Express", "React", "Node"],
-    note: "Brand site, full e-commerce with catalogue, cart and orders, and an internal HRMS with role-based modules — delivered end-to-end.",
+    note: "Brand site, full e-commerce with catalogue, cart and orders, and an internal HRMS with role-based modules, delivered end-to-end.",
     bullets: [
       "Delivered multiple client products end-to-end in a part-time role: the company brand site, a full e-commerce platform, and an internal HRMS (Human Resource Management System).",
       "Built the e-commerce platform on the MERN stack (MongoDB, Express.js, React, Node.js) with product catalogue, cart, and order flows backed by MongoDB schemas.",
@@ -187,7 +187,7 @@ export const experience: readonly Experience[] = [
       "Achieved 60fps UI animations and sub-2-second page loads through code-splitting, asset optimisation, and aggressive caching.",
     ] },
   { company: "Interns Pakistan", title: "Web Developer · intern", location: "Remote, Pakistan", start: "2022-10", end: "2022-12", stack: ["React", "Vue", "ES6+"],
-    note: "Responsive components, DOM APIs, semantic markup, WCAG, Git workflows — the fundamentals, done properly.",
+    note: "Responsive components, DOM APIs, semantic markup, WCAG, Git workflows: the fundamentals, done properly.",
     bullets: [
       "Built responsive web pages and components using React, Vue.js, HTML5, CSS3, and modern JavaScript (ES6+).",
       "Strengthened core web fundamentals: DOM APIs, semantic markup, web accessibility (WCAG), and responsive design.",
@@ -282,7 +282,7 @@ export interface EggFact { kind: "space" | "me" | "random"; text: string }
 /** The starting pool. The admin owns the table; these seed it and stand in when the database is away. */
 export const eggFacts: readonly EggFact[] = [
   { kind: "space", text: "A day on Venus is longer than its year. It turns backwards, too." },
-  { kind: "space", text: "Saturn's rings are younger than some dinosaurs — perhaps 100 million years old." },
+  { kind: "space", text: "Saturn's rings are younger than some dinosaurs, perhaps 100 million years old." },
   { kind: "space", text: "Neutron star material: one sugar cube would weigh about a billion tonnes." },
   { kind: "space", text: "Jupiter has no surface to land on. You would just keep falling until you were crushed." },
   { kind: "space", text: "Space smells, apparently, of seared steak and hot metal. Ask the astronauts." },
@@ -297,7 +297,7 @@ export const eggFacts: readonly EggFact[] = [
   { kind: "me", text: "I write Go for the parts that must not fall over, and TypeScript for the parts people touch." },
   { kind: "me", text: "zcrypt encrypts in your browser. I cannot read your files, and that is the whole point." },
   { kind: "me", text: "furniZsh ships to Homebrew, npm and the PowerShell Gallery. Three package managers, one toolkit." },
-  { kind: "me", text: "This cockpit renders in raw GLSL. No model files, no textures — every planet is maths." },
+  { kind: "me", text: "This cockpit renders in raw GLSL. No model files, no textures. Every planet is maths." },
   { kind: "me", text: "I prefer the boring deploy. Excitement in production is a bug report waiting to happen." },
   { kind: "me", text: "Ask me about concurrency and you will not get a short answer." },
   { kind: "me", text: "Yes, the résumé is one click away. No, I could not resist building the solar system first." },

@@ -5,7 +5,7 @@ import { SITE_NAME } from "@/lib/seo";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/read",
-    name: `${person.name} — Software Engineer`,
+    name: `${person.name} · Software Engineer`,
     short_name: SITE_NAME,
     description: person.positioning,
     lang: "en",

@@ -243,7 +243,7 @@ export function createPlanetView({ canvas, project, index = 0, interactive = tru
       const mn = k >= 0 ? b.moons[k] : null;
       canvas.style.cursor = mn ? "pointer" : dragging ? "grabbing" : "grab";
       // the canvas is the only element a moon has, so the tooltip is where it says it is a target
-      if (mn) canvas.title = `${mn.cfg.name}${mn.cfg.path ? ` · /${mn.cfg.path}` : ""} — open on github`;
+      if (mn) canvas.title = `${mn.cfg.name}${mn.cfg.path ? ` · /${mn.cfg.path}` : ""} · open on github`;
       else canvas.removeAttribute("title");
       onMoonHover?.(mn ? mn.cfg : null, k);
     };

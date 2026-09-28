@@ -390,7 +390,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     if (on === soloOn()) return;
     deck.classList.toggle("is-solo", on);
     soloBtn.setAttribute("aria-pressed", String(on));
-    soloBtn.title = on ? "Bring the cockpit back (f or esc)" : "Just the planet — hide the cockpit (f)";
+    soloBtn.title = on ? "Bring the cockpit back (f or esc)" : "Just the planet, hide the cockpit (f)";
     if (on) { closeSheet(); dismissRotate(); }
     // the page cannot scroll in here, so a vertical drag should pitch the camera instead of doing nothing
     orbitCanvas.style.touchAction = on ? "none" : "";
@@ -1056,9 +1056,14 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     pilot: () => {
       const served = dur(experience.reduce((a, x) => a + months(x), 0));
       const langs = new Set(projects.flatMap((p) => p.langs.map(([n]) => n)));
-      const stats: readonly (readonly [string, string])[] = [
-        [served, "in the industry"], [pad2(projects.length), "projects shipped"],
-        [pad2(projects.filter((p) => p.live).length), "running live"], [pad2(langs.size), "languages used"],
+      const liveCount = projects.filter((p) => p.live).length;
+      // Only the plain counts animate up; the duration string ("3y 9m") has no single target number
+      // to count toward, so it fades in with the rest of the panel instead.
+      const stats: readonly { v: string; k: string; n?: number }[] = [
+        { v: served, k: "in the industry" },
+        { v: pad2(projects.length), k: "projects shipped", n: projects.length },
+        { v: pad2(liveCount), k: "running live", n: liveCount },
+        { v: pad2(langs.size), k: "languages used", n: langs.size },
       ];
       return `<div class="dossier">
       <div class="dossier__id">
@@ -1066,8 +1071,8 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
         <div class="dossier__who"><b>${esc(person.name)}</b><span>callsign <em>wosmo</em> · ${esc(person.role)}</span></div>
         <span class="dossier__st"><i></i> available for hire</span>
       </div>
-      <p class="pilot__bio">I build the whole thing — schema, Go services, Next.js clients, deploy. Security-first: a <em>zero-knowledge cloud platform</em>, a concurrent WebSocket system across web and mobile, and client products spanning e-commerce, POS, HRMS and real estate.</p>
-      <div class="dossier__stats">${stats.map(([v, k]) => `<div><b>${esc(v)}</b><span>${k}</span></div>`).join("")}</div>
+      <p class="pilot__bio">I build the whole thing: schema, Go services, Next.js clients, deploy. Security-first: a <em>zero-knowledge cloud platform</em>, a concurrent WebSocket system across web and mobile, and client products spanning e-commerce, POS, HRMS and real estate.</p>
+      <div class="dossier__stats">${stats.map((s) => `<div><b${s.n !== undefined ? ` data-count="${s.n}"` : ""}>${s.n !== undefined ? "00" : esc(s.v)}</b><span>${esc(s.k)}</span></div>`).join("")}</div>
       ${heatmapHtml()}
       <div class="loadout">${skills.map((g, i) => `<div class="loadout__g"><span class="loadout__n">${pad2(i + 1)}</span><span class="loadout__k">${esc(g.group)}</span><ul>${g.items.map((x) => `<li class="sf sf--chip"><span class="sf__in">${esc(x)}</span></li>`).join("")}</ul></div>`).join("")}</div>
       <div class="dossier__foot"><span>base · <b>${esc(person.location)}</b></span><span>${esc(person.tzLabel)}</span><a href="${esc(cv)}" target="_blank" rel="noopener">résumé ↓</a><a href="${esc(person.github)}" target="_blank" rel="noopener">github ↗</a><a href="mailto:${esc(person.email)}">email ↗</a></div>
@@ -1098,7 +1103,7 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
         return `<div class="secrets__row ${got ? "is-got" : ""}"><i>${got ? "✦" : pad2(i + 1)}</i><div><b>${got ? esc(x.name) : "▮▮▮▮▮▮"}</b><small>${esc(x.hint)}</small></div></div>`;
       }).join("")}
     </div>`,
-    next: () => `<div class="comms"><span class="hud__k">project 09 · being built right now</span><p class="pilot__bio">This site. A v3 rewrite of wosmos.vercel.app in Next 16 + React Three Fiber — the solar system you're flying through, the flight deck you're sitting in, the real WebSocket presence layer the door promises. You're looking at the prototype.</p>
+    next: () => `<div class="comms"><span class="hud__k">project 09 · being built right now</span><p class="pilot__bio">This site. A v3 rewrite of wosmos.vercel.app in Next 16 + React Three Fiber: the solar system you're flying through, the flight deck you're sitting in, the real WebSocket presence layer the door promises. You're looking at the prototype.</p>
       <div class="comms__links"><a href="https://github.com/Wosmos/portfolio-website" target="_blank" rel="noopener">github · portfolio-website ↗</a></div></div>`,
   };
   function openPanel(name: PanelName): void {
@@ -1110,6 +1115,14 @@ export function mountDeck(root: HTMLElement, opts: DeckOptions = {}): Cleanup {
     panel.setAttribute("aria-hidden", "false"); panel.classList.add("is-on"); audio.arrive();
     anim(gsap.fromTo(panel, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: reduced ? 0 : 0.45, ease: "power3.out" }));
     const items = $$("#panel-body > * > *"); if (items.length) anim(gsap.from(items, { opacity: 0, y: 8, duration: reduced ? 0 : 0.5, stagger: 0.05, ease: "power2.out", delay: 0.1 }));
+    // count up any stat this panel shows (currently just the pilot dossier), instead of popping in already-solved
+    for (const el of $$<HTMLElement>("[data-count]", panel)) {
+      const to = Number(el.dataset.count);
+      if (!Number.isFinite(to)) continue;
+      if (reduced) { el.textContent = pad2(to); continue; }
+      const o = { v: 0 };
+      anim(gsap.to(o, { v: to, duration: 1.1, ease: "power2.out", delay: 0.3, onUpdate: () => { el.textContent = pad2(Math.round(o.v)); } }));
+    }
     const badge = panel.querySelector("[data-w]");
     if (badge) { const w = $(".deck__w").cloneNode(true); if (w instanceof HTMLElement) { w.removeAttribute("class"); w.removeAttribute("style"); badge.appendChild(w); } }
     const copy = panel.querySelector<HTMLButtonElement>("[data-copy]");

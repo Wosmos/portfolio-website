@@ -206,7 +206,7 @@ const SECTIONS: readonly Sect[] = [
         k: "dl",
         rows: [
           ["full name", "goes into the structured data search engines read, not onto the page."],
-          ["positioning", "the short claim; summary is the paragraph on the reading site."],
+          ["positioning", "the short claim shown on the reading site's hero; summary is the longer paragraph used for search engines, structured data and llms.txt, not shown on the page itself."],
           ["meta description", "what google prints under the link. past 160 characters it gets cut off mid-sentence, and the field counts for you."],
           ["timezone", "an iana name such as `Asia/Karachi`. the site works your local time out from it, so a typo stops the clock."],
         ],

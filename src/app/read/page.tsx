@@ -20,7 +20,7 @@ export const revalidate = false;
 
 export async function generateMetadata(): Promise<Metadata> {
   const person = await getPerson();
-  const title = `${person.name} — software engineer`;
+  const title = `${person.name} · software engineer`;
   const description = clampDescription(person.metaDescription);
   return {
     title: { absolute: title },   // the name is already in it; the template would say it twice
@@ -68,7 +68,7 @@ export default async function ReadHome() {
         "@type": "ProfilePage",
         "@id": `${absoluteUrl("/read")}#page`,
         url: absoluteUrl("/read"),
-        name: `${person.name} — software engineer`,
+        name: `${person.name} · software engineer`,
         isPartOf: { "@id": `${SITE_URL}/#website` },
         mainEntity: { "@id": `${SITE_URL}/#person` },
       },
@@ -91,7 +91,6 @@ export default async function ReadHome() {
           <h1 style={{ marginTop: 16 }}><span className="name">{person.name}</span><span className="sub">software engineer · go · systems · next.js</span></h1>
           {/* the one line a recruiter reads before deciding whether to read the rest */}
           <p className="hero__lede">{person.positioning}</p>
-          <p className="hero__p">{person.summary}</p>
           <div className="hero__row">
             <Link className="sf sf--btn" href="/read/contact"><span className="sf__in">get in touch</span></Link>
             <ResumeLink className="sf sf--btn" href={person.cv} from="hero"><span className="sf__in">résumé pdf ↓</span></ResumeLink>

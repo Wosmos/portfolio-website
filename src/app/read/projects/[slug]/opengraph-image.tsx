@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { LANG_COLORS } from "@/data/portfolio";
 import { getPerson, getProject, getProjects } from "@/lib/content";
 
-export const alt = "Project — Wasif Malik";
+export const alt = "Project · Wasif Malik";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

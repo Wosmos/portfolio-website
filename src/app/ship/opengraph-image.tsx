@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { getProjects } from "@/lib/content";
 import { markWidth, OG_COLORS as C, OG_CONTENT_TYPE, OG_SIZE, SITE_HOST, SITE_NAME, WORDMARK, W_MARK } from "@/lib/seo";
 
-export const alt = "wosmo flight deck — the projects as a solar system";
+export const alt = "wosmo flight deck: the projects as a solar system";
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
 

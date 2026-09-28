@@ -87,7 +87,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     // missing or nonsense stamp is treated as fine so an old cached page still works.
     const stamp = Number(raw.at);
     if (Number.isFinite(stamp) && stamp > 0 && Date.now() - stamp < MIN_FILL_MS) {
-      return bad("That was too quick — have another look and send it again", 400);
+      return bad("That was too quick, have another look and send it again", 400);
     }
     const byEmail = contactByEmail.hit(await sourceKey("contact-email", values.email.toLowerCase()));
     if (!byEmail.ok) return tooMany(`You have already written a few times. Try again ${waitFor(byEmail.retryAfter)}.`, byEmail.retryAfter);

@@ -105,7 +105,7 @@ export default function PlanetCanvases({ cutaway = false, projects = staticProje
           const setSolo = (on: boolean): void => {
             root.classList.toggle("is-solo", on);
             soloBtn.setAttribute("aria-pressed", String(on));
-            soloBtn.title = on ? "Back to the page" : "Just the planet — hide everything else";
+            soloBtn.title = on ? "Back to the page" : "Just the planet, hide everything else";
             // there is no page to scroll in here, so a vertical drag should turn the planet instead
             if (stageCanvas) stageCanvas.style.touchAction = on ? "none" : "";
           };

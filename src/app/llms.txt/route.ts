@@ -16,12 +16,12 @@ export async function GET(): Promise<Response> {
   ]);
 
   const blocks = [
-    `# ${SITE_NAME} — ${person.fullName}`,
+    `# ${SITE_NAME} · ${person.fullName}`,
     `> ${person.metaDescription}`,
     person.summary,
     section("Projects", projects.map((p) => {
       const where = p.live ? `live at ${p.live}` : p.status ?? "source only";
-      return `- [${p.title}](${absoluteUrl(`/read/projects/${p.id}`)}): ${p.tagline} — ${p.stack.join(", ")}; ${where}; source ${p.github}`;
+      return `- [${p.title}](${absoluteUrl(`/read/projects/${p.id}`)}): ${p.tagline}; ${p.stack.join(", ")}; ${where}; source ${p.github}`;
     })),
     section("Experience", experience.map((e) =>
       `- **${e.title}**, ${e.company} (${e.location}) · ${ym(e.start)} – ${ym(e.end)} · ${e.stack.join(", ")}`,
@@ -42,7 +42,7 @@ export async function GET(): Promise<Response> {
       `- [GitHub profile](${person.github}): every project above`,
       `- [LinkedIn](${person.linkedin})`,
       `- [All projects](${absoluteUrl("/read/projects")}): index of the ${projects.length} pages above`,
-      `- [Flight deck](${absoluteUrl("/ship")}): the same projects as a WebGL solar system — needs a browser, not a crawler`,
+      `- [Flight deck](${absoluteUrl("/ship")}): the same projects as a WebGL solar system, needs a browser, not a crawler`,
     ]),
   ];
 

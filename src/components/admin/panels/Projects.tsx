@@ -13,8 +13,9 @@
 
 import { ArrowDownIcon, ArrowUpIcon } from "@phosphor-icons/react";
 import dynamic from "next/dynamic";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { maxPlanetSize } from "@/lib/scale";
+import { usableCover } from "@/lib/shots";
 import { DEFAULT_FRAME, applyBody, type BodyFacts } from "@/lib/catalog";
 import {
   Area, Badge, Bone, Btn, Check, Chip, Chips, Count, Danger, Empty, Field, Fold, Lines, LiveNote, Modal,
@@ -229,7 +230,7 @@ const TIPS = {
 } as const;
 
 /** Every fold inside the project modal, so one control can open or shut all of them. */
-const MODAL_FOLDS = ["proj.basics", "proj.copy", "proj.github", "proj.planet", "proj.moons", "planet.catalogue", "planet.colours", "planet.surface", "planet.ring", "planet-sizes"] as const;
+const MODAL_FOLDS = ["proj.basics", "proj.cover", "proj.copy", "proj.github", "proj.planet", "proj.moons", "planet.catalogue", "planet.colours", "planet.surface", "planet.ring", "planet-sizes"] as const;
 
 /** How wide the preview stands. Remembered, because it is a working preference, not a per-project one.
  *  `full` is the planet over the whole modal with the knobs out of the way — the same "just the
@@ -372,6 +373,67 @@ function PlanetEditor({ planet, orbit, sunRadius, moons, onChange, onOrbit }: {
         </Fold>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── the picture ──
+
+const COVER_TIP = "the picture the reading site shows for this project. Empty means the screenshot committed at public/projects/<slug>.jpg when there is one, and a title card when there is not. Uploads go to the Blob store; a path on this site works too. Images from any other host are blocked by the site's security policy.";
+
+/**
+ * The project's cover: a url field, an upload into the Blob store that fills it, and a preview. The
+ * upload only fills the field, so nothing changes on the site until the project is saved.
+ */
+function CoverField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { say } = useToast();
+  const [busy, setBusy] = useState(false);
+  const file = useRef<HTMLInputElement>(null);
+  const url = value.trim();
+  const blocked = url !== "" && !usableCover(url);
+
+  const upload = async (picked: File): Promise<void> => {
+    setBusy(true);
+    try {
+      const body = new FormData();
+      body.append("file", picked);
+      body.append("kind", "covers");
+      const r = await fetch("/api/admin/upload", { method: "POST", body });
+      const res: unknown = await r.json().catch(() => null);
+      const got = typeof res === "object" && res !== null && "url" in res && typeof res.url === "string" ? res.url : "";
+      if (!r.ok || !got) {
+        say(typeof res === "object" && res !== null && "error" in res ? String(res.error) : `the upload failed (${r.status})`, true);
+        return;
+      }
+      onChange(got);
+      say("uploaded · save the project to keep it");
+    } catch {
+      say("no connection", true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="cover">
+      <div className="cover__f">
+        <Field label="cover image" hint="an upload, or a url" tip={COVER_TIP}>
+          <Text value={value} onChange={onChange} placeholder="empty: the committed screenshot, or a title card" />
+        </Field>
+        <div className="cover__acts">
+          <input
+            ref={file} type="file" accept="image/png,image/jpeg,image/webp,image/avif" hidden
+            onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void upload(f); }}
+          />
+          <Btn kind="primary" onClick={() => file.current?.click()} disabled={busy}>{busy ? "uploading…" : "upload a picture"}</Btn>
+          {value && <Btn onClick={() => onChange("")} disabled={busy}>clear</Btn>}
+        </div>
+        {blocked && <p className="hint">that host is blocked by the site&rsquo;s security policy, so the site keeps using the fallback. Upload the picture instead.</p>}
+        <p className="hint">a 16:10 screenshot of the top of the page fits best, 1440 by 900 or larger.</p>
+      </div>
+      {/* a plain img: this is the admin, and the url may be one next/image is not allowed to fetch */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {url && !blocked && <img className="cover__img" src={url} alt="" />}
     </div>
   );
 }
@@ -683,6 +745,10 @@ function EditProject({ row, github, sunRadius, onClose, onSave, onDelete, onMove
           </div>
         </Fold>
 
+        <Fold id="proj.cover" title="the picture" open={false} note={form.coverImage.trim() ? "your own" : "fallback"}>
+          <CoverField value={form.coverImage} onChange={set("coverImage")} />
+        </Fold>
+
         <Fold id="proj.copy" title="the words" open={false} note="description, bullets, stack">
           <div className="fields fields--2">
             <div className="withlive">
@@ -805,6 +871,7 @@ function NewProject({ github, sunRadius, onCancel, onCreate }: {
           <Toggle label="live description and links" checked={draft.useLiveMeta} onChange={(v) => setDraft({ ...draft, useLiveMeta: v })} tip={LIVE_TIPS.meta} />
           <Toggle label="live readme" checked={draft.useLiveReadme} onChange={(v) => setDraft({ ...draft, useLiveReadme: v })} tip={LIVE_TIPS.readme} />
         </div>
+        <CoverField value={draft.coverImage} onChange={(v) => setDraft({ ...draft, coverImage: v })} />
         <Fold id="proj.planet" title="the planet" note={`${draft.planet.type} · orbit ${draft.orbit}`}>
           <PlanetEditor
             planet={draft.planet} orbit={draft.orbit} sunRadius={sunRadius}

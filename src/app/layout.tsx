@@ -53,8 +53,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         {children}
         <Tracker />
-        <Analytics />
-        <SpeedInsights />
+        {/* the scripts are served by Vercel's edge; anywhere else they 404 and log console errors */}
+        {process.env.VERCEL && <><Analytics /><SpeedInsights /></>}
       </body>
     </html>
   );

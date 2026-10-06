@@ -92,7 +92,9 @@ export function runMotion({ curtain, audio }: MotionDeps): () => void {
         .from(".hero__side > *, .pj__planet > *", { opacity: 0, x: 24, duration: 0.8, stagger: 0.1, ease: "power3.out" }, 0.85);
       // splitting the lead paragraph into words is only worth a whole extra pass over it if it animates
       const p = decode ? document.querySelector<HTMLElement>(".hero__p") : null;
-      if (p) { const st = new SplitText(p, { type: "words", wordsClass: "wd" }); tl.from(st.words, { opacity: 0, y: 6, filter: "blur(4px)", duration: 0.5, stagger: 0.012, ease: "power2.out" }, 0.9); }
+      // aria "none": the default puts an aria-label on the <p>, which is not allowed there, and word
+      // spans read back as the same sentence anyway
+      if (p) { const st = new SplitText(p, { type: "words", wordsClass: "wd", aria: "none" }); tl.from(st.words, { opacity: 0, y: 6, filter: "blur(4px)", duration: 0.5, stagger: 0.012, ease: "power2.out" }, 0.9); }
     }
     // The text is left alone until its trigger fires. Blanking every heading up front left ten of them
     // empty from hydration until they were scrolled to, and permanently empty if the pass never ran.
@@ -105,7 +107,7 @@ export function runMotion({ curtain, audio }: MotionDeps): () => void {
       $$("[data-cipher]").forEach((el) => decodeOnEnter(el, "top 92%", { dur: 0.7, stagger: 0.03 }));
     }
     if (finePointer() && !reduced) $$(".proj__card").forEach((c) => {
-      const h = c.querySelector<HTMLElement>("h3"); if (!h) return; let busy = false;
+      const h = c.querySelector<HTMLElement>(".proj__h"); if (!h) return; let busy = false;
       c.addEventListener("pointerenter", () => { if (busy) return; busy = true; const t = cipher(h, h.dataset.text ?? h.textContent ?? "", { dur: 0.5, stagger: 0.035 }); if (t) t.eventCallback("onComplete", () => { h.textContent = h.dataset.text ?? ""; h.classList.remove("is-cipher"); busy = false; }); else busy = false; });
     });
     reveal([{ sel: ".rv" }, { sel: ".proj__card", y: 30 }, { sel: ".xp__i", y: 20 }, { sel: ".sk__row", y: 12 }, { sel: ".quote", y: 24 }, { sel: ".edu .sf", y: 16 }]);

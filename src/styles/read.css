@@ -1,6 +1,9 @@
 /* Reading site — layout and components. Tokens, the chamfered .sf shapes, backdrop layers, toast and
    cipher glyphs live in app/globals.css. Ported from the prototype's read.css. */
-.read { --col: 1160px; }
+/* --fg-3 is 3.2:1 on the page background, under the 4.5:1 that small text needs; every use of it on the
+   reading site is small text (labels, captions, the footer), so it is lifted here and not in globals.css,
+   which the flight deck shares */
+.read { --col: 1160px; --fg-3: rgba(242, 245, 255, .56); }
 .page { position: relative; z-index: 1; max-width: calc(var(--col) + 2 * var(--pad)); margin: 0 auto; padding: 0 var(--pad) 80px; }
 /* Visible by default. The motion pass hides only what is still below the fold when it runs, so the
    text is readable without JS and never blinks out after the reader can already see it. No transition
@@ -69,11 +72,6 @@ section { margin-top: clamp(56px, 10vh, 110px); scroll-margin-top: 80px; }
 .status__row { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--fg-3); }
 .status__row b { color: var(--fg); font-weight: 500; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
 .status__row b.on { color: var(--ok); }
-.strip { display: block; width: 100%; height: 64px; margin-top: 2px; }
-.strip.is-off { display: none; }
-.strip.is-off + .strip__n { margin-top: 6px; }
-.strip__n { display: grid; grid-template-columns: repeat(8, 1fr); text-align: center; font-size: 9px; letter-spacing: .12em; color: var(--fg-4); }
-.strip__n a { padding: 2px 0; transition: color .2s; } .strip__n a:hover, .strip__n a.is-on { color: var(--cy); }
 
 /* projects */
 .proj { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -82,7 +80,7 @@ section { margin-top: clamp(56px, 10vh, 110px); scroll-margin-top: 80px; }
 .proj__card:hover { --sf-border: rgba(0,229,255,.85); }
 .proj__head { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: start; }
 .proj__n { font-size: 10px; letter-spacing: .24em; color: var(--fg-4); }
-.proj__t h3 { font-size: 20px; font-weight: 700; margin-top: 6px; letter-spacing: -.01em; }
+.proj__h { font-size: 20px; font-weight: 700; margin-top: 6px; letter-spacing: -.01em; }
 .proj__t > span { display: block; color: var(--fg-3); font-size: 12px; margin-top: 2px; }
 .proj__d { color: var(--fg-2); font-size: 13px; min-height: 3.2em; }
 .proj__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
@@ -176,51 +174,54 @@ section { margin-top: clamp(56px, 10vh, 110px); scroll-margin-top: 80px; }
 .form__msg { font-size: 11px; color: var(--fg-3); flex: 1 1 6ch; }
 .form__msg.is-ok { color: var(--ok); } .form__msg.is-bad { color: var(--rd); }
 
-/* bento (home): the lead project spans the row with a big planet; three more below, planet on top */
+/* bento (home): the lead project spans the row, text beside its screenshot; three more below, screenshot on top */
 .bento { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .bento .proj__card:first-child { grid-column: 1 / -1; }
-.bento .proj__card:first-child > .sf__in { grid-template-columns: minmax(0, 1fr) minmax(300px, 46%); min-height: 380px; }
-.bento .proj__card:first-child .proj__body { align-self: center; padding: 10px 0; }
-.bento .proj__card:first-child .proj__t h3 { font-size: clamp(28px, 3.4vw, 46px); }
+.bento .proj__card:first-child > .sf__in { grid-template-columns: minmax(0, 1fr) minmax(300px, 46%); column-gap: clamp(20px, 3vw, 36px); align-items: center; }
+.bento .proj__card:first-child .shot { grid-column: 2; grid-row: 1; margin-bottom: 0; }
+.bento .proj__card:first-child .proj__body { grid-column: 1; grid-row: 1; padding: 10px 0; }
+.bento .proj__card:first-child .proj__h { font-size: clamp(28px, 3.4vw, 46px); }
 .bento .proj__card:first-child .proj__d { font-size: 14px; max-width: 52ch; }
-.bento .proj__card:first-child .planet { min-height: 380px; }
-.bento .proj__card:not(:first-child) > .sf__in { grid-template-columns: 1fr; }
-.bento .proj__card:not(:first-child) .planet { grid-column: 1; grid-row: 1; order: -1; height: 200px; min-height: 0; }
 .bento__more { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 6px 0; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-3); }
 .bento__more a:hover { color: var(--cy); }
-
-/* planet canvases */
-.planet { position: relative; display: block; width: 100%; height: 150px; }
-canvas.planet { touch-action: pan-y; }
-.planet.is-off { background: radial-gradient(circle at 50% 50%, rgba(0,229,255,.12), transparent 60%); }
-.planet__hint { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg-4); pointer-events: none; }
 .proj__card > .sf__in { grid-template-columns: 1fr; }
-.proj__card.has-planet > .sf__in { grid-template-columns: minmax(0, 1fr) 150px; align-items: stretch; }
-.proj__card.has-planet .planet { grid-column: 2; grid-row: 1; height: 100%; min-height: 170px; align-self: stretch; }
+.proj__card .shot { margin-bottom: 8px; }
 .proj__body { display: grid; gap: 8px; min-width: 0; }
-.callouts { display: grid; gap: 6px; } .callouts[hidden] { display: none; }
-.callouts button { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: center; text-align: left; padding: 6px 8px; font-size: 12px; color: var(--fg-2); border-left: 2px solid var(--c); background: rgba(0,229,255,.03); transition: background .2s, transform .2s; }
-.callouts button::before { content: ""; width: 8px; height: 8px; background: var(--c); clip-path: polygon(2px 0, 100% 0, calc(100% - 2px) 100%, 0 100%); }
-.callouts button b { font-weight: 500; color: var(--fg); } .callouts button i { font-style: normal; font-variant-numeric: tabular-nums; color: var(--fg); }
-.callouts button:hover, .callouts button.is-on { background: rgba(0,229,255,.1); transform: translateX(3px); }
-.callouts small { grid-column: 2 / -1; color: var(--fg-3); font-size: 10px; }
-/* moons: one row per top-level folder in the repository. Hovering a row lights the moon on the stage
-   and hovering the moon lights the row, the same two-way link the cutaway callouts have to their layers. */
-.moons__list { display: grid; gap: 4px; }
-.moons__row { display: grid; grid-template-columns: 8px auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 9px; font-size: 12px; color: var(--fg-2); border-left: 2px solid var(--cy); background: rgba(0,229,255,.03); transition: background .2s, transform .2s, color .2s; }
-.moons__row em { width: 8px; height: 8px; clip-path: polygon(2px 0, 100% 0, calc(100% - 2px) 100%, 0 100%); }
-.moons__row b { font-weight: 500; color: var(--fg); }
-.moons__row i { font-style: normal; font-size: 10px; letter-spacing: .1em; color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.moons__row span { font-size: 10px; color: var(--fg-4); }
-.moons__row:hover, .moons__row.is-on { background: rgba(0,229,255,.1); transform: translateX(3px); color: var(--fg); }
-.moons__row:hover i, .moons__row.is-on i, .moons__row:hover span, .moons__row.is-on span { color: var(--cy); }
-/* under the stage kicker, not above the cut button: the hint and the cut control already own the foot */
-.planet__moon { position: absolute; left: 0; right: 0; top: 24px; text-align: center; color: var(--cy); pointer-events: none; }
 @media (max-width: 960px) {
   .bento { grid-template-columns: 1fr; }
-  .bento .proj__card:first-child > .sf__in { grid-template-columns: minmax(0, 1fr) 200px; min-height: 0; } .bento .proj__card:first-child .planet { min-height: 240px; }
+  .bento .proj__card:first-child > .sf__in { grid-template-columns: minmax(0, 1fr) minmax(0, 44%); }
 }
-@media (max-width: 720px) { .proj__card.has-planet > .sf__in, .bento .proj__card:first-child > .sf__in { grid-template-columns: 1fr; } .proj__card.has-planet .planet, .bento .proj__card:first-child .planet { grid-column: 1; grid-row: auto; height: 200px; min-height: 0; } .callouts--grid { grid-template-columns: 1fr; } }
+@media (max-width: 720px) {
+  .bento .proj__card:first-child > .sf__in { grid-template-columns: 1fr; }
+  .bento .proj__card:first-child .shot, .bento .proj__card:first-child .proj__body { grid-column: 1; grid-row: auto; }
+  .bento .proj__card:first-child .shot { margin-bottom: 8px; }
+}
+
+/* project screenshots (ProjectShot). The 16:10 box holds its height before the image arrives, so
+   nothing shifts. At rest the screenshot is a cyan to magenta duotone under faint scanlines; hovering
+   or focusing the card (or the box) fades both away to the product in full colour. A project with no
+   screenshot gets a title card in the same box, on the same grid and scanlines. */
+.shot { --sc: 10px; position: relative; display: block; aspect-ratio: 16 / 10; overflow: hidden; isolation: isolate; container-type: inline-size;
+  background: #070b12; clip-path: polygon(var(--sc) 0, 100% 0, 100% calc(100% - var(--sc)), calc(100% - var(--sc)) 100%, 0 100%, 0 var(--sc)); }
+.shot::before, .shot::after { content: ""; position: absolute; inset: 0; pointer-events: none; transition: opacity .35s ease; }
+.shot::before { z-index: 1; background: linear-gradient(135deg, var(--cy), var(--mg)); mix-blend-mode: color; opacity: .6; }
+.shot::after { z-index: 2; background: repeating-linear-gradient(to bottom, rgba(0,0,0,.42) 0 1px, transparent 1px 3px); opacity: .5; }
+.shot__img { object-fit: cover; object-position: top; filter: grayscale(1) contrast(1.1) brightness(.9); transition: filter .35s ease; }
+.proj__card:is(:hover, :focus-within) .shot__img, .shot:is(:hover, :focus-visible) .shot__img { filter: none; }
+.proj__card:is(:hover, :focus-within) .shot::before, .proj__card:is(:hover, :focus-within) .shot::after,
+.shot:is(:hover, :focus-visible)::before, .shot:is(:hover, :focus-visible)::after { opacity: 0; }
+.shot--type { background:
+  repeating-linear-gradient(90deg, rgba(0,229,255,.07) 0 1px, transparent 1px 28px),
+  repeating-linear-gradient(0deg, rgba(0,229,255,.07) 0 1px, transparent 1px 28px),
+  radial-gradient(120% 90% at 0% 0%, rgba(255,43,214,.16), transparent 60%),
+  radial-gradient(100% 80% at 100% 100%, rgba(0,229,255,.12), transparent 60%),
+  #070b12; }
+.shot--type::before { display: none; }
+.shot__card { position: absolute; inset: 0; display: grid; align-content: end; gap: 6px; padding: clamp(14px, 6cqi, 32px); }
+.shot__k { font-size: 10px; letter-spacing: .24em; text-transform: uppercase; color: var(--cy); }
+.shot__t { font-family: var(--display); font-weight: 800; font-size: clamp(22px, 9cqi, 72px); line-height: 1; letter-spacing: -.01em; color: var(--fg); overflow-wrap: anywhere; }
+.shot__s { font-size: 11px; letter-spacing: .08em; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (prefers-reduced-motion: reduce) { .shot::before, .shot::after, .shot__img { transition: none; } }
 
 /* project page */
 .back { display: inline-flex; gap: 8px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--fg-3); margin-bottom: 26px; } .back:hover { color: var(--cy); }
@@ -232,13 +233,10 @@ canvas.planet { touch-action: pan-y; }
 .pj__desc { margin-top: 24px; color: var(--fg-2); font-size: 15px; max-width: 58ch; }
 .pj__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
 .sf--ghost { --sf-bg: rgba(6,12,18,.6); --sf-border: rgba(0,229,255,.3); } .sf--ghost > .sf__in { color: var(--fg-2); }
-.pj__planet { display: grid; gap: 12px; }
-.pj__stage { position: relative; aspect-ratio: 1 / 1; max-height: min(74vh, 720px); }
-.pj__stage .planet { position: absolute; inset: 0; height: 100%; }
-.pj__stagek { position: absolute; left: 4px; top: 4px; }
-.pj__stage .planet__hint { bottom: 54px; }
-.pj__cut { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); }
-.callouts--grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pj__shot { display: grid; gap: 10px; }
+/* the chamfer clips an outline drawn on the link itself, so the focus ring goes on the figure instead */
+.pj__shot a.shot:focus-visible { outline: none; }
+.pj__shot:has(a.shot:focus-visible) { outline: 1px solid var(--cy); outline-offset: 4px; }
 .pj__about { margin-top: clamp(48px, 8vh, 80px); }
 .about { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, .7fr); gap: 16px; align-items: start; }
 .prose { color: var(--fg-2); font-size: 14px; line-height: 1.75; max-width: 70ch; display: grid; gap: 14px; }
@@ -266,7 +264,7 @@ canvas.planet { touch-action: pan-y; }
 @media (max-width: 960px) {
   .hero { grid-template-columns: 1fr; } .hero__side { grid-template-columns: 1fr 1fr; } .hero__side .status { grid-column: 1 / -1; }
   .proj { grid-template-columns: 1fr; } .skills, .edu, .pj__grid { grid-template-columns: 1fr; }
-  .contact, .pj__hero, .about, .built { grid-template-columns: 1fr; } .about__facts { position: static; } .pj__stage { max-height: min(64vh, 520px); }
+  .contact, .pj__hero, .about, .built { grid-template-columns: 1fr; } .about__facts { position: static; }
   .xp::before, .xp::after { left: 6px; } .xp__i { grid-template-columns: 1fr; gap: 6px; padding-left: 26px; } .xp__i::before { left: 2px; } .xp__when { text-align: left; grid-template-columns: auto auto; justify-content: start; gap: 12px; }
 }
 @media (max-width: 720px) {
@@ -318,41 +316,3 @@ canvas.planet { touch-action: pan-y; }
 .prose hr { border: 0; height: 1px; background: var(--line); margin: 6px 0; }
 .prose strong { color: var(--fg); font-weight: 500; }
 .prose em { color: var(--fg-2); }
-
-/* ── solo: the planet and nothing else ───────────────────
-   The stage is promoted where it stands rather than moved: PlanetCanvases binds every listener by id,
-   so reparenting the canvas would silently break drag, the cutaway and the moon legend. The view's own
-   ResizeObserver sees the new box and reframes the camera, so nothing has to be remounted. */
-.solo { position: absolute; right: 4px; top: 4px; z-index: 6; display: inline-flex; align-items: center; gap: 7px;
-  padding: 6px 10px; font-size: 10px; letter-spacing: .09em; text-transform: uppercase; color: rgba(242,245,255,.55);
-  background: rgba(5,10,16,.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-  box-shadow: inset 0 0 0 1px rgba(0,229,255,.2); transition: color .18s, box-shadow .18s; }
-.solo:hover, .solo:focus-visible { color: var(--cy); box-shadow: inset 0 0 0 1px rgba(0,229,255,.48); }
-.solo__i { position: relative; width: 12px; height: 12px; flex: none; }
-.solo__i i { position: absolute; width: 4px; height: 4px; border: 1px solid currentColor; }
-.solo__i i:nth-child(1) { left: 0; top: 0; border-right: 0; border-bottom: 0; }
-.solo__i i:nth-child(2) { right: 0; top: 0; border-left: 0; border-bottom: 0; }
-.solo__i i:nth-child(3) { left: 0; bottom: 0; border-right: 0; border-top: 0; }
-.solo__i i:nth-child(4) { right: 0; bottom: 0; border-left: 0; border-top: 0; }
-
-html.is-solo, html.is-solo body { overflow: hidden; }
-html.is-solo .top, html.is-solo .foot, html.is-solo .pj__text,
-html.is-solo .pj__about, html.is-solo .pj__nav, html.is-solo .pj__built,
-html.is-solo #moons, html.is-solo .pj__stagek { display: none; }
-/* "just the planet" still means just the planet with the lid shut — but with it open, what it is made
-   of is the one thing worth keeping on screen. #callouts already carries its own [hidden] from the cut
-   button's own on/off state, so this only has to reposition it as a floating card over the stage
-   instead of the block of page flow it is the rest of the time. */
-html.is-solo #callouts { position: fixed; right: max(14px, env(safe-area-inset-right, 0px)); bottom: max(64px, env(safe-area-inset-bottom, 0px));
-  z-index: 41; width: min(320px, calc(100vw - 28px)); max-height: min(52svh, 420px); overflow-y: auto; overscroll-behavior: contain;
-  padding: 10px; background: rgba(5,10,16,.82); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-  box-shadow: inset 0 0 0 1px rgba(0,229,255,.28), 0 10px 30px rgba(0,0,0,.5); }
-html.is-solo .callouts--grid { grid-template-columns: 1fr; }
-/* aspect-ratio 1/1 is what fights landscape, and max-height caps it well short of the viewport */
-html.is-solo .pj__stage { position: fixed; inset: 0; z-index: 40; aspect-ratio: auto; max-height: none;
-  background: var(--bg, #05070b); display: grid; }
-html.is-solo .pj__stage .planet { position: absolute; inset: 0; width: 100%; height: 100%; }
-html.is-solo .pj__cut { bottom: max(18px, env(safe-area-inset-bottom, 0px)); }
-html.is-solo .solo { right: max(14px, env(safe-area-inset-right, 0px)); top: 14px; }
-html.is-solo .solo__t { display: none; }
-html.is-solo .solo { padding: 8px; color: var(--cy); box-shadow: inset 0 0 0 1px rgba(0,229,255,.45); }

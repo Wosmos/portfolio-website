@@ -555,3 +555,10 @@
 /* the row currently applied, in a picker */
 .pick__row.is-on { background: rgba(0,229,255,.1); box-shadow: inset 2px 0 0 var(--cy); }
 .pick__row.is-on b { color: var(--cy); display: inline-flex; align-items: center; gap: 6px; }
+
+/* a project's cover: the url field and its upload, with the preview beside them */
+.cover { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 12px; align-items: start; }
+.cover__f { display: grid; gap: 8px; min-width: 0; }
+.cover__acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.cover__img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: top; border: 1px solid rgba(0,229,255,.2); background: rgba(4,8,12,.8); }
+@media (max-width: 720px) { .cover { grid-template-columns: 1fr; } }

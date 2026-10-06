@@ -3,7 +3,6 @@
 // fills it, and a submission that does is accepted and dropped server-side.
 
 import { useEffect, useRef, useState } from "react";
-import { gsap } from "gsap";
 import { getAudio } from "@/lib/sound-client";
 import { ev } from "@/lib/analytics";
 
@@ -19,7 +18,14 @@ export default function ContactForm() {
   const [sending, setSending] = useState(false);
   const [count, setCount] = useState(0);
 
-  const shake = (): void => { if (form.current && !matchMedia("(prefers-reduced-motion: reduce)").matches) gsap.fromTo(form.current, { x: -5 }, { x: 0, duration: 0.45, ease: "elastic.out(1, 0.3)" }); };
+  // a damped wobble from the Web Animations API, so the form does not pull GSAP into the first load
+  const shake = (): void => {
+    if (!form.current || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    form.current.animate(
+      [-5, 4, -2.5, 1.5, -0.8, 0].map((x) => ({ transform: `translateX(${x}px)` })),
+      { duration: 450, easing: "ease-out" },
+    );
+  };
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault();

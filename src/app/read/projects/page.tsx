@@ -3,9 +3,7 @@ import { SITE_URL } from "@/data/portfolio";
 import { getProjects } from "@/lib/content";
 import { OG_SIZE } from "@/lib/seo";
 import { pad2 } from "@/lib/text";
-import PlanetCanvases from "@/components/read/PlanetCanvases";
 import ProjectCard from "@/components/read/ProjectCard";
-import { toProjects } from "@/components/read/project-props";
 
 // No window: the page is rebuilt when a save or the publish button says so, not on a timer.
 export const revalidate = false;
@@ -47,17 +45,17 @@ export default async function ProjectsPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }} />
       <section className="hero pj" style={{ marginTop: 0, gridTemplateColumns: "1fr" }}>
         <div>
-          <p className="k">{pad2(projects.length)} planets · one per orbit · languages from github</p>
+          <p className="k">{pad2(projects.length)} projects · {pad2(projects.filter((p) => p.live).length)} live · languages from github</p>
           <h1 style={{ marginTop: 12 }}><span className="name">Projects</span></h1>
-          <p className="hero__p">Everything I have shipped or am shipping, ordered like the solar system in the flight deck: the biggest body closest to the sun. Drag a planet to turn it. Open one for the full breakdown.</p>
+          <p className="hero__p">Everything I have shipped or am shipping. Open one for what it does, what it is built with, and where it runs.</p>
         </div>
       </section>
       <section style={{ marginTop: 40 }}>
         <ol className="proj">
-          {projects.map((p, i) => <ProjectCard key={p.id} p={p} index={i} />)}
+          {/* two columns on a desktop, so the first two screenshots can be in the first screen */}
+          {projects.map((p, i) => <ProjectCard key={p.id} p={p} index={i} priority={i < 2} />)}
         </ol>
       </section>
-      <PlanetCanvases projects={toProjects(projects)} />
     </>
   );
 }

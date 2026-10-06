@@ -24,8 +24,15 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   poweredByHeader: false,
   compress: true,
-  experimental: { optimizePackageImports: ["gsap"] },
-  images: { formats: ["image/webp", "image/avif"] },
+  // inlined CSS: the two small stylesheets were the only render-blocking requests before first paint
+  experimental: { optimizePackageImports: ["gsap"], inlineCss: true },
+  images: {
+    // AVIF first: it is the smaller file, and a browser without it takes the WebP
+    formats: ["image/avif", "image/webp"],
+    // project covers uploaded from the admin live in the Blob store (src/lib/shots.ts, BLOB_HOST),
+    // and the CSP's img-src already allows the same host
+    remotePatterns: [{ protocol: "https", hostname: "fggnxvf87yifjcf8.public.blob.vercel-storage.com", pathname: "/**" }],
+  },
   async headers() {
     return [
       {

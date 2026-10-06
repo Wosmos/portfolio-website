@@ -5,13 +5,12 @@ import { repoSlug, SITE_URL, type Highlight } from "@/data/portfolio";
 import { getPerson, getProject, getProjects, highlightOf, type ContentProject } from "@/lib/content";
 import { getLiveProject } from "@/lib/github";
 import { clampDescription } from "@/lib/seo";
-import { ago, hex, hostOf, pad2 } from "@/lib/text";
-import { moonUrl, visibleMoons } from "@/lib/three/types";
+import { projectShot } from "@/lib/shots";
+import { ago, hostOf, pad2 } from "@/lib/text";
 import Composition, { langsOf } from "@/components/read/Composition";
-import PlanetCanvases from "@/components/read/PlanetCanvases";
 import { Chips } from "@/components/read/ProjectCard";
 import FlyLink from "@/components/read/FlyLink";
-import { toProjects } from "@/components/read/project-props";
+import ProjectShot from "@/components/read/ProjectShot";
 
 // No window: the page is rebuilt when a save or the publish button says so, not on a timer.
 export const revalidate = false;
@@ -37,6 +36,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
+/** The hero's image column: half the 1160px page beside the text, the full width once the hero stacks at 960px. */
+const SHOT_SIZES = "(max-width: 960px) calc(100vw - 32px), (max-width: 1256px) 50vw, 600px";
+
 function links(p: ContentProject, h: Highlight | undefined): (readonly [string, string])[] {
   return [
     // a private repository's url 404s for a visitor, so it is not offered as a link at all
@@ -58,8 +60,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
   const prev = projects[(i - 1 + projects.length) % projects.length] ?? base;
   const next = projects[(i + 1) % projects.length] ?? base;
   const top = langsOf(p.langs)[0];
-  // the same list `makeBody` draws, from the same helper, so the legend and the stage cannot disagree
-  const moons = visibleMoons(base.moons);
+  const shot = projectShot(base);
   const created = p.meta ? new Date(p.meta.created).getFullYear() : p.year;
   // the row can switch the live readme off, in which case there is nothing missing to explain
   const missingReason = !base.useLiveReadme
@@ -95,7 +96,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
 
       <div className="pj__hero">
         <div className="pj__text">
-          <p className="k">planet {pad2(i + 1)} of {pad2(projects.length)} · {p.category} · {p.context}</p>
+          <p className="k">project {pad2(i + 1)} of {pad2(projects.length)} · {p.category} · {p.context}</p>
           <h1 style={{ marginTop: 12 }}><span className="name">{p.title}</span></h1>
           <p className="pj__tag">{h?.heading ?? p.tagline}</p>
           <div className="pj__meta">
@@ -112,48 +113,11 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
             <FlyLink className="sf sf--btn is-mg" to={p.id}><span className="sf__in">fly there ↗</span></FlyLink>
           </div>
         </div>
-        <div className="pj__planet">
-          <div className="pj__stage">
-            <canvas className="planet" data-planet={p.id} aria-label={`${p.title} planet`} />
-            <span className="pj__stagek k">planet {pad2(i + 1)} · drag to turn{moons.length > 0 ? ` · ${pad2(moons.length)} moons` : ""}</span>
-            <span className="planet__hint" id="planet-hint">click the planet to see what it is made of</span>
-            {moons.length > 0 && <span className="planet__moon k" id="moon-name" hidden />}
-            <button className="sf sf--btn pj__cut" id="cutbtn" type="button"><span className="sf__in">cut it open</span></button>
-            {/* the one control that survives solo, because it is the way back out of it */}
-            <button className="solo" id="solobtn" type="button" aria-pressed="false" title="Just the planet, hide everything else">
-              <span className="solo__i" aria-hidden="true"><i /><i /><i /><i /></span>
-              <span className="solo__t">just the planet</span>
-            </button>
-          </div>
-          <div className="callouts callouts--grid" id="callouts" hidden />
-          {moons.length > 0 && (
-            <div className="sf sf--thin card moons" id="moons">
-              <div className="sf__in">
-                <span className="k" data-cipher>moons · one per top-level folder</span>
-                <ul className="moons__list">
-                  {moons.map((m, k) => (
-                    <li key={m.path || m.name}>
-                      <a
-                        className="moons__row"
-                        data-moon={k}
-                        href={moonUrl(p.github, m)}
-                        target="_blank"
-                        rel="noopener"
-                        style={{ borderLeftColor: hex(m.colour) }}
-                        aria-label={`${m.name}, open ${m.path ? `${m.path}/` : "the repository"} on github`}
-                      >
-                        <em style={{ background: hex(m.colour) }} aria-hidden="true" />
-                        <b>{m.name}</b>
-                        <i>{m.path ? `/${m.path}` : "added by hand"}</i>
-                        <span aria-hidden="true">↗</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-        </div>
+        <figure className="pj__shot">
+          {/* the page's largest image, so it is fetched first; a live site makes it a link there */}
+          <ProjectShot project={p} src={shot} priority sizes={SHOT_SIZES} href={p.live ?? undefined} />
+          {shot && <figcaption className="k">{p.live ? <>screenshot · {hostOf(p.live)} ↗</> : "screenshot"}</figcaption>}
+        </figure>
       </div>
 
       <section className="pj__about">
@@ -190,7 +154,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
       <section>
         <div className="sec__h">
           <h2 data-n="02">Built with</h2><i />
-          <small>{p.langsLive ? "github language bytes · live" : "github language bytes · stored"} · same numbers as the planet&rsquo;s layers</small>
+          <small>{p.langsLive ? "github language bytes · live" : "github language bytes · stored"}</small>
         </div>
         <div className="built">
           <div className="sf sf--thin card"><div className="sf__in"><span className="k" data-cipher>composition</span><Composition langs={p.langs} /></div></div>
@@ -202,8 +166,6 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
         <Link href={`/read/projects/${prev.id}`}>← {prev.title}</Link>
         <Link href={`/read/projects/${next.id}`}>{next.title} →</Link>
       </nav>
-
-      <PlanetCanvases cutaway projects={toProjects(projects)} />
     </article>
   );
 }

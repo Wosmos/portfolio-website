@@ -13,7 +13,7 @@ export default async function ReadLayout({ children }: { children: ReactNode }) 
     <ReadShell>
       <div className="page">
         <SiteHeader person={person} hasBlog={posts.length > 0} />
-        {children}
+        <main id="main">{children}</main>
         <HashScroll />
         <SiteFooter person={person} />
       </div>

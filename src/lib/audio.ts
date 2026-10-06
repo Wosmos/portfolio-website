@@ -27,6 +27,8 @@ const LAZY: ReadonlySet<Slot> = new Set<Slot>(["ambient", "belt"]);
 export interface AudioOptions { muted?: boolean; base?: string; ambientGain?: number }
 export interface AudioApi {
   load(): Promise<void>;
+  /** Fetches the interface cuts' bytes without creating an AudioContext; `load` then only decodes. */
+  prefetch(): Promise<void>;
   startAmbient(): Promise<void>;
   startLoop(slot: Slot): Promise<void>;
   setLevel(slot: Slot, k: number): void;
@@ -74,27 +76,46 @@ export function createAudio({ muted = false, base = "/v3/audio/", ambientGain = 
     } catch { manifest = {}; }
     return manifest;
   }
+  // bytes fetched ahead of a context by `prefetch`, each handed to the decoder once and then dropped
+  const raw = new Map<Slot, Promise<ArrayBuffer | null>>();
+  const eagerSlots = (m: Manifest): Slot[] => Object.keys(m).filter((k): k is Slot => isSlot(k) && !LAZY.has(k));
+  function fetchBytes(slot: Slot, file: string): Promise<ArrayBuffer | null> {
+    return fetch(base + file).then((r) => {
+      if (!r.ok) throw new Error(String(r.status));
+      return r.arrayBuffer();
+    }).catch((e: unknown) => { console.warn(`[audio] ${slot}: could not load ${file}`, e); return null; });
+  }
   async function fetchSlot(slot: Slot): Promise<void> {
     if (buffers.has(slot)) return;
     const file = (await readManifest())[slot];
     if (!file) return;
     const ac = ensure();
+    const pending = raw.get(slot);
+    raw.delete(slot);
+    const bytes = await (pending ?? fetchBytes(slot, file));
+    if (!bytes || buffers.has(slot)) return;
     try {
-      const r = await fetch(base + file);
-      if (!r.ok) throw new Error(String(r.status));
-      buffers.set(slot, await ac.decodeAudioData(await r.arrayBuffer()));
-    } catch (e) { console.warn(`[audio] ${slot}: could not load ${file}`, e); }
+      buffers.set(slot, await ac.decodeAudioData(bytes));
+    } catch (e) { console.warn(`[audio] ${slot}: could not decode ${file}`, e); }
   }
   /** Loads the short interface cuts only. `ambient` and `belt` are streams — see `startAmbient`. */
   function load(): Promise<void> {
     if (loading) return loading;
     loading = (async () => {
       ensure();
-      const m = await readManifest();
-      const eager = (Object.keys(m).filter((k): k is Slot => isSlot(k) && !LAZY.has(k)));
-      await Promise.all(eager.map(fetchSlot));
+      await Promise.all(eagerSlots(await readManifest()).map(fetchSlot));
     })();
     return loading;
+  }
+  // Creating an AudioContext can hold the main thread for a long while on some machines, and before a
+  // gesture it starts suspended anyway, so idle time is spent on the network alone.
+  async function prefetch(): Promise<void> {
+    const m = await readManifest();
+    for (const slot of eagerSlots(m)) {
+      const file = m[slot];
+      if (file && !buffers.has(slot) && !raw.has(slot)) raw.set(slot, fetchBytes(slot, file));
+    }
+    await Promise.all(raw.values());
   }
   function play(slot: Slot, { gain = 1, rate = 1 }: { gain?: number; rate?: number } = {}): Voice | null {
     const cfg = SLOTS[slot];
@@ -143,7 +164,7 @@ export function createAudio({ muted = false, base = "/v3/audio/", ambientGain = 
     if (!v && ambientWanted && !ambientNode) void startAmbient();   // asked for while muted; start it now
   }
   return {
-    load, startAmbient, startLoop, setLevel, setMuted,
+    load, prefetch, startAmbient, startLoop, setLevel, setMuted,
     click: () => { play("click"); }, tick: () => { play("hover"); }, type: () => { play("type"); },
     warp: (rate = 1) => { play("warp", { rate }); }, retro: (rate = 1) => { play("retro", { rate }); },
     arrive: () => { play("arrive"); }, chord: () => { play("core"); }, thud: () => { play("thud"); }, beltHit: () => { play("beltHit"); },

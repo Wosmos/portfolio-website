@@ -1,4 +1,4 @@
-// Language composition: the bar and legend share their numbers with the planet's cutaway layers.
+// Language composition: a bar and a legend from GitHub's language bytes for the repository.
 
 import { LANG_COLORS, type LangShare } from "@/data/portfolio";
 import { hex } from "@/lib/text";

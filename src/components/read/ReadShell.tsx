@@ -7,7 +7,6 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Stars from "@/components/Stars";
 import { whenQuiet } from "@/lib/device";
-import { runMotion } from "@/lib/motion";
 import { getAudio } from "@/lib/sound-client";
 
 export default function ReadShell({ children }: { children: ReactNode }) {
@@ -18,11 +17,13 @@ export default function ReadShell({ children }: { children: ReactNode }) {
     const audio = getAudio();
     // The interface cuts are ~160 kB. Fetching them during hydration put them in a queue with the
     // content on a slow link, and nothing can play before the visitor has touched the page anyway.
-    const warm = (): void => { void audio.load(); };
+    // Idle time only fetches the bytes: creating the AudioContext there was a 200 ms main-thread task
+    // in Chrome, so the context and the decode wait for the first gesture.
+    const warm = (): void => { void audio.prefetch(); };
     const stopWarming = whenQuiet(warm, 6000);
     // The ambient bed is ~1 MB, so it waits for an actual gesture. A scroll used to count, which meant
     // the first flick on a phone pulled a megabyte down alongside everything else still loading.
-    const begin = (): void => { audio.resume(); void audio.startAmbient(); };
+    const begin = (): void => { audio.resume(); void audio.load(); void audio.startAmbient(); };
     addEventListener("pointerdown", begin, { once: true });
     addEventListener("keydown", begin, { once: true });
     // click + deliberate-hover ticks: the pointer must have moved onto the element and stayed 500 ms
@@ -30,7 +31,7 @@ export default function ReadShell({ children }: { children: ReactNode }) {
     let lastMove = 0, dwell = 0, dwellEl: Element | null = null;
     const onMove = (): void => { lastMove = performance.now(); };
     const onOver = (e: PointerEvent): void => {
-      const el = e.target instanceof Element ? e.target.closest("a, button, .card, .proj__card, canvas[data-planet]") : null;
+      const el = e.target instanceof Element ? e.target.closest("a, button, .card, .proj__card") : null;
       if (!el || el === dwellEl) return;
       clearTimeout(dwell); dwellEl = el;
       if (performance.now() - lastMove > 120) return;
@@ -50,14 +51,16 @@ export default function ReadShell({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // the motion pass runs per page (pathname) after fonts are ready
+  // The motion pass runs per page (pathname) after fonts are ready. GSAP and its plugins are ~55 kB
+  // compressed and decorate a page that is already readable, so they load after hydration instead of
+  // with the scripts the first paint waits behind.
   useEffect(() => {
     let cleanup: (() => void) | undefined;
     let cancelled = false;
-    void (document.fonts?.ready ?? Promise.resolve()).then(() => {
+    void Promise.all([import("@/lib/motion"), document.fonts?.ready ?? Promise.resolve()]).then(([{ runMotion }]) => {
       if (cancelled || !curtain.current) return;
       cleanup = runMotion({ curtain: curtain.current, audio: getAudio() });
-    });
+    }).catch(() => { /* a failed chunk only costs the decoration */ });
     return () => { cancelled = true; cleanup?.(); };
   }, [pathname]);
 

@@ -19,16 +19,22 @@ export default function Stars({ density = 2600, parallax = true }: { density?: n
       const n = Math.round((innerWidth * innerHeight) / density);
       list = Array.from({ length: n }, () => ({ x: Math.random() * W, y: Math.random() * H, z: 0.2 + Math.random() ** 2 * 0.8, r: Math.random() ** 3 * 1.6 * dpr + 0.3, a: 0.18 + Math.random() * 0.6, p: Math.random() * 6.28, s: 0.3 + Math.random() * 1.2 }));
     };
+    // 30 fps is plenty for a twinkle and a slow drift, and halves the cost of a full-screen redraw
+    let last = -1e9;
     const draw = (t: number): void => {
+      if (!reduced) raf = requestAnimationFrame(draw);
+      if (t - last < 33) return;
+      last = t;
       g.clearRect(0, 0, W, H);
       const sy = parallax && !reduced ? scrollY * dpr : 0, dx = reduced ? 0 : t * 0.004;
       for (const s of list) {
         const tw = reduced ? 1 : 0.65 + 0.35 * Math.sin(t * 0.001 * s.s + s.p);
         const y = (((s.y - sy * s.z * 0.35) % H) + H) % H, x = (((s.x + dx * s.z) % W) + W) % W;
         g.globalAlpha = s.a * tw; g.fillStyle = s.r > 1.3 * dpr ? "#cfefff" : "#fff";
-        g.beginPath(); g.arc(x, y, s.r, 0, 6.28); g.fill();
+        // a square is indistinguishable from a circle a pixel or two across, and far cheaper than an arc path
+        if (s.r < 1.2 * dpr) g.fillRect(x - s.r, y - s.r, s.r * 2, s.r * 2);
+        else { g.beginPath(); g.arc(x, y, s.r, 0, 6.28); g.fill(); }
       }
-      if (!reduced) raf = requestAnimationFrame(draw);
     };
     seed(); draw(0);
     addEventListener("resize", seed);

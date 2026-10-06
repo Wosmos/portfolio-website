@@ -7,13 +7,11 @@ import { absoluteUrl, clampDescription, OG_SIZE, SITE_NAME } from "@/lib/seo";
 import { ago, monthsBetween, pad2, spanLabel, ym } from "@/lib/text";
 import ContactForm from "@/components/read/ContactForm";
 import LocalTime from "@/components/read/LocalTime";
-import PlanetCanvases from "@/components/read/PlanetCanvases";
-import PlanetStrip from "@/components/read/PlanetStrip";
 import ProjectCard, { Chips } from "@/components/read/ProjectCard";
 import SkillsMatrix from "@/components/read/SkillsMatrix";
 import FlyLink from "@/components/read/FlyLink";
 import ResumeLink from "@/components/read/ResumeLink";
-import { toMatrixProjects, toProjects } from "@/components/read/project-props";
+import { toMatrixProjects } from "@/components/read/project-props";
 
 // No window: the page is rebuilt when a save or the publish button says so, not on a timer.
 export const revalidate = false;
@@ -39,8 +37,6 @@ export default async function ReadHome() {
     getPerson(), getProjects(), getFeatured(), getExperience(), getSkills(), getEducation(), getTestimonials(), getLastPush(),
   ]);
   const tel = person.phone.replace(/\s/g, "");
-  // narrowed once and handed to both islands: the same reference is serialised into the payload once
-  const clientProjects = toProjects(projects);
   const firstStart = experience.map((e) => e.start).sort()[0] ?? "2022-10";
   const years = Math.floor(monthsBetween(firstStart, null) / 12);
   const liveCount = projects.filter((p) => p.live).length;
@@ -119,7 +115,6 @@ export default async function ReadHome() {
               <div className="status__row"><span>base</span><b>{person.location}</b></div>
               <div className="status__row"><span>last push</span><b>{lastPush ? <a href={`https://github.com/Wosmos/${lastPush.repo}`} target="_blank" rel="noopener" title={lastPush.msg}>{lastPush.repo} · {ago(lastPush.at)}</a> : "offline"}</b></div>
               <div className="status__row"><span>github</span><b><a href={person.github} target="_blank" rel="noopener">Wosmos ↗</a></b></div>
-              <PlanetStrip projects={clientProjects} />
             </div>
           </div>
         </aside>
@@ -128,10 +123,12 @@ export default async function ReadHome() {
       <section id="projects">
         <div className="sec__h">
           <h2 data-n="01">Selected projects</h2><i />
-          <small>the real planets · drag to turn · <Link href="/read/projects">all {projects.length} →</Link></small>
+          <small>screenshots where the product is live · <Link href="/read/projects">all {projects.length} →</Link></small>
         </div>
         <ol className="proj bento">
-          {featuredProjects.map((p) => <ProjectCard key={p.id} p={p} index={projects.findIndex((q) => q.id === p.id)} />)}
+          {featuredProjects.map((p, k) => (
+            <ProjectCard key={p.id} p={p} index={projects.findIndex((q) => q.id === p.id)} layout={k === 0 ? "lead" : "tile"} eager={k === 0} />
+          ))}
           <li className="bento__more">
             <span>{pad2(projects.length - featuredProjects.length)} more on the projects page</span>
             <Link href="/read/projects">all {pad2(projects.length)} projects →</Link>
@@ -210,8 +207,6 @@ export default async function ReadHome() {
           <div className="rv"><ContactForm /></div>
         </div>
       </section>
-
-      <PlanetCanvases projects={clientProjects} />
     </>
   );
 }

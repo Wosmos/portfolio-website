@@ -25,7 +25,7 @@ interface Token { skill: string; group: string; n: number; used: readonly Matrix
 /** Cross-highlighting reaches the server-rendered bento cards, which are outside this component. */
 function paintCards(used: readonly string[] | null): void {
   for (const card of document.querySelectorAll<HTMLElement>(".bento .proj__card")) {
-    const id = card.querySelector<HTMLCanvasElement>("canvas[data-planet]")?.dataset.planet;
+    const id = card.dataset.project;
     const match = Boolean(used && id && used.includes(id));
     card.classList.toggle("is-match", match);
     card.classList.toggle("is-dim", Boolean(used) && !match);

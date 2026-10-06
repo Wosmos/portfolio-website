@@ -54,20 +54,37 @@ section { margin-top: clamp(56px, 10vh, 110px); scroll-margin-top: 80px; }
 .hero { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .8fr); gap: clamp(28px, 5vw, 72px); align-items: start; }
 .hero h1 { font-family: var(--display); font-size: clamp(34px, 5.4vw, 70px); line-height: 1.02; font-weight: 800; letter-spacing: -.01em; perspective: 900px; }
 .hero h1 .name { display: block; }
-.hero h1 .sub { display: block; color: var(--fg-3); font-size: clamp(11px, 1vw, 13px); font-weight: 400; letter-spacing: .3em; text-transform: uppercase; margin-top: 18px; }
-.hero__lede { margin-top: 26px; max-width: 40ch; font-size: clamp(17px, 1.55vw, 21px); line-height: 1.4; font-weight: 500; color: var(--fg); text-wrap: balance; }
+/* the role is the second thing a recruiter looks for, so it reads at a glance instead of as a caption */
+.hero h1 .sub { display: block; color: var(--cy); font-size: clamp(15px, 1.5vw, 19px); font-weight: 500; letter-spacing: .22em; text-transform: uppercase; margin-top: 16px; }
+.hero__avail { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.hero__avail b { color: var(--ok); font-weight: 500; }
+.hero__avail > span { color: var(--fg-2); padding-left: 12px; border-left: 1px solid var(--line); }
+.hero__stack { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+.hero__stack .sf--chip > .sf__in { font-size: 12px; padding: 4px 11px; color: var(--fg); }
+.hero__lede { margin-top: 24px; max-width: 40ch; font-size: clamp(17px, 1.55vw, 21px); line-height: 1.4; font-weight: 500; color: var(--fg); text-wrap: balance; }
 /* still used by /read/contact, /read/projects and /read/blog's own hero paragraphs — only the main
    /read hero dropped its copy of this, replaced by hero__lede above */
 .hero__p { margin-top: 18px; color: var(--fg-3); max-width: 66ch; font-size: 14.5px; }
-.hero__row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; align-items: center; }
-.hero__meta { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 24px; font-size: 12px; color: var(--fg-3); }
+.hero__row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; align-items: center; }
+/* the primary action is the only filled shape in the hero */
+.sf--fill { --sf-bg: #38c8f0; --sf-border: #38c8f0; }
+.sf--fill > .sf__in { color: #04121a; }
+.sf--fill:hover > .sf__in, .sf--fill:focus-visible > .sf__in { color: #04121a; text-shadow: none; }
+.sf--fill:hover { --sf-bg: #7fe0ff; --sf-border: #7fe0ff; }
+.hero__meta { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 22px; font-size: 13px; color: var(--fg-2); }
+.hero__meta a { display: inline-flex; align-items: baseline; gap: 8px; transition: color .2s; }
+.hero__meta a span { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg-3); }
 .hero__meta a:hover { color: var(--cy); }
+.hero__fly { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--fg-3); max-width: 60ch; }
+.hero__flylink { color: #ff6ee3; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; white-space: nowrap; }
+.hero__flylink:hover, .hero__flylink:focus-visible { color: #fff; text-shadow: 0 0 14px rgba(255, 43, 214, .8); }
 .hero__side { display: grid; gap: 10px; align-content: start; }
-.proof { display: grid; gap: 10px; }
-.proof .sf__in { padding: 16px 18px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 12px; }
-.proof b { font-size: 34px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; grid-row: 1 / span 2; }
-.proof span { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg-3); text-align: right; }
-.proof small { font-size: 11px; color: var(--fg-2); text-align: right; }
+/* three numbers side by side read as one fact sheet; stacked full-width they read as three cards */
+.proof { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.proof .sf__in { padding: 16px 14px; display: grid; gap: 6px; align-content: start; }
+.proof b { font-size: clamp(28px, 3vw, 36px); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: var(--fg); }
+.proof span { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--fg-2); line-height: 1.35; }
+.proof small { font-size: 11px; color: var(--fg-3); }
 .status > .sf__in { padding: 14px 18px; display: grid; gap: 8px; }
 .status__row { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--fg-3); }
 .status__row b { color: var(--fg); font-weight: 500; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
@@ -262,7 +279,7 @@ section { margin-top: clamp(56px, 10vh, 110px); scroll-margin-top: 80px; }
 
 
 @media (max-width: 960px) {
-  .hero { grid-template-columns: 1fr; } .hero__side { grid-template-columns: 1fr 1fr; } .hero__side .status { grid-column: 1 / -1; }
+  .hero { grid-template-columns: 1fr; }
   .proj { grid-template-columns: 1fr; } .skills, .edu, .pj__grid { grid-template-columns: 1fr; }
   .contact, .pj__hero, .about, .built { grid-template-columns: 1fr; } .about__facts { position: static; }
   .xp::before, .xp::after { left: 6px; } .xp__i { grid-template-columns: 1fr; gap: 6px; padding-left: 26px; } .xp__i::before { left: 2px; } .xp__when { text-align: left; grid-template-columns: auto auto; justify-content: start; gap: 12px; }
@@ -283,7 +300,6 @@ section { margin-top: clamp(56px, 10vh, 110px); scroll-margin-top: 80px; }
   .top__nav a { padding: 13px 0; font-size: 14px; letter-spacing: .18em; border-top: 1px solid var(--line); }
   .top__nav a::after { display: none; }
   .top__scrim { display: block; position: fixed; inset: 0; z-index: 25; background: rgba(3,4,7,.6); border: 0; }
-  .hero__side { grid-template-columns: 1fr; }
   .form__row { grid-template-columns: 1fr; }
   .edu .sf__in { grid-template-columns: 1fr; } .edu b { grid-column: 1; grid-row: auto; }
   .sec__h { grid-template-columns: 1fr; gap: 6px; } .sec__h i { display: none; }

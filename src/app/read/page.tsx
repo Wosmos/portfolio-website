@@ -83,22 +83,25 @@ export default async function ReadHome() {
 
       <section className="hero" style={{ marginTop: 0 }}>
         <div>
-          <p className="k"><i className="live" />open to remote roles · <LocalTime tz={person.tz} location={person.location} /></p>
-          <h1 style={{ marginTop: 16 }}><span className="name">{person.name}</span><span className="sub">software engineer · go · systems · next.js</span></h1>
-          {/* the one line a recruiter reads before deciding whether to read the rest */}
+          <p className="k hero__avail"><i className="live" /><b>open to remote roles</b><span><LocalTime tz={person.tz} location={person.location} /></span></p>
+          {/* who, then what, then in what: the three things a recruiter scans for, in that order */}
+          <h1 style={{ marginTop: 18 }}><span className="name">{person.name}</span><span className="sub">{person.role}</span></h1>
+          <div className="hero__stack" aria-label="Core stack"><Chips items={person.line.split(" · ")} /></div>
           <p className="hero__lede">{person.positioning}</p>
+          {/* one primary action; the rest step down in weight so the eye has a single place to land */}
           <div className="hero__row">
-            <Link className="sf sf--btn" href="/read/contact"><span className="sf__in">get in touch</span></Link>
-            <ResumeLink className="sf sf--btn" href={person.cv} from="hero"><span className="sf__in">résumé pdf ↓</span></ResumeLink>
-            <FlyLink className="sf sf--btn is-mg"><span className="sf__in">fly the flight deck ↗</span></FlyLink>
+            <ResumeLink className="sf sf--btn sf--fill" href={person.cv} from="hero"><span className="sf__in">download résumé ↓</span></ResumeLink>
+            <Link className="sf sf--btn sf--ghost" href="/read/contact"><span className="sf__in">get in touch</span></Link>
           </div>
-          <div className="hero__meta">
-            <span>{person.location}</span>
-            <a href={`mailto:${person.email}`}>{person.email}</a>
-            <a href={`tel:${tel}`}>{person.phone}</a>
-            <a href={person.github} target="_blank" rel="noopener">github/Wosmos ↗</a>
-            <a href={person.linkedin} target="_blank" rel="noopener">linkedin ↗</a>
-          </div>
+          <nav className="hero__meta" aria-label="Elsewhere">
+            <a href={`mailto:${person.email}`}><span>email</span>{person.email}</a>
+            <a href={person.linkedin} target="_blank" rel="noopener"><span>linkedin</span>wasif-malik ↗</a>
+            <a href={person.github} target="_blank" rel="noopener"><span>github</span>Wosmos ↗</a>
+          </nav>
+          <p className="hero__fly">
+            <FlyLink className="hero__flylink">fly the flight deck ↗</FlyLink>
+            <span>the same projects as an interactive 3D solar system, one planet each</span>
+          </p>
         </div>
         <aside className="hero__side" aria-label="At a glance">
           <div className="proof">
@@ -112,9 +115,9 @@ export default async function ReadHome() {
             <div className="sf__in">
               <span className="k">status</span>
               <div className="status__row"><span>availability</span><b className="on">open · remote</b></div>
-              <div className="status__row"><span>base</span><b>{person.location}</b></div>
+              <div className="status__row"><span>based in</span><b>{person.location} · {person.tzLabel}</b></div>
+              <div className="status__row"><span>phone</span><b><a href={`tel:${tel}`}>{person.phone}</a></b></div>
               <div className="status__row"><span>last push</span><b>{lastPush ? <a href={`https://github.com/Wosmos/${lastPush.repo}`} target="_blank" rel="noopener" title={lastPush.msg}>{lastPush.repo} · {ago(lastPush.at)}</a> : "offline"}</b></div>
-              <div className="status__row"><span>github</span><b><a href={person.github} target="_blank" rel="noopener">Wosmos ↗</a></b></div>
             </div>
           </div>
         </aside>

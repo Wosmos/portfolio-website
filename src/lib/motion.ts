@@ -88,7 +88,7 @@ export function runMotion({ curtain, audio }: MotionDeps): () => void {
     const name = document.querySelector<HTMLElement>(".hero .name, .pj .name");
     if (name && entrance && decode) { const t = cipher(name, undefined, { dur: 1.1, stagger: 0.06 }); if (t) tl.add(t, 0.4); }
     if (entrance) {
-      tl.from(".hero .k, .hero .sub, .hero__p, .hero__row, .hero__meta, .pj__tag, .pj__meta, .pj__desc, .pj__actions, .back", { opacity: 0, y: 14, duration: 0.7, stagger: 0.07, ease: "power3.out" }, 0.75)
+      tl.from(".hero .k, .hero .sub, .hero__stack, .hero__p, .hero__row, .hero__meta, .hero__fly, .pj__tag, .pj__meta, .pj__desc, .pj__actions, .back", { opacity: 0, y: 14, duration: 0.7, stagger: 0.07, ease: "power3.out" }, 0.75)
         .from(".hero__side > *, .pj__planet > *", { opacity: 0, x: 24, duration: 0.8, stagger: 0.1, ease: "power3.out" }, 0.85);
       // splitting the lead paragraph into words is only worth a whole extra pass over it if it animates
       const p = decode ? document.querySelector<HTMLElement>(".hero__p") : null;
